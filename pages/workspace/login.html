@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Đăng nhập Workspace – khu vực làm việc nội bộ phục vụ công tác phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>ĐĂNG NHẬP KHU VỰC LÀM VIỆC | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+    <link rel="stylesheet" href="../../css/login.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body ws-login-body">
+    <main class="ws-login">
+        <!-- Cột giới thiệu -->
+        <section class="ws-login__brand" aria-labelledby="ws-login-brand-title">
+            <div class="ws-login__identity">
+                <span class="ws-login__logo">
+                    <img src="../../assets/icons/logo.jpg" alt="Biểu trưng Cổng thông tin điện tử phòng, chống ma túy">
+                </span>
+                <div>
+                    <p class="ws-login__identity-name">CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY</p>
+                    <p class="ws-login__identity-sub">Thành phố Hồ Chí Minh</p>
+                </div>
+            </div>
+
+            <div>
+                <span class="ws-login__eyebrow">
+                    <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                    Không gian làm việc nội bộ
+                </span>
+                <h1 class="ws-login__headline" id="ws-login-brand-title">
+                    Điều hành nhiệm vụ, lịch công tác và báo cáo<br>giữa các đơn vị phòng, chống ma túy
+                </h1>
+                <p class="ws-login__intro">
+                    Workspace dành cho cán bộ các đơn vị phòng, chống ma túy tại TP.HCM. Đây là không gian nội bộ,
+                    không phải website công khai hay hệ thống biên tập nội dung.
+                </p>
+
+                <ul class="ws-login__features">
+                    <li class="ws-login__feature">
+                        <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                        <span>
+                            <strong>Quản lý nhiệm vụ liên đơn vị</strong>
+                            Giao việc, theo dõi tiến độ và phân quyền theo đơn vị.
+                        </span>
+                    </li>
+                    <li class="ws-login__feature">
+                        <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                        <span>
+                            <strong>Lịch công tác tập trung</strong>
+                            Họp, tập huấn và hoạt động phối hợp.
+                        </span>
+                    </li>
+                    <li class="ws-login__feature">
+                        <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+                        <span>
+                            <strong>Báo cáo phối hợp</strong>
+                            Soạn thảo, gửi duyệt và theo dõi kết quả.
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="ws-login__brand-foot">
+                <p>Ban Chỉ đạo phòng, chống tội phạm, tệ nạn xã hội và xây dựng phong trào toàn dân bảo vệ an ninh Tổ
+                    quốc Thành phố Hồ Chí Minh</p>
+            </div>
+        </section>
+
+        <!-- Cột đăng nhập -->
+        <section class="ws-login__panel" aria-labelledby="ws-login-title">
+            <div class="ws-login__card">
+                <div class="ws-login__mobile-brand">
+                    <span class="ws-login__logo">
+                        <img src="../../assets/icons/logo.jpg" alt="Biểu trưng Cổng thông tin">
+                    </span>
+                    <div>
+                        <p class="ws-login__mobile-name">Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh</p>
+                        <p class="ws-login__mobile-sub">Khu vực Workspace</p>
+                    </div>
+                </div>
+
+                <h2 class="ws-login__title" id="ws-login-title">ĐĂNG NHẬP WORKSPACE</h2>
+                <p class="ws-login__subtitle">
+                    Sử dụng tài khoản Workspace do đơn vị cấp.
+                </p>
+
+                <form class="ws-login__form" id="ws-login-form" novalidate autocomplete="on">
+                    <div class="ws-login__error" id="ws-login-error">
+                        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                        <span id="ws-login-error-text"></span>
+                    </div>
+
+                    <div class="ws-field">
+                        <label class="ws-label" for="ws-login-username">Tên đăng nhập <span
+                                class="ws-label__req">*</span></label>
+                        <div class="ws-input-icon">
+                            <i class="fa-regular fa-user" aria-hidden="true"></i>
+                            <input type="text" class="ws-input" id="ws-login-username" name="username"
+                                autocomplete="username" placeholder="Nhập tên đăng nhập" required
+                                aria-describedby="ws-login-username-help">
+                        </div>
+                        <span class="ws-help" id="ws-login-username-help">Tài khoản do đơn vị cấp.</span>
+                    </div>
+
+                    <div class="ws-field">
+                        <label class="ws-label" for="ws-login-password">Mật khẩu <span
+                                class="ws-label__req">*</span></label>
+                        <div class="ws-password">
+                            <input type="password" class="ws-input" id="ws-login-password" name="password"
+                                autocomplete="current-password" placeholder="Nhập mật khẩu" required>
+                            <button type="button" class="ws-password__toggle" id="ws-login-toggle"
+                                aria-label="Hiện mật khẩu" aria-pressed="false">
+                                <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ws-login__row">
+                        <label class="ws-check">
+                            <input type="checkbox" id="ws-login-remember" name="remember">
+                            <span>Ghi nhớ phiên đăng nhập</span>
+                        </label>
+                        <a class="ws-login__link" href="../public/contact.html">
+                            Cần hỗ trợ?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="ws-btn ws-btn--primary ws-btn--lg ws-btn--block" id="ws-login-submit">
+                        <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                        <span>Đăng nhập</span>
+                    </button>
+                </form>
+
+                <div class="ws-login__demo">
+                    <p>
+                        Thông tin đăng nhập được xác thực tại máy chủ. Tài khoản có thể bị khóa tạm thời sau nhiều lần
+                        đăng nhập sai. Vui lòng đổi mật khẩu sau lần đăng nhập đầu tiên.
+                    </p>
+                    <div class="ws-login__demo-chips">
+                        <a class="ws-chip" href="../public/contact.html">
+                            <i class="fa-solid fa-key" aria-hidden="true"></i> Yêu cầu cấp lại mật khẩu
+                        </a>
+                        <a class="ws-chip" href="../cms/login.html">
+                            <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Khu vực CMS
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="ws-login__footer">
+                <div class="ws-login__footer-links">
+                    <a href="../../index.html">
+                        <i class="fa-solid fa-globe" aria-hidden="true"></i> Về Cổng thông tin
+                    </a>
+                    <a href="../cms/login.html">
+                        <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Khu vực CMS
+                    </a>
+                    <span class="ws-login__system-flag">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kết nối bảo mật
+                    </span>
+                </div>
+                <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+            </footer>
+        </section>
+    </main>
+</body>
+
+</html>

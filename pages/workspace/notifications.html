@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Thông báo – khu vực Workspace phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>THÔNG BÁO NỘI BỘ | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Thông báo</p>
+                </div>
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main">
+                <div class="ws-main__inner" id="ws-notifications-page">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <h1 class="ws-page-head__title">Thông báo</h1>
+                            <p class="ws-page-head__desc">
+                                Thông báo giao nhiệm vụ, thay đổi trạng thái, thời hạn, báo cáo được gửi – duyệt – yêu
+                                cầu
+                                bổ sung, lịch họp và thông báo hệ thống.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <button type="button" class="ws-btn" id="ws-notice-mark-all">
+                                <i class="fa-solid fa-check-double" aria-hidden="true"></i> Đánh dấu tất cả đã đọc
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ws-mini-stats" id="ws-notice-stats"></div>
+
+                    <div class="ws-filters">
+                        <button type="button" class="ws-filters__toggle" data-filters-toggle aria-expanded="true"
+                            aria-controls="ws-notice-filters">
+                            <span><i class="fa-solid fa-filter" aria-hidden="true"></i> Bộ lọc thông báo</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-notice-type">Loại thông báo</label>
+                            <select class="ws-select" id="ws-notice-type"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-notice-read">Trạng thái đọc</label>
+                            <select class="ws-select" id="ws-notice-read">
+                                <option value="">Tất cả</option>
+                                <option value="unread">Chưa đọc</option>
+                                <option value="read">Đã đọc</option>
+                            </select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-notice-range">Thời gian</label>
+                            <select class="ws-select" id="ws-notice-range">
+                                <option value="">Mọi thời điểm</option>
+                                <option value="24">24 giờ qua</option>
+                                <option value="168">7 ngày qua</option>
+                                <option value="720">30 ngày qua</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <section class="ws-card" aria-labelledby="ws-notice-list-title">
+                        <div class="ws-card__head">
+                            <h2 class="ws-card__title" id="ws-notice-list-title">
+                                <i class="fa-regular fa-bell" aria-hidden="true"></i> Danh sách thông báo
+                            </h2>
+                        </div>
+                        <div class="ws-card__body ws-card__body--flush">
+                            <ul class="ws-notice-list-page" id="ws-notice-list"></ul>
+                        </div>
+                        <div id="ws-notice-pagination"></div>
+                    </section>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

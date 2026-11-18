@@ -1,0 +1,33 @@
+{
+  "name": "hcmc-drug-prevention-portal",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh – PUBLIC, CMS và WORKSPACE trên một nền tảng dữ liệu thống nhất.",
+  "keywords": [
+    "phong-chong-ma-tuy",
+    "ho-chi-minh-city",
+    "portal",
+    "cms",
+    "workspace",
+    "nodejs",
+    "sqlite"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "db:migrate": "node server/db/migrate.js",
+    "db:seed": "node server/db/seed.js",
+    "db:reset": "node server/db/seed.js --reset",
+    "content:reset": "node server/scripts/reset-content.js",
+    "test": "node server/scripts/test-api.js",
+    "test:interconnect": "node server/scripts/smoke-interconnect.js",
+    "export:static-public": "node server/scripts/export-static-public.js",
+    "check": "node scripts/check-encoding.js && node scripts/security-scan.js",
+    "data": "node server/scripts/data-tool.js"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Quy trình kiểm duyệt và xuất bản nội dung Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QUY TRÌNH XUẤT BẢN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Quy trình xuất bản</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Kiểm duyệt &amp; xuất bản</h1>
+                            <p class="cms-page-head__desc">
+                                Xem xét nội dung do biên tập viên gửi, chấp thuận hoặc yêu cầu chỉnh sửa, sau đó
+                                phát hành lên Cổng thông tin theo đúng thẩm quyền.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <a class="cms-btn" href="content-list.html">
+                                <i class="fa-solid fa-table-list" aria-hidden="true"></i> Toàn bộ nội dung
+                            </a>
+                            <a class="cms-btn cms-btn--primary" href="content-editor.html?id=new">
+                                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo bài viết
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Bốn bước nghiệp vụ -->
+                    <ol class="cms-workflow-steps" aria-label="Các bước của quy trình xuất bản">
+                        <li class="cms-workflow-step is-done">
+                            <span class="cms-workflow-step__icon">
+                                <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                            </span>
+                            <span class="cms-workflow-step__label">Biên tập viên soạn thảo</span>
+                            <span class="cms-workflow-step__note">Tạo bản nháp</span>
+                        </li>
+                        <li class="cms-workflow-step is-done">
+                            <span class="cms-workflow-step__icon">
+                                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                            </span>
+                            <span class="cms-workflow-step__label">Gửi xét duyệt</span>
+                            <span class="cms-workflow-step__note">Chuyển kiểm duyệt</span>
+                        </li>
+                        <li class="cms-workflow-step is-current">
+                            <span class="cms-workflow-step__icon">
+                                <i class="fa-solid fa-stamp" aria-hidden="true"></i>
+                            </span>
+                            <span class="cms-workflow-step__label">Kiểm duyệt viên xem xét</span>
+                            <span class="cms-workflow-step__note">Chấp thuận / chỉnh sửa</span>
+                        </li>
+                        <li class="cms-workflow-step">
+                            <span class="cms-workflow-step__icon">
+                                <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+                            </span>
+                            <span class="cms-workflow-step__label">Phát hành</span>
+                            <span class="cms-workflow-step__note">Hiển thị công khai</span>
+                        </li>
+                        <li class="cms-workflow-step">
+                            <span class="cms-workflow-step__icon">
+                                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                            </span>
+                            <span class="cms-workflow-step__label">Lưu lịch sử</span>
+                            <span class="cms-workflow-step__note">Ghi nhật ký</span>
+                        </li>
+                    </ol>
+
+                    <div class="cms-alert">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        <div>
+                            <strong>Phân tách trách nhiệm:</strong> biên tập viên chỉ <em>gửi duyệt</em>; kiểm duyệt
+                            viên <em>chấp thuận hoặc yêu cầu chỉnh sửa</em>; người có quyền <em>xuất bản</em> mới được
+                            phát hành nội dung. Quyền hạn được kiểm tra tại máy chủ với từng yêu cầu.
+                        </div>
+                    </div>
+
+                    <!-- Tabs trạng thái -->
+                    <div class="cms-u-flex cms-u-justify-between cms-u-items-center cms-u-wrap cms-u-gap-sm">
+                        <div class="cms-tabs cms-tabs--flush" role="tablist" aria-label="Trạng thái nội dung">
+                            <button type="button" class="cms-tab is-active" data-wf-tab="pending" role="tab"
+                                aria-selected="true">
+                                Chờ duyệt <span class="cms-tab__count">0</span>
+                            </button>
+                            <button type="button" class="cms-tab" data-wf-tab="approved" role="tab"
+                                aria-selected="false">
+                                Đã duyệt <span class="cms-tab__count">0</span>
+                            </button>
+                            <button type="button" class="cms-tab" data-wf-tab="revision" role="tab"
+                                aria-selected="false">
+                                Cần chỉnh sửa <span class="cms-tab__count">0</span>
+                            </button>
+                            <button type="button" class="cms-tab" data-wf-tab="published" role="tab"
+                                aria-selected="false">
+                                Đã xuất bản <span class="cms-tab__count">0</span>
+                            </button>
+                        </div>
+
+                        <div class="cms-input-icon cms-input-icon--compact">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" class="cms-input" id="wf-q" placeholder="Tìm theo tiêu đề…"
+                                aria-label="Tìm trong danh sách chờ xử lý">
+                        </div>
+                    </div>
+
+                    <div class="cms-workflow-layout cms-u-mt-md">
+                        <!-- Danh sách -->
+                        <section class="cms-card" aria-labelledby="wf-queue-title">
+                            <div class="cms-card__head">
+                                <div>
+                                    <h2 class="cms-card__title" id="wf-queue-title">
+                                        <i class="fa-solid fa-inbox" aria-hidden="true"></i> Danh sách nội dung
+                                    </h2>
+                                    <p class="cms-card__subtitle">Chọn một nội dung để xem chi tiết và xử lý</p>
+                                </div>
+                            </div>
+                            <div class="cms-queue" id="wf-queue"></div>
+                        </section>
+
+                        <!-- Chi tiết & xử lý -->
+                        <div class="cms-workflow-detail" id="wf-detail"></div>
+                    </div>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

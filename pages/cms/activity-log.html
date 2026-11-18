@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Nhật ký hoạt động của khu vực quản trị Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>NHẬT KÝ HOẠT ĐỘNG QUẢN TRỊ | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Nhật ký hoạt động</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Nhật ký hoạt động</h1>
+                            <p class="cms-page-head__desc">
+                                Tra cứu lịch sử thao tác của người dùng trong khu vực quản trị: đăng nhập, tạo và sửa
+                                nội dung, duyệt, xuất bản, tải tài nguyên và thay đổi cấu hình.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <button type="button" class="cms-btn" id="log-reset">
+                                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Xóa bộ lọc
+                            </button>
+                            <button type="button" class="cms-btn cms-btn--primary" id="log-export">
+                                <i class="fa-solid fa-file-csv" aria-hidden="true"></i> Xuất CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cms-alert">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        <div>
+                            <strong>Nhật ký tại máy chủ:</strong> mọi thao tác quan trọng được ghi tự động phía máy chủ,
+                            không thể sửa hoặc xóa bởi người dùng cuối. Nhật ký được lưu theo chính sách lưu trữ của
+                            đơn vị vận hành.
+                        </div>
+                    </div>
+
+                    <!-- Tổng hợp -->
+                    <div class="cms-log-summary" id="log-summary"></div>
+
+                    <!-- Bộ lọc -->
+                    <section class="cms-filters" aria-labelledby="log-filter-title">
+
+                        <button type="button" class="cms-filters__toggle" data-filters-toggle aria-expanded="false">
+                            <span><i class="fa-solid fa-sliders" aria-hidden="true"></i> Bộ lọc &amp; tìm kiếm</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+
+                        <h2 class="cms-u-sr-only" id="log-filter-title">Lọc nhật ký</h2>
+
+                        <div class="cms-filters__field cms-filters__field--grow">
+                            <label class="cms-label" for="log-q">Từ khóa</label>
+                            <div class="cms-input-icon">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                <input type="search" class="cms-input" id="log-q"
+                                    placeholder="Đối tượng, nội dung chi tiết…">
+                            </div>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="log-user">Người thực hiện</label>
+                            <select class="cms-select" id="log-user">
+                                <option value="">Tất cả người dùng</option>
+                            </select>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="log-action">Hành động</label>
+                            <select class="cms-select" id="log-action">
+                                <option value="">Tất cả hành động</option>
+                            </select>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="log-status">Trạng thái</label>
+                            <select class="cms-select" id="log-status">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="success">Thành công</option>
+                                <option value="warning">Cảnh báo</option>
+                                <option value="failed">Thất bại</option>
+                            </select>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="log-from">Từ ngày</label>
+                            <input type="date" class="cms-input" id="log-from">
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="log-to">Đến ngày</label>
+                            <input type="date" class="cms-input" id="log-to">
+                        </div>
+
+                        <p class="cms-filters__summary" id="log-summary-text" aria-live="polite"></p>
+                    </section>
+
+                    <!-- Bảng nhật ký -->
+                    <div class="cms-card">
+                        <div class="cms-table-wrap">
+                            <table class="cms-table cms-table--stack">
+                                <caption class="cms-u-sr-only">Nhật ký hoạt động trong khu vực quản trị</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Người thực hiện</th>
+                                        <th scope="col">Hành động</th>
+                                        <th scope="col">Đối tượng</th>
+                                        <th scope="col">Thời gian</th>
+                                        <th scope="col">IP</th>
+                                        <th scope="col">Trạng thái</th>
+                                        <th scope="col" class="cms-table__col-actions">
+                                            <span class="cms-u-sr-only">Chi tiết</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="log-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="cms-pagination" id="log-pagination"></div>
+                    </div>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

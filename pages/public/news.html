@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+          content="Tin tức, hoạt động tuyên truyền và thông tin chỉ đạo về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="author" content="DaDa">
+    <title>TIN TỨC VÀ SỰ KIỆN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/public-pages.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="site-header__topbar">
+            <div class="site-header__topbar-inner container">
+                <div class="site-header__topbar-info">
+                    <span class="site-header__city">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        Thành phố Hồ Chí Minh
+                    </span>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <span class="site-header__date">
+                        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+                        <time id="current-date">Đang cập nhật...</time>
+                    </span>
+                </div>
+                <div class="site-header__system-links">
+                    <a href="../workspace/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                        Workspace
+                    </a>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <a href="../cms/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                        CMS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="site-header__identity">
+            <div class="site-header__identity-inner container">
+                <div class="site-header__brand">
+                    <a href="../../index.html"
+                       class="site-header__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-header__brand-content">
+                        <div class="site-header__brand-name">
+                            CỔNG THÔNG TIN ĐIỆN TỬ
+                            <br>
+                            VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </div>
+                        <div class="site-header__brand-name-en">
+                            HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL
+                        </div>
+                    </div>
+                </div>
+
+                <div class="site-header__search">
+                    <form action="news.html"
+                          method="GET"
+                          class="site-header__search-form"
+                          role="search">
+                        <input
+                            type="search"
+                            name="q"
+                            class="site-header__search-input"
+                            placeholder="Nhập từ khóa tìm kiếm..."
+                            aria-label="Tìm kiếm thông tin">
+                        <button type="submit"
+                                class="site-header__search-button"
+                                aria-label="Tìm kiếm">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <button
+                    type="button"
+                    class="site-header__menu-toggle"
+                    aria-label="Mở menu điều hướng"
+                    aria-expanded="false"
+                    aria-controls="main-navigation">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
+        <nav class="site-header__navigation"
+             id="main-navigation"
+             aria-label="Điều hướng chính">
+            <div class="site-header__navigation-inner container">
+                <ul class="site-header__nav-list">
+                    <li class="site-header__nav-item">
+                        <a href="../../index.html" class="site-header__nav-link">
+                            Trang chủ
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="about.html" class="site-header__nav-link">
+                            Giới thiệu
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="news.html"
+                           class="site-header__nav-link site-header__nav-link--active"
+                           aria-current="page">
+                            Tin tức
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="education.html" class="site-header__nav-link">
+                            Tuyên truyền - Giáo dục
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="laws.html" class="site-header__nav-link">
+                            Pháp luật
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="statistics.html" class="site-header__nav-link">
+                            Thống kê
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="agencies.html" class="site-header__nav-link">
+                            Cơ quan - Đơn vị
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="support.html" class="site-header__nav-link">
+                            Hỗ trợ cai nghiện
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="contact.html" class="site-header__nav-link">
+                            Liên hệ
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main id="site-main" class="site-main">
+    <!-- PHẦN 1: HEADER CHUYÊN MỤC + BỘ LỌC NHANH -->
+        <section class="news-header" aria-label="Tiêu đề và bộ lọc tin tức">
+            <div class="container">
+                <nav class="news-breadcrumb" aria-label="Đường dẫn trang">
+                    <a href="../../index.html">Trang chủ</a>
+                    <span aria-hidden="true">/</span>
+                    <span aria-current="page">Tin tức</span>
+                </nav>
+
+                <div class="news-header__top">
+                    <div>
+                        <h1 class="news-header__title">TIN TỨC & HOẠT ĐỘNG</h1>
+                        <p class="news-header__subtitle">
+                            Cập nhật kịp thời thông tin chỉ đạo, hoạt động tuyên truyền và công tác phòng, chống ma túy tại Thành phố Hồ Chí Minh
+                        </p>
+                    </div>
+                </div>
+
+                <div class="news-toolbar">
+                    <div class="news-categories" id="news-category-tabs" role="tablist" aria-label="Lọc tin theo chuyên mục">
+                        <button type="button" class="news-cat-btn is-active" data-category="all">
+                            Tất cả tin bài
+                        </button>
+                        <!-- Chuyên mục do public-pages.js lấy từ API (CMS quản lý) -->
+                    </div>
+
+                    <div class="news-filter-box">
+                        <input type="text"
+                            id="news-local-search"
+                            placeholder="Lọc nhanh theo tiêu đề bài viết..."
+                            aria-label="Lọc nhanh bài viết"
+                            autocomplete="off">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    </div>
+                </div>
+
+                <div id="news-search-banner" class="news-search-status" role="status">
+                    <span>
+                        Đang hiển thị kết quả tìm kiếm cho từ khóa: <strong id="news-search-keyword"></strong>
+                    </span>
+                    <button type="button" id="news-clear-search">Xóa bộ lọc</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHẦN 2: KHỐI TIN TIÊU ĐIỂM (1 TIN CHÍNH LỚN + 3 TIN NỔI BẬT BÊN PHẢI) -->
+        <section class="news-spotlight" aria-label="Tin tức tiêu điểm">
+            <div class="container news-spotlight__grid">
+                        <!-- Nội dung do API/CMS cung cấp khi tải trang (dữ liệu ẩn khi chưa có bản ghi) -->
+                    </div>
+        </section>
+
+        <!-- PHẦN 3: DANH SÁCH BÀI VIẾT BÊN TRÁI + CỘT TIỆN ÍCH BÊN PHẢI -->
+        <section class="news-main">
+            <div class="container news-main__grid">
+                <!-- Cột trái: Luồng tin bài chi tiết -->
+                <div>
+                    <div class="news-feed__header">
+                        <h2 class="news-feed__heading">Dòng thời sự & Hoạt động</h2>
+                        <span class="news-feed__count" id="news-result-count"></span>
+                    </div>
+
+                    <div class="news-list" id="news-article-list">
+                        <!-- Nội dung do API/CMS cung cấp khi tải trang (dữ liệu ẩn khi chưa có bản ghi) -->
+                    </div>
+
+                    <div id="news-empty-state" class="news-empty">
+                        <i class="fa-regular fa-newspaper" aria-hidden="true"></i>
+                        <h3>Không tìm thấy bài viết phù hợp</h3>
+                        <p>Vui lòng thử lại với từ khóa khác hoặc chuyển về danh mục tất cả tin bài.</p>
+                        <button type="button" id="news-reset-all" class="site-main__button site-main__button--primary">
+                            Xem tất cả tin bài
+                        </button>
+                    </div>
+
+                    <nav class="news-pagination" aria-label="Phân trang tin tức">
+                        <!-- Nút phân trang do main.js dựng theo số bài thực có -->
+                    </nav>
+                </div>
+
+                <!-- Cột phải: Sidebar Tiện ích (Đọc nhiều + Hỗ trợ khẩn + Từ khóa) -->
+                <aside class="news-sidebar" aria-label="Thông tin bổ trợ tin tức">
+                    <div class="news-widget">
+                        <h2 class="news-widget__title">
+                            <i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i>
+                            Tin đọc nhiều
+                        </h2>
+                        <ol class="news-trending" id="news-trending-list">
+                            <!-- Tin đọc nhiều do public-pages.js lấy từ API công khai -->
+                        </ol>
+                    </div>
+
+                    <div class="news-hotline">
+                        <span class="news-hotline__badge">
+                            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                            Tiếp nhận & Hỗ trợ
+                        </span>
+                        <h3>Phản ánh thông tin hoặc cần tư vấn cai nghiện?</h3>
+                        <p>
+                            Mọi thông tin phản ánh của người dân được tiếp nhận, xử lý kịp thời và bảo đảm bí mật tuyệt đối.
+                        </p>
+                        <div class="news-hotline__actions">
+                            <a href="support.html" class="news-hotline__btn">
+                                <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
+                                Điểm tư vấn & Hỗ trợ cai nghiện
+                            </a>
+                            <a href="contact.html" class="news-hotline__btn">
+                                <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+                                Gửi thông tin liên hệ
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="news-widget">
+                        <h2 class="news-widget__title">
+                            <i class="fa-solid fa-tags" aria-hidden="true"></i>
+                            Chủ đề quan tâm
+                        </h2>
+                        <div class="news-tags" id="news-tag-cloud">
+                            <!-- Thẻ chủ đề do public-pages.js tổng hợp từ bài viết đã xuất bản -->
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__main">
+            <div class="site-footer__main-inner container">
+                <section class="site-footer__brand">
+                    <a href="../../index.html"
+                       class="site-footer__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-footer__brand-content">
+                        <h2 class="site-footer__brand-title">
+                            CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY
+                            TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </h2>
+                        <p class="site-footer__description">
+                            Cung cấp thông tin, kiến thức và các hoạt động
+                            tuyên truyền về công tác phòng, chống ma túy.
+                            Chung tay xây dựng cộng đồng an toàn, lành mạnh,
+                            không có ma túy.
+                        </p>
+                    </div>
+                </section>
+
+                <nav class="site-footer__links" aria-label="Liên kết nhanh">
+                    <h2 class="site-footer__heading">
+                        LIÊN KẾT NHANH
+                    </h2>
+                    <ul class="site-footer__link-list">
+                        <li class="site-footer__link-item">
+                            <a href="about.html" class="site-footer__link">Giới thiệu</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="news.html" class="site-footer__link">Tin tức</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="education.html" class="site-footer__link">Tuyên truyền - Giáo dục</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="laws.html" class="site-footer__link">Pháp luật</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="statistics.html" class="site-footer__link">Thống kê</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="agencies.html" class="site-footer__link">Cơ quan - Đơn vị</a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <section class="site-footer__contact">
+                    <h2 class="site-footer__heading">
+                        THÔNG TIN LIÊN HỆ
+                    </h2>
+                    <ul class="site-footer__contact-list">
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <span>Thành phố Hồ Chí Minh, Việt Nam</span>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                            <a href="mailto:hcmcdpcp@gmail.com" class="site-footer__link">hcmcdpcp@gmail.com</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                            <a href="../../index.html" class="site-footer__link">Cổng thông tin điện tử</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                            <a href="contact.html" class="site-footer__link">Trang liên hệ và hỗ trợ</a>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <div class="site-footer__bottom">
+            <div class="site-footer__bottom-inner container">
+                <p class="site-footer__copyright">© <time class="site-footer__year"></time> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                <p class="site-footer__note">
+                    Thông tin phục vụ công tác tuyên truyền và nâng cao
+                    nhận thức cộng đồng.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

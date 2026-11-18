@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý báo cáo – khu vực Workspace phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QUẢN LÝ BÁO CÁO | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Báo cáo</p>
+                </div>
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main">
+                <div class="ws-main__inner" id="ws-reports">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <h1 class="ws-page-head__title">Quản lý báo cáo</h1>
+                            <p class="ws-page-head__desc">
+                                Theo dõi báo cáo định kỳ, chuyên đề, đột xuất và quy trình gửi – duyệt – yêu cầu bổ
+                                sung.
+                                Báo cáo đã duyệt có thể được đề xuất sang CMS để công khai theo quy trình kiểm duyệt.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <a class="ws-btn ws-btn--primary" href="report-editor.html" data-perm="report.create">
+                                <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i> Lập báo cáo
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="ws-chips" id="ws-report-chips" role="group" aria-label="Lọc nhanh theo trạng thái">
+                    </div>
+
+                    <div class="ws-toolbar">
+                        <div class="ws-search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <label class="ws-u-sr" for="ws-report-search">Tìm kiếm báo cáo</label>
+                            <input type="search" id="ws-report-search"
+                                placeholder="Tìm theo mã, tên báo cáo, kỳ báo cáo…">
+                        </div>
+                    </div>
+
+                    <div class="ws-filters">
+                        <button type="button" class="ws-filters__toggle" data-filters-toggle aria-expanded="true"
+                            aria-controls="ws-report-filters">
+                            <span><i class="fa-solid fa-filter" aria-hidden="true"></i> Bộ lọc báo cáo</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-report-type">Loại báo cáo</label>
+                            <select class="ws-select" id="ws-report-type"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-report-status">Trạng thái</label>
+                            <select class="ws-select" id="ws-report-status">
+                                <option value="">Mọi trạng thái</option>
+                                <option value="draft">Bản nháp</option>
+                                <option value="ready">Chờ gửi</option>
+                                <option value="sent">Đã gửi</option>
+                                <option value="pending">Chờ duyệt</option>
+                                <option value="approved">Đã duyệt</option>
+                                <option value="revision">Yêu cầu bổ sung</option>
+                                <option value="rejected">Từ chối</option>
+                            </select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-report-org">Đơn vị</label>
+                            <select class="ws-select" id="ws-report-org"></select>
+                        </div>
+                        <div class="ws-filters__actions">
+                            <button type="button" class="ws-btn ws-btn--sm" id="ws-report-reset">Xóa lọc</button>
+                        </div>
+                    </div>
+
+                    <section class="ws-card ws-report-list" aria-labelledby="ws-report-table-title">
+                        <div class="ws-card__head">
+                            <h2 class="ws-card__title" id="ws-report-table-title">
+                                <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Danh sách báo cáo
+                            </h2>
+                            <div class="ws-card__tools">
+                                <label class="ws-u-sr" for="ws-report-page-size">Số dòng mỗi trang</label>
+                                <select class="ws-select ws-select--compact" id="ws-report-page-size">
+                                    <option value="10" selected>10 / trang</option>
+                                    <option value="20">20 / trang</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ws-card__body ws-card__body--flush">
+                            <div class="ws-table-wrap">
+                                <table class="ws-table ws-table--stack">
+                                    <caption class="ws-u-sr">Danh sách báo cáo</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" data-sort="code">Mã</th>
+                                            <th scope="col" data-sort="name">Báo cáo</th>
+                                            <th scope="col">Đơn vị</th>
+                                            <th scope="col">Người lập</th>
+                                            <th scope="col" data-sort="createdDate" aria-sort="descending">Ngày
+                                                lập</th>
+                                            <th scope="col">Trạng thái</th>
+                                            <th scope="col"><span class="ws-u-sr">Thao tác</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ws-report-body"></tbody>
+                                </table>
+                            </div>
+                            <div id="ws-report-pagination"></div>
+                        </div>
+                    </section>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

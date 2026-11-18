@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kho tài liệu – khu vực Workspace phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QUẢN LÝ TÀI LIỆU | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Tài liệu</p>
+                </div>
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main">
+                <div class="ws-main__inner" id="ws-documents">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <h1 class="ws-page-head__title">Kho tài liệu</h1>
+                            <p class="ws-page-head__desc">
+                                Lưu trữ, phân loại, quản lý phiên bản và kiểm soát phạm vi truy cập tài liệu nội bộ.
+                                Tài liệu hạn chế chỉ hiển thị với đơn vị sở hữu hoặc người có quyền quản lý tài liệu.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <button type="button" class="ws-btn ws-btn--primary" data-doc-upload
+                                data-perm="doc.manage">
+                                <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Tải lên tài liệu
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ws-mini-stats" id="ws-doc-summary"></div>
+
+                    <div class="ws-toolbar">
+                        <div class="ws-search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <label class="ws-u-sr" for="ws-doc-search">Tìm kiếm tài liệu</label>
+                            <input type="search" id="ws-doc-search" placeholder="Tìm theo mã, tên tài liệu, đơn vị…">
+                        </div>
+                    </div>
+
+                    <div class="ws-filters">
+                        <button type="button" class="ws-filters__toggle" data-filters-toggle aria-expanded="true"
+                            aria-controls="ws-doc-filters">
+                            <span><i class="fa-solid fa-filter" aria-hidden="true"></i> Bộ lọc tài liệu</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-doc-type">Loại tài liệu</label>
+                            <select class="ws-select" id="ws-doc-type"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-doc-org">Đơn vị</label>
+                            <select class="ws-select" id="ws-doc-org"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-doc-access">Phạm vi</label>
+                            <select class="ws-select" id="ws-doc-access"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-doc-from">Tải lên từ ngày</label>
+                            <input type="date" class="ws-select ws-select--compact-date" id="ws-doc-from">
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-doc-to">Đến ngày</label>
+                            <input type="date" class="ws-select ws-select--compact-date" id="ws-doc-to">
+                        </div>
+                        <div class="ws-filters__actions">
+                            <button type="button" class="ws-btn ws-btn--sm" id="ws-doc-reset">Xóa lọc</button>
+                        </div>
+                    </div>
+
+                    <div class="ws-doc-layout">
+                        <section class="ws-card" aria-labelledby="ws-doc-folders-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-doc-folders-title">
+                                    <i class="fa-solid fa-folder-tree" aria-hidden="true"></i> Thư mục
+                                </h2>
+                            </div>
+                            <div class="ws-card__body">
+                                <div class="ws-folders" id="ws-doc-folders"></div>
+                            </div>
+                        </section>
+
+                        <section class="ws-card" aria-labelledby="ws-doc-table-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-doc-table-title">
+                                    <i class="fa-solid fa-folder-open" aria-hidden="true"></i> Danh sách tài liệu
+                                </h2>
+                                <div class="ws-card__tools">
+                                    <label class="ws-u-sr" for="ws-doc-page-size">Số dòng mỗi trang</label>
+                                    <select class="ws-select ws-select--compact" id="ws-doc-page-size">
+                                        <option value="10" selected>10 / trang</option>
+                                        <option value="20">20 / trang</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ws-card__body ws-card__body--flush">
+                                <div class="ws-table-wrap">
+                                    <table class="ws-table ws-table--stack">
+                                        <caption class="ws-u-sr">Danh sách tài liệu</caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col" data-sort="name">Tài liệu</th>
+                                                <th scope="col">Loại</th>
+                                                <th scope="col">Đơn vị</th>
+                                                <th scope="col">Người tải lên</th>
+                                                <th scope="col" data-sort="uploadedAt" aria-sort="descending">
+                                                    Ban hành / tải lên</th>
+                                                <th scope="col">Định dạng</th>
+                                                <th scope="col">Truy cập</th>
+                                                <th scope="col"><span class="ws-u-sr">Thao tác</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ws-doc-body"></tbody>
+                                    </table>
+                                </div>
+                                <div id="ws-doc-pagination"></div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

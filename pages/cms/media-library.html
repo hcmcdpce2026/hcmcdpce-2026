@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Thư viện tài nguyên Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>THƯ VIỆN TÀI NGUYÊN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Thư viện tài nguyên</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Quản lý tài nguyên</h1>
+                            <p class="cms-page-head__desc">
+                                Hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin. Kiểm tra định dạng
+                                và dung lượng tệp trước khi tải lên.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <input type="file" id="media-file-input" multiple hidden>
+                            <button type="button" class="cms-btn cms-btn--primary" id="media-upload-btn">
+                                <i class="fa-solid fa-upload" aria-hidden="true"></i> Tải tệp lên
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bộ lọc -->
+                    <section class="cms-filters" aria-labelledby="media-filter-title">
+
+                        <button type="button" class="cms-filters__toggle" data-filters-toggle aria-expanded="false">
+                            <span><i class="fa-solid fa-sliders" aria-hidden="true"></i> Bộ lọc &amp; tìm kiếm</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+
+                        <h2 class="cms-u-sr-only" id="media-filter-title">Lọc tài nguyên</h2>
+
+                        <div class="cms-filters__field cms-filters__field--grow">
+                            <label class="cms-label" for="media-q">Tìm tệp</label>
+                            <div class="cms-input-icon">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                <input type="search" class="cms-input" id="media-q" placeholder="Tên tệp, thư mục…">
+                                <button type="button" class="cms-input-icon__clear" data-media-search-clear
+                                    aria-label="Xóa từ khóa">
+                                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="media-type">Định dạng</label>
+                            <select class="cms-select" id="media-type">
+                                <option value="">Tất cả định dạng</option>
+                                <option value="image">Hình ảnh</option>
+                                <option value="document">Tài liệu</option>
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word (.docx)</option>
+                                <option value="xlsx">Excel (.xlsx)</option>
+                            </select>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="media-date">Ngày tải lên</label>
+                            <select class="cms-select" id="media-date">
+                                <option value="">Mọi thời điểm</option>
+                                <option value="7">7 ngày gần đây</option>
+                                <option value="30">30 ngày gần đây</option>
+                                <option value="year">Trong năm nay</option>
+                            </select>
+                        </div>
+
+                        <div class="cms-filters__actions">
+                            <div class="cms-u-flex cms-u-gap-sm" role="group" aria-label="Kiểu hiển thị">
+                                <button type="button" class="cms-btn cms-btn--sm is-active" data-view="grid"
+                                    aria-pressed="true" aria-label="Hiển thị dạng lưới" title="Dạng lưới">
+                                    <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="cms-btn cms-btn--sm" data-view="list" aria-pressed="false"
+                                    aria-label="Hiển thị dạng danh sách" title="Dạng danh sách">
+                                    <i class="fa-solid fa-list" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="cms-filters__summary" id="media-summary" aria-live="polite"></p>
+                    </section>
+
+                    <div class="cms-media-layout">
+                        <!-- Vùng tài nguyên -->
+                        <div class="cms-media-main">
+                            <div class="cms-card">
+                                <div class="cms-media-area is-grid" id="media-area">
+                                    <div class="cms-media-grid" id="media-grid"></div>
+                                    <div class="cms-media-list" id="media-list"></div>
+                                </div>
+                                <div class="cms-pagination" id="media-pagination"></div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar: tải lên + chi tiết -->
+                        <aside class="cms-media-aside">
+                            <div class="cms-card">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title">
+                                        <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Tải tệp lên
+                                    </h2>
+                                </div>
+                                <div class="cms-card__body">
+                                    <div class="cms-dropzone" id="media-dropzone" role="button" tabindex="0"
+                                        aria-label="Chọn hoặc kéo thả tệp để tải lên">
+                                        <i class="fa-solid fa-cloud-arrow-up cms-dropzone__icon" aria-hidden="true"></i>
+                                        <span class="cms-dropzone__title">Kéo thả tệp vào đây</span>
+                                        <span class="cms-dropzone__hint">
+                                            hoặc bấm để chọn tệp từ máy tính<br>
+                                            Hình ảnh, video và mọi loại tệp · không giới hạn dung lượng
+                                        </span>
+                                    </div>
+                                    <div class="cms-upload-queue" id="media-queue" aria-live="polite"></div>
+                                </div>
+                            </div>
+
+                            <div class="cms-card">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title">
+                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Thông tin tệp
+                                    </h2>
+                                </div>
+                                <div class="cms-card__body" id="media-detail"></div>
+                            </div>
+
+                            <div class="cms-card">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title">
+                                        <i class="fa-solid fa-hard-drive" aria-hidden="true"></i> Dung lượng
+                                    </h2>
+                                </div>
+                                <div class="cms-card__body">
+                                    <div class="cms-storage">
+                                        <div class="cms-storage__meta">
+                                            <span>Đã dùng <strong id="media-used">0 MB</strong></span>
+                                            <span>Thư viện</span>
+                                        </div>
+                                        <p class="cms-help">
+                                            Không giới hạn dung lượng tệp. Quản lý dung lượng toàn thư viện
+                                            và sao lưu phía máy chủ.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

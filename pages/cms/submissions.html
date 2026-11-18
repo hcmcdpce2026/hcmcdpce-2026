@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Tiếp nhận, phân công và phản hồi yêu cầu, phản ánh của công dân gửi qua Cổng thông tin điện tử phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>TIẾP NHẬN VÀ XỬ LÝ YÊU CẦU | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Tiếp nhận yêu cầu</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Tiếp nhận và xử lý yêu cầu</h1>
+                            <p class="cms-page-head__desc">
+                                Yêu cầu, phản ánh và câu hỏi do người dân gửi qua biểu mẫu trên Cổng thông tin được
+                                tiếp nhận tại đây, phân công tới đơn vị chuyên môn và phản hồi theo quy trình.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <span class="cms-table__muted" id="sub-summary">Tổng 0 yêu cầu</span>
+                        </div>
+                    </div>
+
+                    <div class="cms-alert">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        <div>
+                            <strong>Bảo vệ dữ liệu cá nhân:</strong> chỉ nội dung được đánh dấu công khai mới hiển thị
+                            khi công dân tra cứu mã tiếp nhận. Thông tin liên hệ và nội dung chi tiết chỉ dành cho cán
+                            bộ có quyền xử lý.
+                        </div>
+                    </div>
+
+                    <section class="cms-card" aria-labelledby="sub-list-title">
+                        <div class="cms-card__head">
+                            <div>
+                                <h2 class="cms-card__title" id="sub-list-title">
+                                    <i class="fa-solid fa-inbox" aria-hidden="true"></i> Danh sách yêu cầu
+                                </h2>
+                                <p class="cms-card__subtitle">Cập nhật theo thời điểm tiếp nhận</p>
+                            </div>
+                            <div class="cms-search">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                <input type="search" id="sub-q" placeholder="Tìm theo mã, tiêu đề hoặc nội dung…"
+                                    aria-label="Tìm yêu cầu tiếp nhận">
+                            </div>
+                        </div>
+                        <div class="cms-card__body">
+                            <div class="cms-u-flex cms-u-gap-sm cms-u-wrap" id="sub-list-host" role="group"
+                                aria-label="Lọc theo trạng thái xử lý"></div>
+                            <div class="cms-table-wrap">
+                                <table class="cms-table">
+                                    <caption class="cms-u-sr-only">Danh sách yêu cầu, phản ánh đã tiếp nhận</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Mã tiếp nhận</th>
+                                            <th scope="col">Nội dung</th>
+                                            <th scope="col">Người gửi</th>
+                                            <th scope="col">Đơn vị xử lý</th>
+                                            <th scope="col">Thời điểm</th>
+                                            <th scope="col">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sub-tbody">
+                                        <tr>
+                                            <td colspan="6" class="cms-empty-cell">
+                                                <span class="cms-skeleton cms-skeleton--line"></span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                    </section>
+                </div>
+            </main>
+
+            <footer class="cms-footer">
+                <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ
+                    Chí Minh.</p>
+            </footer>
+        </div>
+    </div>
+</body>
+
+</html>

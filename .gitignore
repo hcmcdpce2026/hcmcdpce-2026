@@ -1,0 +1,44 @@
+# =============================================================================
+# KHÔNG commit dữ liệu nhạy cảm hoặc tệp phát sinh
+# =============================================================================
+
+# Biến môi trường & bí mật
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Cơ sở dữ liệu & dữ liệu vận hành
+server/data/*.sqlite
+server/data/*.sqlite-wal
+server/data/*.sqlite-shm
+server/data/*.log
+server/data/credentials.local.txt
+server/data/qa-creds.json
+server/data/test-result.jsonl
+server/data/test-result.txt
+server/data/probe.txt
+server/data/*.png
+
+# Tệp tải lên của người dùng
+uploads/
+media/
+
+# Công cụ & hệ điều hành
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.bak2
+*.tmp
+.vscode/
+.idea/
+
+# Ảnh chụp kiểm thử
+artifacts/
+
+# Bản sao lưu có thể chứa database hoặc dữ liệu cá nhân
+backups/

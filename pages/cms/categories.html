@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý chuyên mục Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QUẢN LÝ CHUYÊN MỤC | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Quản lý chuyên mục</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Cơ cấu chuyên mục</h1>
+                            <p class="cms-page-head__desc">
+                                Tổ chức cấu trúc chuyên mục cha – con, điều chỉnh thứ tự hiển thị và trạng thái
+                                của từng chuyên mục trên Cổng thông tin.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <button type="button" class="cms-btn cms-btn--primary" id="category-create">
+                                <i class="fa-solid fa-folder-plus" aria-hidden="true"></i> Tạo chuyên mục
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cms-alert">
+                        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                        <div>
+                            Không thể xóa chuyên mục đang chứa bài viết. Hãy chuyển nội dung sang chuyên mục khác
+                            trước, hoặc tạm ẩn chuyên mục nếu chỉ muốn ngừng hiển thị.
+                        </div>
+                    </div>
+
+                    <!-- Bộ lọc -->
+                    <section class="cms-filters" aria-labelledby="cat-filter-title">
+
+                        <button type="button" class="cms-filters__toggle" data-filters-toggle aria-expanded="false">
+                            <span><i class="fa-solid fa-sliders" aria-hidden="true"></i> Bộ lọc &amp; tìm kiếm</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+
+                        <h2 class="cms-u-sr-only" id="cat-filter-title">Tìm kiếm chuyên mục</h2>
+
+                        <div class="cms-filters__field cms-filters__field--grow">
+                            <label class="cms-label" for="category-q">Tìm chuyên mục</label>
+                            <div class="cms-input-icon">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                <input type="search" class="cms-input" id="category-q"
+                                    placeholder="Nhập tên hoặc slug…">
+                            </div>
+                        </div>
+
+                        <div class="cms-filters__field">
+                            <label class="cms-label" for="category-status">Trạng thái</label>
+                            <select class="cms-select" id="category-status">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="inactive">Tạm ẩn</option>
+                            </select>
+                        </div>
+
+                        <p class="cms-filters__summary" id="category-summary" aria-live="polite"></p>
+                    </section>
+
+                    <!-- Bảng -->
+                    <div class="cms-card">
+                        <div class="cms-table-wrap">
+                            <table class="cms-table cms-table--stack cms-table--categories">
+                                <caption class="cms-u-sr-only">Danh sách chuyên mục theo cấu trúc cha – con</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col"><span class="cms-u-sr-only">Cấp</span></th>
+                                        <th scope="col">Tên chuyên mục</th>
+                                        <th scope="col">Chuyên mục cha</th>
+                                        <th scope="col">Số bài viết</th>
+                                        <th scope="col">Thứ tự</th>
+                                        <th scope="col">Trạng thái</th>
+                                        <th scope="col">Ngày tạo</th>
+                                        <th scope="col" class="cms-table__col-actions"><span class="cms-u-sr-only">Thao
+                                                tác</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="category-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

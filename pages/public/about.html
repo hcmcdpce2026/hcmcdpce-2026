@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+          content="Giới thiệu Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="author" content="DaDa">
+    <title>GIỚI THIỆU CỔNG THÔNG TIN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/public-pages.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="site-header__topbar">
+            <div class="site-header__topbar-inner container">
+                <div class="site-header__topbar-info">
+                    <span class="site-header__city">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        Thành phố Hồ Chí Minh
+                    </span>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <span class="site-header__date">
+                        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+                        <time id="current-date">Đang cập nhật...</time>
+                    </span>
+                </div>
+                <div class="site-header__system-links">
+                    <a href="../workspace/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                        Workspace
+                    </a>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <a href="../cms/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                        CMS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="site-header__identity">
+            <div class="site-header__identity-inner container">
+                <div class="site-header__brand">
+                    <a href="../../index.html"
+                       class="site-header__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-header__brand-content">
+                        <div class="site-header__brand-name">
+                            CỔNG THÔNG TIN ĐIỆN TỬ
+                            <br>
+                            VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </div>
+                        <div class="site-header__brand-name-en">
+                            HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL
+                        </div>
+                    </div>
+                </div>
+
+                <div class="site-header__search">
+                    <form action="news.html"
+                          method="GET"
+                          class="site-header__search-form"
+                          role="search">
+                        <input
+                            type="search"
+                            name="q"
+                            class="site-header__search-input"
+                            placeholder="Nhập từ khóa tìm kiếm..."
+                            aria-label="Tìm kiếm thông tin">
+                        <button type="submit"
+                                class="site-header__search-button"
+                                aria-label="Tìm kiếm">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <button
+                    type="button"
+                    class="site-header__menu-toggle"
+                    aria-label="Mở menu điều hướng"
+                    aria-expanded="false"
+                    aria-controls="main-navigation">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
+        <nav class="site-header__navigation"
+             id="main-navigation"
+             aria-label="Điều hướng chính">
+            <div class="site-header__navigation-inner container">
+                <ul class="site-header__nav-list">
+                    <li class="site-header__nav-item">
+                        <a href="../../index.html" class="site-header__nav-link">
+                            Trang chủ
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="about.html"
+                           class="site-header__nav-link site-header__nav-link--active"
+                           aria-current="page">
+                            Giới thiệu
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="news.html" class="site-header__nav-link">
+                            Tin tức
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="education.html" class="site-header__nav-link">
+                            Tuyên truyền - Giáo dục
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="laws.html" class="site-header__nav-link">
+                            Pháp luật
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="statistics.html" class="site-header__nav-link">
+                            Thống kê
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="agencies.html" class="site-header__nav-link">
+                            Cơ quan - Đơn vị
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="support.html" class="site-header__nav-link">
+                            Hỗ trợ cai nghiện
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="contact.html" class="site-header__nav-link">
+                            Liên hệ
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main id="site-main" class="site-main">
+    <!-- PHẦN 1: HERO CHIA 2 CỘT BẤT ĐỐI XỨNG -->
+        <section class="about-hero" aria-label="Giới thiệu Cổng thông tin">
+            <div class="container about-hero__grid">
+                <div>
+                    <nav class="about-breadcrumb" aria-label="Đường dẫn trang">
+                        <a href="../../index.html">Trang chủ</a>
+                        <span aria-hidden="true">/</span>
+                        <span aria-current="page">Giới thiệu</span>
+                    </nav>
+                    <div class="about-hero__badge">
+                        <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+                        Nền tảng thông tin chính thống
+                    </div>
+                    <h1 class="about-hero__title">
+                        KẾT NỐI CỘNG ĐỒNG CHUNG TAY XÂY DỰNG Thành phố Hồ Chí Minh KHÔNG MA TÚY
+                    </h1>
+                    <p class="about-hero__lead">
+                        Cổng thông tin điện tử là đầu mối tập trung dữ liệu, văn bản quy phạm pháp luật,
+                        tài liệu giáo dục phòng ngừa và mạng lưới tư vấn, điều trị cai nghiện dành cho người dân,
+                        gia đình, nhà trường, doanh nghiệp và các cơ quan chức năng trên địa bàn Thành phố.
+                    </p>
+                    <div class="about-hero__actions">
+                        <a href="#nhiem-vu" class="site-main__button site-main__button--primary">
+                            Khám phá chức năng
+                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                        </a>
+                        <a href="agencies.html" class="site-main__button site-main__button--outline">
+                            Mạng lưới cơ quan, đơn vị
+                        </a>
+                    </div>
+                </div>
+
+                <div class="about-hero__media">
+                    <img src="../../assets/images/1.jpg"
+                        alt="Hoạt động tuyên truyền phòng, chống ma túy tại cộng đồng"
+                        class="about-hero__img-main">
+                    <img src="../../assets/images/2.jpg"
+                        alt="Gia đình và nhà trường chung tay phòng ngừa ma túy"
+                        class="about-hero__img-sub">
+                    <div class="about-hero__floating-tag">
+                        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        <div>
+                            <strong>Thông tin kiểm chứng</strong><br>
+                            Đồng bộ liên ngành toàn Thành phố
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHẦN 2: BỐ CỤC 2 CỘT (STICKY SIDEBAR + NỘI DUNG CHI TIẾT) -->
+        <section class="about-layout">
+            <div class="container about-layout__grid">
+                <!-- CỘT TRÁI: MỤC LỤC TRƯỢT CỐ ĐỊNH -->
+                <aside class="about-sidebar" aria-label="Mục lục trang giới thiệu">
+                    <nav class="about-toc">
+                        <h2 class="about-toc__title">Nội dung trang</h2>
+                        <ul class="about-toc__list">
+                            <li>
+                                <a href="#tong-quan" class="about-toc__link is-active">
+                                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                                    1. Tổng quan & Bối cảnh
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#su-menh" class="about-toc__link">
+                                    <i class="fa-solid fa-compass" aria-hidden="true"></i>
+                                    2. Tầm nhìn & Sứ mệnh
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#nhiem-vu" class="about-toc__link">
+                                    <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+                                    3. Chức năng trọng tâm
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#co-cau" class="about-toc__link">
+                                    <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                                    4. Mạng lưới phối hợp
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#lo-trinh" class="about-toc__link">
+                                    <i class="fa-solid fa-timeline" aria-hidden="true"></i>
+                                    5. Trụ cột triển khai
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <div class="about-sidebar__box">
+                        <h3>Cần tư vấn hoặc hỗ trợ?</h3>
+                        <p>
+                            Tra cứu ngay danh sách cơ sở điều trị, cai nghiện tự nguyện và kênh tiếp nhận thông tin bảo mật 24/7.
+                        </p>
+                        <a href="support.html">
+                            Xem kênh hỗ trợ
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </aside>
+
+                <!-- CỘT PHẢI: NỘI DUNG CHI TIẾT -->
+                <div class="about-content">
+                    <!-- Mục 1: Tổng quan -->
+                    <article id="tong-quan" class="about-block">
+                        <span class="about-block__eyebrow">01 / Tổng quan hệ thống</span>
+                        <h2 class="about-block__title">Bối cảnh hình thành và vai trò kết nối</h2>
+                        <div class="about-block__prose">
+                            <p>
+                                Thành phố Hồ Chí Minh là siêu đô thị, trung tâm kinh tế - xã hội lớn của cả nước,
+                                đồng thời cũng là địa bàn chịu nhiều tác động phức tạp từ tội phạm và tệ nạn ma túy.
+                                Sự biến tướng tinh vi của các loại ma túy tổng hợp, chất hướng thần mới núp bóng thực phẩm,
+                                đồ uống hay thuốc lá điện tử, thuốc lá nung nóng đặt ra yêu cầu cấp thiết về một kênh
+                                truyền thông số hiện đại, chuẩn xác và dễ tiếp cận.
+                            </p>
+                            <p>
+                                <strong>Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh</strong> ra đời nhằm chuẩn hóa
+                                nguồn cung cấp thông tin chính thống, đồng hành cùng Thành phố chuyển mạnh từ tư duy quản lý
+                                theo vụ việc sang quản lý, chuyển hóa địa bàn; giúp người dân chủ động nhận diện rủi ro,
+                                nắm vững pháp luật và tiếp cận kịp thời các dịch vụ hỗ trợ y tế, xã hội.
+                            </p>
+                        </div>
+                        <blockquote class="about-quote">
+                            “Phòng ngừa từ sớm, từ xa — Lấy mỗi gia đình, nhà trường, doanh nghiệp và khu phố, ấp
+                            làm pháo đài vững chắc hướng tới mục tiêu Thành phố Hồ Chí Minh không ma túy vào năm 2030.”
+                        </blockquote>
+                    </article>
+
+                    <!-- Mục 2: Tầm nhìn & Sứ mệnh -->
+                    <article id="su-menh" class="about-block">
+                        <span class="about-block__eyebrow">02 / Định hướng cốt lõi</span>
+                        <h2 class="about-block__title">Tầm nhìn, Sứ mệnh và Phương châm</h2>
+                        <div class="about-vision-grid">
+                            <div class="about-vision-card">
+                                <div class="about-vision-card__icon">
+                                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                </div>
+                                <h3>Tầm nhìn</h3>
+                                <p>
+                                    Trở thành nền tảng dữ liệu và truyền thông số tin cậy hàng đầu phục vụ lộ trình
+                                    xây dựng Thành phố Hồ Chí Minh an toàn, văn minh, đạt chuẩn “Thành phố không ma túy” vào năm 2030.
+                                </p>
+                            </div>
+                            <div class="about-vision-card">
+                                <div class="about-vision-card__icon">
+                                    <i class="fa-solid fa-hands-holding-circle" aria-hidden="true"></i>
+                                </div>
+                                <h3>Sứ mệnh</h3>
+                                <p>
+                                    Lan tỏa tri thức phòng ngừa khoa học, minh bạch hóa thông tin pháp luật và đồng hành
+                                    nhân văn cùng người cai nghiện điều trị phục hồi, tái hòa nhập cộng đồng bền vững.
+                                </p>
+                            </div>
+                            <div class="about-vision-card">
+                                <div class="about-vision-card__icon">
+                                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                                </div>
+                                <h3>Phương châm</h3>
+                                <p>
+                                    Chính xác – Kịp thời – Dễ tiếp cận – Bảo mật tuyệt đối thông tin người tố giác,
+                                    người cần hỗ trợ và tôn trọng quyền con người.
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Mục 3: Chức năng nhiệm vụ (Tương tác Tab) -->
+                    <article id="nhiem-vu" class="about-block">
+                        <span class="about-block__eyebrow">03 / Lĩnh vực hoạt động</span>
+                        <h2 class="about-block__title">Chức năng và nhiệm vụ trọng tâm</h2>
+
+                        <div class="about-tabs">
+                            <div class="about-tabs__nav" role="tablist" aria-label="Nhóm chức năng cổng thông tin">
+                                <button type="button"
+                                        class="about-tabs__btn"
+                                        role="tab"
+                                        id="tab-btn-1"
+                                        aria-selected="true"
+                                        aria-controls="tab-panel-1">
+                                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+                                    Tuyên truyền - Giáo dục
+                                </button>
+                                <button type="button"
+                                        class="about-tabs__btn"
+                                        role="tab"
+                                        id="tab-btn-2"
+                                        aria-selected="false"
+                                        aria-controls="tab-panel-2">
+                                    <i class="fa-solid fa-gavel" aria-hidden="true"></i>
+                                    Hệ thống Pháp luật
+                                </button>
+                                <button type="button"
+                                        class="about-tabs__btn"
+                                        role="tab"
+                                        id="tab-btn-3"
+                                        aria-selected="false"
+                                        aria-controls="tab-panel-3">
+                                    <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
+                                    Hỗ trợ Cai nghiện
+                                </button>
+                            </div>
+
+                            <div id="tab-panel-1" class="about-tabs__panel is-active" role="tabpanel" aria-labelledby="tab-btn-1">
+                                <div>
+                                    <h3>Phổ biến kiến thức & Kỹ năng tự bảo vệ</h3>
+                                    <p>
+                                        Cung cấp hệ thống bài viết chuyên đề, ấn phẩm truyền thông trực quan giúp nhận diện
+                                        các dạng ma túy mới, chất hướng thần núp bóng và trang bị kỹ năng từ chối cho thanh thiếu niên.
+                                    </p>
+                                    <ul>
+                                        <li>Cảnh báo thủ đoạn lôi kéo trên không gian mạng, trường học và khu công nghiệp.</li>
+                                        <li>Cẩm nang đồng hành dành cho phụ huynh, giáo viên và tổ chức đoàn thể.</li>
+                                    </ul>
+                                    <a href="education.html" class="site-main__education-link">
+                                        Đến chuyên mục Tuyên truyền - Giáo dục
+                                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                                <img src="../../assets/images/3.jpg" alt="Tuyên truyền giáo dục phòng chống ma túy">
+                            </div>
+
+                            <div id="tab-panel-2" class="about-tabs__panel" role="tabpanel" aria-labelledby="tab-btn-2">
+                                <div>
+                                    <h3>Kho dữ liệu Văn bản Quy phạm Pháp luật</h3>
+                                    <p>
+                                        Hệ thống hóa Luật Phòng, chống ma túy cùng các nghị quyết, nghị định, thông tư
+                                        và quy định cấm thuốc lá điện tử, thuốc lá nung nóng giúp tra cứu nhanh chóng, chính xác.
+                                    </p>
+                                    <ul>
+                                        <li>Quy định xử phạt vi phạm hành chính và trách nhiệm hình sự liên quan đến ma túy.</li>
+                                        <li>Quy trình xác định tình trạng nghiện, cai nghiện ma túy và quản lý sau cai.</li>
+                                    </ul>
+                                    <a href="laws.html" class="site-main__education-link">
+                                        Truy cập kho Văn bản pháp luật
+                                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                                <img src="../../assets/images/4.jpg" alt="Tra cứu văn bản pháp luật">
+                            </div>
+
+                            <div id="tab-panel-3" class="about-tabs__panel" role="tabpanel" aria-labelledby="tab-btn-3">
+                                <div>
+                                    <h3>Kết nối Điều trị & Tái hòa nhập cộng đồng</h3>
+                                    <p>
+                                        Minh bạch hóa thông tin về hệ thống cơ sở cai nghiện ma túy do Công an Thành phố quản lý
+                                        cùng các điểm điều trị nghiện chất dạng thuốc phiện bằng thuốc thay thế trên địa bàn.
+                                    </p>
+                                    <ul>
+                                        <li>Hướng dẫn thủ tục đăng ký cai nghiện tự nguyện tại gia đình, cộng đồng và cơ sở cai nghiện.</li>
+                                        <li>Thông tin chính sách tư vấn tâm lý, đào tạo nghề và hỗ trợ vay vốn sinh kế sau cai.</li>
+                                    </ul>
+                                    <a href="support.html" class="site-main__education-link">
+                                        Tìm hiểu Hỗ trợ cai nghiện
+                                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                                <img src="../../assets/images/5.jpg" alt="Hỗ trợ cai nghiện và tái hòa nhập">
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Mục 4: Sơ đồ mạng lưới phối hợp -->
+                    <article id="co-cau" class="about-block">
+                        <span class="about-block__eyebrow">04 / Tổ chức liên ngành</span>
+                        <h2 class="about-block__title">Sơ đồ mạng lưới phối hợp thực hiện</h2>
+                        <div class="about-org">
+                            <div class="about-org__root">
+                                <h3>BAN CHỈ ĐẠO PHÒNG, CHỐNG TỘI PHẠM VÀ TỆ NẠN MA TÚY TP.HCM</h3>
+                                <p>Chỉ đạo, điều phối thống nhất chương trình hành động hướng tới Thành phố không ma túy vào năm 2030</p>
+                            </div>
+                            <div class="about-org__connector" aria-hidden="true"></div>
+                            <div class="about-org__branches">
+                                <div class="about-org__node">
+                                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                                    <h4>Công an Thành phố</h4>
+                                    <p>Cơ quan thường trực; nòng cốt đấu tranh triệt phá tội phạm, trực tiếp quản lý cơ sở cai nghiện và quản lý sau cai.</p>
+                                </div>
+                                <div class="about-org__node">
+                                    <i class="fa-solid fa-hospital-user" aria-hidden="true"></i>
+                                    <h4>Ngành Y tế & An sinh xã hội</h4>
+                                    <p>Xác định tình trạng nghiện, điều trị nghiện bằng thuốc thay thế, hỗ trợ đào tạo nghề và tái hòa nhập cộng đồng.</p>
+                                </div>
+                                <div class="about-org__node">
+                                    <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                                    <h4>Giáo dục, MTTQ & Đoàn thể</h4>
+                                    <p>Tuyên truyền phòng ngừa tại trường học, cơ quan, doanh nghiệp, khu dân cư và nhân rộng mô hình địa bàn an toàn.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Mục 5: Trục thời gian dọc -->
+                    <article id="lo-trinh" class="about-block">
+                        <span class="about-block__eyebrow">05 / Định hướng phát triển</span>
+                        <h2 class="about-block__title">Bốn trụ cột triển khai trọng tâm</h2>
+                        <div class="about-timeline">
+                            <div class="about-timeline__item">
+                                <span class="about-timeline__dot" aria-hidden="true"></span>
+                                <span class="about-timeline__step">Trụ cột 01</span>
+                                <h3>Số hóa dữ liệu truyền thông và cảnh báo sớm</h3>
+                                <p>
+                                    Chuẩn hóa kho học liệu đa phương tiện, cập nhật liên tục các dấu hiệu nhận biết
+                                    ma túy thế hệ mới để nhà trường, doanh nghiệp và phụ huynh chủ động phòng tránh.
+                                </p>
+                            </div>
+                            <div class="about-timeline__item">
+                                <span class="about-timeline__dot" aria-hidden="true"></span>
+                                <span class="about-timeline__step">Trụ cột 02</span>
+                                <h3>Minh bạch hóa quy trình pháp lý và tra cứu</h3>
+                                <p>
+                                    Phân loại văn bản theo nhóm đối tượng áp dụng giúp người dân dễ tra cứu quyền,
+                                    nghĩa vụ, quy định về cai nghiện và các chế tài xử lý mới nhất của pháp luật.
+                                </p>
+                            </div>
+                            <div class="about-timeline__item">
+                                <span class="about-timeline__dot" aria-hidden="true"></span>
+                                <span class="about-timeline__step">Trụ cột 03</span>
+                                <h3>Mở rộng mạng lưới tư vấn và hỗ trợ phục hồi</h3>
+                                <p>
+                                    Liên kết thông tin các điểm tư vấn tâm lý, cơ sở điều trị cai nghiện và mô hình hỗ trợ
+                                    việc làm, sinh kế giúp người sau cai ổn định cuộc sống, phòng chống tái nghiện.
+                                </p>
+                            </div>
+                            <div class="about-timeline__item">
+                                <span class="about-timeline__dot" aria-hidden="true"></span>
+                                <span class="about-timeline__step">Trụ cột 04</span>
+                                <h3>Xây dựng địa bàn cơ sở đạt chuẩn “không ma túy”</h3>
+                                <p>
+                                    Chuyển hóa địa bàn cấp xã, khu phố, ấp, trường học, cơ sở y tế và doanh nghiệp đạt tiêu chí
+                                    “không ma túy”, phát huy vai trò giám sát và đồng hành của toàn cộng đồng.
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__main">
+            <div class="site-footer__main-inner container">
+                <section class="site-footer__brand">
+                    <a href="../../index.html"
+                       class="site-footer__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-footer__brand-content">
+                        <h2 class="site-footer__brand-title">
+                            CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY
+                            TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </h2>
+                        <p class="site-footer__description">
+                            Cung cấp thông tin, kiến thức và các hoạt động
+                            tuyên truyền về công tác phòng, chống ma túy.
+                            Chung tay xây dựng cộng đồng an toàn, lành mạnh,
+                            không có ma túy.
+                        </p>
+                    </div>
+                </section>
+
+                <nav class="site-footer__links" aria-label="Liên kết nhanh">
+                    <h2 class="site-footer__heading">
+                        LIÊN KẾT NHANH
+                    </h2>
+                    <ul class="site-footer__link-list">
+                        <li class="site-footer__link-item">
+                            <a href="about.html" class="site-footer__link">Giới thiệu</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="news.html" class="site-footer__link">Tin tức</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="education.html" class="site-footer__link">Tuyên truyền - Giáo dục</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="laws.html" class="site-footer__link">Pháp luật</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="statistics.html" class="site-footer__link">Thống kê</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="agencies.html" class="site-footer__link">Cơ quan - Đơn vị</a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <section class="site-footer__contact">
+                    <h2 class="site-footer__heading">
+                        THÔNG TIN LIÊN HỆ
+                    </h2>
+                    <ul class="site-footer__contact-list">
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <span>Thành phố Hồ Chí Minh, Việt Nam</span>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                            <a href="mailto:hcmcdpcp@gmail.com" class="site-footer__link">hcmcdpcp@gmail.com</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                            <a href="../../index.html" class="site-footer__link">Cổng thông tin điện tử</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                            <a href="contact.html" class="site-footer__link">Trang liên hệ và hỗ trợ</a>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <div class="site-footer__bottom">
+            <div class="site-footer__bottom-inner container">
+                <p class="site-footer__copyright">© <time class="site-footer__year"></time> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                <p class="site-footer__note">
+                    Thông tin phục vụ công tác tuyên truyền và nâng cao
+                    nhận thức cộng đồng.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

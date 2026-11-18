@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nhật ký hoạt động – khu vực Workspace phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>NHẬT KÝ HOẠT ĐỘNG NỘI BỘ | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Nhật ký hoạt động</p>
+                </div>
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main">
+                <div class="ws-main__inner" id="ws-activity">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <h1 class="ws-page-head__title">Nhật ký hoạt động</h1>
+                            <p class="ws-page-head__desc">
+                                Tra cứu lịch sử thao tác của người dùng trong Workspace: đăng nhập, giao việc, cập nhật
+                                tiến độ, báo cáo, tài liệu và thay đổi phân quyền.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <button type="button" class="ws-btn" id="ws-log-export">
+                                <i class="fa-solid fa-file-csv" aria-hidden="true"></i> Xuất CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ws-alert">
+                        <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                        <div><strong>Nhật ký chỉ được ghi thêm:</strong> không có chức năng sửa hoặc xóa từ giao diện.
+                            Nhật ký được ghi tại máy chủ cho mọi thao tác quan trọng và chỉ người có quyền mới xem được.</div>
+                    </div>
+
+                    <div class="ws-mini-stats" id="ws-log-summary"></div>
+
+                    <div class="ws-toolbar">
+                        <div class="ws-search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <label class="ws-u-sr" for="ws-log-search">Tìm kiếm nhật ký</label>
+                            <input type="search" id="ws-log-search"
+                                placeholder="Tìm theo người thực hiện, đối tượng, chi tiết…">
+                        </div>
+                    </div>
+
+                    <div class="ws-filters">
+                        <button type="button" class="ws-filters__toggle" data-filters-toggle aria-expanded="true"
+                            aria-controls="ws-log-filters">
+                            <span><i class="fa-solid fa-filter" aria-hidden="true"></i> Bộ lọc nhật ký</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-log-user">Người thực hiện</label>
+                            <select class="ws-select" id="ws-log-user"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-log-action">Hành động</label>
+                            <select class="ws-select" id="ws-log-action"></select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-log-result">Kết quả</label>
+                            <select class="ws-select" id="ws-log-result">
+                                <option value="">Tất cả</option>
+                                <option value="success">Thành công</option>
+                                <option value="denied">Bị từ chối</option>
+                            </select>
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-log-from">Từ ngày</label>
+                            <input type="date" class="ws-select ws-select--compact-date" id="ws-log-from">
+                        </div>
+                        <div class="ws-filters__group">
+                            <label class="ws-filters__label" for="ws-log-to">Đến ngày</label>
+                            <input type="date" class="ws-select ws-select--compact-date" id="ws-log-to">
+                        </div>
+                        <div class="ws-filters__actions">
+                            <button type="button" class="ws-btn ws-btn--sm" id="ws-log-reset">Xóa lọc</button>
+                        </div>
+                    </div>
+
+                    <section class="ws-card" aria-labelledby="ws-log-table-title">
+                        <div class="ws-card__head">
+                            <h2 class="ws-card__title" id="ws-log-table-title">
+                                <i class="fa-solid fa-scroll" aria-hidden="true"></i> Lịch sử thao tác
+                            </h2>
+                        </div>
+                        <div class="ws-card__body ws-card__body--flush">
+                            <div class="ws-table-wrap">
+                                <table class="ws-table ws-table--stack">
+                                    <caption class="ws-u-sr">Nhật ký hoạt động của người dùng</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Thời gian</th>
+                                            <th scope="col">Người thực hiện</th>
+                                            <th scope="col">Hành động</th>
+                                            <th scope="col">Đối tượng</th>
+                                            <th scope="col">Kết quả</th>
+                                            <th scope="col">Chi tiết</th>
+                                            <th scope="col"><span class="ws-u-sr">Thao tác</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ws-log-body"></tbody>
+                                </table>
+                            </div>
+                            <div id="ws-log-pagination"></div>
+                        </div>
+                    </section>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+          content="Hệ thống hỗ trợ cai nghiện, tư vấn điều trị Methadone và kết nối tái hòa nhập cộng đồng tại Thành phố Hồ Chí Minh">
+    <meta name="author" content="DaDa">
+    <title>HỖ TRỢ CAI NGHIỆN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/public-pages.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="site-header__topbar">
+            <div class="site-header__topbar-inner container">
+                <div class="site-header__topbar-info">
+                    <span class="site-header__city">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        Thành phố Hồ Chí Minh
+                    </span>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <span class="site-header__date">
+                        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+                        <time id="current-date">Đang cập nhật...</time>
+                    </span>
+                </div>
+                <div class="site-header__system-links">
+                    <a href="../workspace/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+                        Workspace
+                    </a>
+                    <span class="site-header__divider" aria-hidden="true">|</span>
+                    <a href="../cms/login.html" class="site-header__system-link">
+                        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                        CMS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="site-header__identity">
+            <div class="site-header__identity-inner container">
+                <div class="site-header__brand">
+                    <a href="../../index.html"
+                       class="site-header__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-header__brand-content">
+                        <div class="site-header__brand-name">
+                            CỔNG THÔNG TIN ĐIỆN TỬ
+                            <br>
+                            VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </div>
+                        <div class="site-header__brand-name-en">
+                            HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL
+                        </div>
+                    </div>
+                </div>
+
+                <div class="site-header__search">
+                    <form action="news.html"
+                          method="GET"
+                          class="site-header__search-form"
+                          role="search">
+                        <input
+                            type="search"
+                            name="q"
+                            class="site-header__search-input"
+                            placeholder="Nhập từ khóa tìm kiếm..."
+                            aria-label="Tìm kiếm thông tin">
+                        <button type="submit"
+                                class="site-header__search-button"
+                                aria-label="Tìm kiếm">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <button
+                    type="button"
+                    class="site-header__menu-toggle"
+                    aria-label="Mở menu điều hướng"
+                    aria-expanded="false"
+                    aria-controls="main-navigation">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
+        <nav class="site-header__navigation"
+             id="main-navigation"
+             aria-label="Điều hướng chính">
+            <div class="site-header__navigation-inner container">
+                <ul class="site-header__nav-list">
+                    <li class="site-header__nav-item">
+                        <a href="../../index.html" class="site-header__nav-link">
+                            Trang chủ
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="about.html" class="site-header__nav-link">
+                            Giới thiệu
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="news.html" class="site-header__nav-link">
+                            Tin tức
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="education.html" class="site-header__nav-link">
+                            Tuyên truyền - Giáo dục
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="laws.html" class="site-header__nav-link">
+                            Pháp luật
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="statistics.html" class="site-header__nav-link">
+                            Thống kê
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="agencies.html" class="site-header__nav-link">
+                            Cơ quan - Đơn vị
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="support.html"
+                           class="site-header__nav-link site-header__nav-link--active"
+                           aria-current="page">
+                            Hỗ trợ cai nghiện
+                        </a>
+                    </li>
+                    <li class="site-header__nav-item">
+                        <a href="contact.html" class="site-header__nav-link">
+                            Liên hệ
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main id="site-main" class="site-main">
+        <!-- HERO & HOTLINE KHẨN CẤP -->
+        <section class="sup-hero" aria-label="Hỗ trợ cai nghiện và tư vấn điều trị">
+            <div class="container">
+                <nav class="sup-breadcrumb" aria-label="Đường dẫn trang">
+                    <a href="../../index.html">Trang chủ</a>
+                    <span aria-hidden="true">/</span>
+                    <span aria-current="page">Hỗ trợ cai nghiện</span>
+                </nav>
+
+                <h1 class="sup-hero__title">HỖ TRỢ CAI NGHIỆN VÀ TƯ VẤN ĐIỀU TRỊ</h1>
+                <p class="sup-hero__subtitle">
+                    Cung cấp thông tin đường dây nóng, thủ tục đăng ký cai nghiện tự nguyện, danh mục cơ sở điều trị Methadone
+                    và điểm tư vấn hỗ trợ người sau cai tái hòa nhập cộng đồng tại Thành phố Hồ Chí Minh.
+                </p>
+
+                <div class="sup-hotline-grid">
+                    <div class="sup-hotline-card">
+                        <div class="sup-hotline-card__icon sup-hotline-card__icon--red">
+                            <i class="fa-solid fa-phone-volume" aria-hidden="true"></i>
+                        </div>
+                        <div class="sup-hotline-card__content">
+                            <h3>Tổng đài khẩn cấp</h3>
+                            <a href="tel:113" class="sup-hotline-card__phone">113 / 115</a>
+                            <p class="sup-hotline-card__desc">Cấp cứu y tế & Xử lý an ninh trật tự 24/7</p>
+                        </div>
+                    </div>
+
+                    <div class="sup-hotline-card">
+                        <div class="sup-hotline-card__icon">
+                            <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                        </div>
+                        <div class="sup-hotline-card__content">
+                            <h3>Tư vấn pháp lý & cai nghiện</h3>
+                            <a href="tel:0283829xxxx" class="sup-hotline-card__phone">028.3829.xxxx</a>
+                            <p class="sup-hotline-card__desc">Hỗ trợ thủ tục tự nguyện & tư vấn tâm lý</p>
+                        </div>
+                    </div>
+
+                    <div class="sup-hotline-card">
+                        <div class="sup-hotline-card__icon">
+                            <i class="fa-solid fa-hospital" aria-hidden="true"></i>
+                        </div>
+                        <div class="sup-hotline-card__content">
+                            <h3>Mạng lưới Methadone TP.HCM</h3>
+                            <a href="#lookup-section" class="sup-hotline-card__phone">24 Cơ sở</a>
+                            <p class="sup-hotline-card__desc">Tra cứu điểm điều trị gần nhất bên dưới</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NỘI DUNG CHÍNH & TRA CỨU -->
+        <section class="sup-main">
+            <div class="container sup-layout">
+                <div>
+                    <!-- 4 Lộ trình hỗ trợ -->
+                    <h2 class="sup-section-title">Các hình thức cai nghiện và hỗ trợ điều trị</h2>
+                    <div class="sup-path-grid">
+                        <article class="sup-path-card">
+                            <div class="sup-path-card__top">
+                                <h3>
+                                    <i class="fa-solid fa-house-chimney-user" aria-hidden="true"></i>
+                                    Cai nghiện tự nguyện tại gia đình & cộng đồng
+                                </h3>
+                                <p>
+                                    Thực hiện tại nơi cư trú dưới sự hỗ trợ của gia đình, trạm y tế xã/phường và tổ công tác xã hội.
+                                    Người tham gia được hỗ trợ kinh phí cắt cơn và tư vấn tâm lý định kỳ.
+                                </p>
+                            </div>
+                            <span class="sup-path-card__footer">Đăng ký tại UBND cấp xã</span>
+                        </article>
+
+                        <article class="sup-path-card">
+                            <div class="sup-path-card__top">
+                                <h3>
+                                    <i class="fa-solid fa-building-user" aria-hidden="true"></i>
+                                    Cai nghiện tự nguyện tại cơ sở công lập
+                                </h3>
+                                <p>
+                                    Điều trị tập trung tại các cơ sở cai nghiện công lập của Thành phố với phác đồ y khoa chuẩn hóa,
+                                    kết hợp dạy nghề, lao động trị liệu và phục hồi hành vi, nhân cách.
+                                </p>
+                            </div>
+                            <span class="sup-path-card__footer">Hỗ trợ chi phí theo chính sách TP.HCM</span>
+                        </article>
+
+                        <article class="sup-path-card">
+                            <div class="sup-path-card__top">
+                                <h3>
+                                    <i class="fa-solid fa-pills" aria-hidden="true"></i>
+                                    Điều trị nghiện chất dạng thuốc phiện bằng Methadone
+                                </h3>
+                                <p>
+                                    Phương pháp điều trị thay thế hiệu quả cao, giúp người bệnh ổn định sức khỏe, không phải sử dụng ma túy trái phép
+                                    và duy trì cuộc sống sinh hoạt bình thường.
+                                </p>
+                            </div>
+                            <span class="sup-path-card__footer">Có mặt tại 24 cơ sở y tế quận/huyện</span>
+                        </article>
+
+                        <article class="sup-path-card">
+                            <div class="sup-path-card__top">
+                                <h3>
+                                    <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+                                    Hỗ trợ sau cai & Tái hòa nhập cộng đồng
+                                </h3>
+                                <p>
+                                    Theo dõi, tư vấn tâm lý, hỗ trợ thủ tục làm căn cước, kết nối học nghề và tiếp cận nguồn vốn vay ưu đãi
+                                    tạo việc làm ổn định sau khi hoàn thành cai nghiện.
+                                </p>
+                            </div>
+                            <span class="sup-path-card__footer">Đồng hành qua các hội đoàn thể</span>
+                        </article>
+                    </div>
+
+                    <!-- Công cụ tra cứu điểm tư vấn & Methadone -->
+                    <div class="sup-lookup-box" id="lookup-section">
+                        <h2 class="sup-section-title sup-section-title--lookup">
+                            Tra cứu cơ sở y tế & Điểm tư vấn tại TP.HCM
+                        </h2>
+                        <p class="sup-lookup-description">
+                            Nhập tên quận/huyện hoặc loại hình dịch vụ để tìm cơ sở hỗ trợ gần bạn nhất.
+                        </p>
+
+                        <div class="sup-lookup-filter">
+                            <input type="search"
+                                   id="sup-search-input"
+                                   class="sup-input"
+                                   placeholder="Nhập tên quận (VD: Quận 1, Gò Vấp, Thủ Đức)..."
+                                   aria-label="Tìm kiếm cơ sở">
+
+                            <select id="sup-type-select" class="sup-select" aria-label="Loại hình dịch vụ">
+                                <option value="all">Tất cả loại hình dịch vụ</option>
+                                <option value="methadone">Cơ sở điều trị Methadone</option>
+                                <option value="tu-van">Điểm tư vấn cộng đồng</option>
+                                <option value="co-so-tp">Cơ sở cai nghiện công lập TP.HCM</option>
+                            </select>
+
+                            <button type="button" id="sup-search-btn" class="sup-search-btn">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Tra cứu
+                            </button>
+                        </div>
+
+                        <div class="sup-centers-list" id="sup-centers-list">
+                        <!-- Nội dung do API/CMS cung cấp khi tải trang (dữ liệu ẩn khi chưa có bản ghi) -->
+                    </div>
+                    </div>
+
+                    <!-- Quy trình 4 bước đăng ký -->
+                    <h2 class="sup-section-title">Quy trình 4 bước đăng ký hỗ trợ cai nghiện</h2>
+                    <div class="sup-steps-grid">
+                        <div class="sup-step-card">
+                            <div class="sup-step-card__num">1</div>
+                            <h4>Khai báo & Tư vấn</h4>
+                            <p>Người nghiện hoặc gia đình đến Trạm y tế hoặc UBND cấp xã để khai báo và nhận tư vấn ban đầu.</p>
+                        </div>
+
+                        <div class="sup-step-card">
+                            <div class="sup-step-card__num">2</div>
+                            <h4>Xác định tình trạng</h4>
+                            <p>Thực hiện khám sàng lọc và xác định tình trạng nghiện theo quy định của Bộ Y tế.</p>
+                        </div>
+
+                        <div class="sup-step-card">
+                            <div class="sup-step-card__num">3</div>
+                            <h4>Lựa chọn hình thức</h4>
+                            <p>Đăng ký hình thức cai nghiện tự nguyện (tại gia đình hoặc cơ sở) phù hợp với hoàn cảnh.</p>
+                        </div>
+
+                        <div class="sup-step-card">
+                            <div class="sup-step-card__num">4</div>
+                            <h4>Hỗ trợ tái hòa nhập</h4>
+                            <p>Tham gia chương trình theo dõi sau cai, học nghề và kết nối việc làm ổn định cuộc sống.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Hỏi đáp & Liên kết nhanh -->
+                <aside class="sup-sidebar" aria-label="Câu hỏi thường gặp">
+                    <div class="sup-side-card">
+                        <h2 class="sup-side-card__title">Câu hỏi thường gặp</h2>
+                        <div class="sup-faq-list">
+                            <div class="sup-faq-item">
+                                <strong>1. Tự giác khai báo có bị xử lý hình sự không?</strong>
+                                <p>Không. Theo Luật Phòng, chống ma túy 2021, người tự nguyện khai báo và đăng ký cai nghiện sẽ được hỗ trợ tiếp cận y tế, không bị truy cứu trách nhiệm hình sự về hành vi sử dụng trái phép.</p>
+                            </div>
+                            <div class="sup-faq-item">
+                                <strong>2. Chi phí điều trị Methadone là bao nhiêu?</strong>
+                                <p>Chương trình điều trị Methadone tại các cơ sở y tế công lập của TP.HCM hiện đang được Nhà nước hỗ trợ kinh phí, người bệnh được miễn phí hoặc đóng góp ở mức rất thấp theo quy định.</p>
+                            </div>
+                            <div class="sup-faq-item">
+                                <strong>3. Gia đình cần chuẩn bị giấy tờ gì khi đăng ký?</strong>
+                                <p>Cần chuẩn bị CCCD của người nghiện và người đại diện (nếu dưới 18 tuổi), sổ hộ khẩu hoặc xác nhận cư trú tại địa phương.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sup-side-card sup-side-card--highlight">
+                        <h2 class="sup-side-card__title">Gửi yêu cầu hỗ trợ bảo mật</h2>
+                        <p class="sup-side-card__description">
+                            Thông tin của bạn và người thân sẽ được bảo mật tuyệt đối theo quy định pháp luật.
+                        </p>
+                        <a href="contact.html" class="sup-side-card__button">
+                            Gửi biểu mẫu liên hệ <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__main">
+            <div class="site-footer__main-inner container">
+                <section class="site-footer__brand">
+                    <a href="../../index.html"
+                       class="site-footer__logo"
+                       aria-label="Trang chủ Cổng thông tin">
+                        <img src="../../assets/icons/logo.jpg"
+                             alt="Biểu trưng Cổng thông tin điện tử về phòng, chống ma túy">
+                    </a>
+                    <div class="site-footer__brand-content">
+                        <h2 class="site-footer__brand-title">
+                            CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY
+                            TẠI THÀNH PHỐ HỒ CHÍ MINH
+                        </h2>
+                        <p class="site-footer__description">
+                            Cung cấp thông tin, kiến thức và các hoạt động
+                            tuyên truyền về công tác phòng, chống ma túy.
+                            Chung tay xây dựng cộng đồng an toàn, lành mạnh,
+                            không có ma túy.
+                        </p>
+                    </div>
+                </section>
+
+                <nav class="site-footer__links" aria-label="Liên kết nhanh">
+                    <h2 class="site-footer__heading">
+                        LIÊN KẾT NHANH
+                    </h2>
+                    <ul class="site-footer__link-list">
+                        <li class="site-footer__link-item">
+                            <a href="about.html" class="site-footer__link">Giới thiệu</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="news.html" class="site-footer__link">Tin tức</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="education.html" class="site-footer__link">Tuyên truyền - Giáo dục</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="laws.html" class="site-footer__link">Pháp luật</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="statistics.html" class="site-footer__link">Thống kê</a>
+                        </li>
+                        <li class="site-footer__link-item">
+                            <a href="agencies.html" class="site-footer__link">Cơ quan - Đơn vị</a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <section class="site-footer__contact">
+                    <h2 class="site-footer__heading">
+                        THÔNG TIN LIÊN HỆ
+                    </h2>
+                    <ul class="site-footer__contact-list">
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <span>Thành phố Hồ Chí Minh, Việt Nam</span>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                            <a href="mailto:hcmcdpcp@gmail.com" class="site-footer__link">hcmcdpcp@gmail.com</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                            <a href="../../index.html" class="site-footer__link">Cổng thông tin điện tử</a>
+                        </li>
+                        <li class="site-footer__contact-item">
+                            <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                            <a href="contact.html" class="site-footer__link">Trang liên hệ và hỗ trợ</a>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <div class="site-footer__bottom">
+            <div class="site-footer__bottom-inner container">
+                <p class="site-footer__copyright">© <time class="site-footer__year"></time> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                <p class="site-footer__note">
+                    Thông tin phục vụ công tác tuyên truyền và nâng cao
+                    nhận thức cộng đồng.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

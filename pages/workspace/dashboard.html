@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Bảng điều hành Workspace – hệ thống làm việc nội bộ phục vụ công tác phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>BẢNG ĐIỀU HÀNH CÔNG VIỆC | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <!-- Sidebar dùng chung: nội dung do workspace.js dựng -->
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Bảng điều hành</p>
+                </div>
+
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ, tài liệu…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main" id="ws-main">
+                <div class="ws-main__inner" id="ws-dash">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <h1 class="ws-page-head__title">Bảng điều hành công tác phòng, chống ma túy</h1>
+                            <p class="ws-page-head__desc">
+                                Theo dõi nhiệm vụ, tiến độ thực hiện và các hoạt động điều hành nội bộ giữa các cơ quan,
+                                đơn vị tham gia công tác phòng, chống ma túy tại Thành phố Hồ Chí Minh.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <label class="ws-u-sr" for="ws-dash-range">Khoảng thời gian thống kê</label>
+                            <select class="ws-select ws-select--range" id="ws-dash-range">
+                                <option value="7">7 ngày gần nhất</option>
+                                <option value="30" selected>30 ngày gần nhất</option>
+                                <option value="90">90 ngày gần nhất</option>
+                            </select>
+                            <button type="button" class="ws-btn" id="ws-dash-reset">
+                                <i class="fa-solid fa-rotate" aria-hidden="true"></i> Khôi phục demo
+                            </button>
+                            <a class="ws-btn ws-btn--primary" href="tasks.html">
+                                <i class="fa-solid fa-list-check" aria-hidden="true"></i> Quản lý nhiệm vụ
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="ws-alert">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <div>
+                            <strong>Dữ liệu vận hành:</strong> số liệu được tổng hợp trực tiếp từ cơ sở dữ liệu dùng chung của Cổng thông tin.
+                        </div>
+                    </div>
+
+                    <section aria-labelledby="ws-stats-title">
+                        <h2 class="ws-u-sr" id="ws-stats-title">Chỉ số tổng quan</h2>
+                        <div class="ws-stats" id="ws-dash-stats"></div>
+                    </section>
+
+                    <div class="ws-grid ws-grid--main-aside ws-grid--spaced-top">
+                        <div class="ws-grid">
+                            <section class="ws-card" aria-labelledby="ws-chart-timeline-title">
+                                <div class="ws-card__head">
+                                    <div>
+                                        <h2 class="ws-card__title" id="ws-chart-timeline-title">
+                                            <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                                            Tiến độ nhiệm vụ theo thời gian
+                                        </h2>
+                                        <p class="ws-card__subtitle" id="ws-dash-range-label"></p>
+                                    </div>
+                                </div>
+                                <div class="ws-card__body">
+                                    <div id="ws-chart-timeline"></div>
+                                </div>
+                            </section>
+
+                            <div class="ws-grid ws-grid--2">
+                                <section class="ws-card" aria-labelledby="ws-chart-status-title">
+                                    <div class="ws-card__head">
+                                        <h2 class="ws-card__title" id="ws-chart-status-title">
+                                            <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+                                            Tỷ lệ nhiệm vụ theo trạng thái
+                                        </h2>
+                                    </div>
+                                    <div class="ws-card__body">
+                                        <div id="ws-chart-status"></div>
+                                    </div>
+                                </section>
+
+                                <section class="ws-card" aria-labelledby="ws-chart-done-title">
+                                    <div class="ws-card__head">
+                                        <h2 class="ws-card__title" id="ws-chart-done-title">
+                                            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+                                            Tình hình hoàn thành nhiệm vụ
+                                        </h2>
+                                    </div>
+                                    <div class="ws-card__body">
+                                        <div id="ws-chart-done"></div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <section class="ws-card" aria-labelledby="ws-chart-orgs-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-chart-orgs-title">
+                                        <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                                        Khối lượng công việc theo đơn vị
+                                    </h2>
+                                    <a class="ws-btn ws-btn--sm ws-btn--ghost" href="organizations.html">
+                                        Đơn vị <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                                <div class="ws-card__body">
+                                    <div id="ws-chart-orgs"></div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="ws-grid">
+                            <section class="ws-card" aria-labelledby="ws-quick-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-quick-title">
+                                        <i class="fa-solid fa-bolt" aria-hidden="true"></i> Thao tác nhanh
+                                    </h2>
+                                </div>
+                                <div class="ws-card__body">
+                                    <div class="ws-quick">
+                                        <a class="ws-quick__item" href="tasks.html#create">
+                                            <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo nhiệm vụ
+                                        </a>
+                                        <a class="ws-quick__item" href="calendar.html">
+                                            <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Thêm lịch
+                                        </a>
+                                        <a class="ws-quick__item" href="reports.html">
+                                            <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i> Lập báo cáo
+                                        </a>
+                                        <a class="ws-quick__item" href="documents.html">
+                                            <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Tải tài liệu
+                                        </a>
+                                        <a class="ws-quick__item" href="users.html">
+                                            <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Người dùng
+                                        </a>
+                                        <a class="ws-quick__item" href="activity-log.html">
+                                            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Nhật ký
+                                        </a>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="ws-card" aria-labelledby="ws-priority-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-priority-title">
+                                        <i class="fa-solid fa-flag" aria-hidden="true"></i> Nhiệm vụ ưu tiên
+                                    </h2>
+                                    <a class="ws-btn ws-btn--sm ws-btn--ghost" href="tasks.html?priority=urgent">Xem tất
+                                        cả</a>
+                                </div>
+                                <div class="ws-card__body" id="ws-dash-priority"></div>
+                            </section>
+
+                            <section class="ws-card" aria-labelledby="ws-due-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-due-title">
+                                        <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Công việc sắp đến
+                                        hạn
+                                    </h2>
+                                    <a class="ws-btn ws-btn--sm ws-btn--ghost" href="tasks.html?due=week">Trong tuần</a>
+                                </div>
+                                <div class="ws-card__body" id="ws-dash-due"></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div class="ws-grid ws-grid--2 ws-grid--spaced-top">
+                        <section class="ws-card" aria-labelledby="ws-cal-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-cal-title">
+                                    <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Lịch công tác sắp tới
+                                </h2>
+                                <a class="ws-btn ws-btn--sm ws-btn--ghost" href="calendar.html">Lịch công tác</a>
+                            </div>
+                            <div class="ws-card__body" id="ws-dash-calendar"></div>
+                        </section>
+
+                        <section class="ws-card" aria-labelledby="ws-notice-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-notice-title">
+                                    <i class="fa-regular fa-bell" aria-hidden="true"></i> Thông báo mới
+                                </h2>
+                                <a class="ws-btn ws-btn--sm ws-btn--ghost" href="notifications.html">Tất cả</a>
+                            </div>
+                            <div class="ws-card__body" id="ws-dash-notices"></div>
+                        </section>
+
+                        <section class="ws-card" aria-labelledby="ws-report-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-report-title">
+                                    <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Báo cáo mới gửi
+                                </h2>
+                                <a class="ws-btn ws-btn--sm ws-btn--ghost" href="reports.html">Báo cáo</a>
+                            </div>
+                            <div class="ws-card__body" id="ws-dash-reports"></div>
+                        </section>
+
+                        <section class="ws-card" aria-labelledby="ws-activity-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-activity-title">
+                                    <i class="fa-solid fa-wave-square" aria-hidden="true"></i> Hoạt động gần đây
+                                </h2>
+                                <a class="ws-btn ws-btn--sm ws-btn--ghost" href="activity-log.html">Nhật ký</a>
+                            </div>
+                            <div class="ws-card__body" id="ws-dash-activity"></div>
+                        </section>
+                    </div>
+
+                    <section class="ws-card ws-card--spaced" aria-labelledby="ws-org-table-title">
+                        <div class="ws-card__head">
+                            <h2 class="ws-card__title" id="ws-org-table-title">
+                                <i class="fa-solid fa-sitemap" aria-hidden="true"></i> Đơn vị tham gia
+                            </h2>
+                            <a class="ws-btn ws-btn--sm ws-btn--ghost" href="organizations.html">Danh sách đơn vị</a>
+                        </div>
+                        <div class="ws-card__body ws-card__body--flush">
+                            <div class="ws-table-wrap">
+                                <table class="ws-table ws-table--stack">
+                                    <caption class="ws-u-sr">Các đơn vị tham gia công tác phòng, chống ma túy</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Đơn vị</th>
+                                            <th scope="col">Loại hình</th>
+                                            <th scope="col">Nhiệm vụ</th>
+                                            <th scope="col">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ws-dash-org-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

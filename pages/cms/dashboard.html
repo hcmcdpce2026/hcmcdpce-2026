@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Tổng quan hoạt động quản trị nội dung Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>TỔNG QUAN QUẢN TRỊ | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <!-- Sidebar dùng chung: nội dung do cms.js dựng -->
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Tổng quan</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <form class="cms-header__search" role="search" action="content-list.html" method="GET">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm bài viết…" aria-label="Tìm kiếm nhanh bài viết">
+                    </form>
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <!-- Tiêu đề trang -->
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Tổng quan quản trị</h1>
+                            <p class="cms-page-head__desc">
+                                Theo dõi tình hình biên tập, kiểm duyệt và xuất bản nội dung trên Cổng thông tin
+                                điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.
+                            </p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <button type="button" class="cms-btn" id="dash-refresh">
+                                <i class="fa-solid fa-rotate" aria-hidden="true"></i> Làm mới
+                            </button>
+                            <a class="cms-btn cms-btn--primary" href="content-editor.html?id=new">
+                                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo bài viết
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="cms-alert">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <div>
+                            <strong>Dữ liệu trực tiếp:</strong> số liệu, bài viết và nhật ký trên trang được tổng hợp
+                            từ cơ sở dữ liệu của Cổng thông tin qua giao diện lập trình dùng chung.
+                        </div>
+                    </div>
+
+                    <!-- Thẻ thống kê -->
+                    <section aria-labelledby="dash-stats-title">
+                        <h2 class="cms-u-sr-only" id="dash-stats-title">Chỉ số tổng quan</h2>
+                        <div class="cms-stats" id="dash-stats"></div>
+                    </section>
+
+                    <!-- Biểu đồ + hoạt động -->
+                    <div class="cms-dash-grid cms-u-mt-lg">
+                        <section class="cms-card" aria-labelledby="dash-chart-title">
+                            <div class="cms-card__head">
+                                <div>
+                                    <h2 class="cms-card__title" id="dash-chart-title">
+                                        <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                                        Tình hình xuất bản nội dung
+                                    </h2>
+                                    <p class="cms-card__subtitle">Số bài tạo mới và xuất bản theo tháng</p>
+                                </div>
+                                <div class="cms-card__tools">
+                                    <label class="cms-u-sr-only" for="dash-chart-range">Khoảng thời gian thống
+                                        kê</label>
+                                    <select class="cms-select cms-select--chart-range" id="dash-chart-range">
+                                        <option value="3">3 tháng gần nhất</option>
+                                        <option value="6" selected>6 tháng gần nhất</option>
+                                        <option value="12">12 tháng gần nhất</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="cms-card__body">
+                                <div class="cms-chart" id="dash-chart"></div>
+                                <table class="cms-u-sr-only" id="dash-chart-table"></table>
+                            </div>
+                        </section>
+
+                        <div class="cms-dash-stack">
+                            <section class="cms-card" aria-labelledby="dash-actions-title">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title" id="dash-actions-title">
+                                        <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                                        Thao tác nhanh
+                                    </h2>
+                                </div>
+                                <div class="cms-card__body">
+                                    <div class="cms-quick-actions">
+                                        <a class="cms-quick-action" href="content-editor.html?id=new">
+                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                            Viết bài mới
+                                        </a>
+                                        <a class="cms-quick-action" href="publishing-workflow.html?tab=pending">
+                                            <i class="fa-solid fa-stamp" aria-hidden="true"></i>
+                                            Duyệt nội dung
+                                        </a>
+                                        <a class="cms-quick-action" href="media-library.html">
+                                            <i class="fa-solid fa-upload" aria-hidden="true"></i>
+                                            Tải tài nguyên
+                                        </a>
+                                        <a class="cms-quick-action" href="categories.html">
+                                            <i class="fa-solid fa-folder-plus" aria-hidden="true"></i>
+                                            Quản lý chuyên mục
+                                        </a>
+                                        <a class="cms-quick-action" href="activity-log.html">
+                                            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                                            Xem nhật ký
+                                        </a>
+                                        <a class="cms-quick-action" href="../../index.html" target="_blank"
+                                            rel="noopener">
+                                            <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                                            Mở Cổng thông tin
+                                        </a>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <!-- Nội dung mới cập nhật + hoạt động gần đây -->
+                    <div class="cms-dash-grid cms-u-mt-lg">
+                        <section class="cms-card" aria-labelledby="dash-recent-title">
+                            <div class="cms-card__head">
+                                <div>
+                                    <h2 class="cms-card__title" id="dash-recent-title">
+                                        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
+                                        Nội dung mới cập nhật
+                                    </h2>
+                                    <p class="cms-card__subtitle">5 bài viết được chỉnh sửa gần nhất</p>
+                                </div>
+                                <a class="cms-btn cms-btn--sm cms-btn--ghost" href="content-list.html">
+                                    Xem tất cả <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                            <div class="cms-card__body cms-card__body--flush">
+                                <div class="cms-table-wrap">
+                                    <table class="cms-table cms-table--stack cms-table--compact">
+                                        <caption class="cms-u-sr-only">Danh sách bài viết cập nhật gần đây</caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Tiêu đề</th>
+                                                <th scope="col">Biên tập</th>
+                                                <th scope="col">Cập nhật</th>
+                                                <th scope="col">Trạng thái</th>
+                                                <th scope="col"><span class="cms-u-sr-only">Thao tác</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dash-recent"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="cms-dash-stack">
+                            <section class="cms-card" aria-labelledby="dash-activity-title">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title" id="dash-activity-title">
+                                        <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+                                        Hoạt động gần đây
+                                    </h2>
+                                    <a class="cms-btn cms-btn--sm cms-btn--ghost" href="activity-log.html">Nhật ký</a>
+                                </div>
+                                <div class="cms-card__body cms-card__body--flush" id="dash-activity"></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

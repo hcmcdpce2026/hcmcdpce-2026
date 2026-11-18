@@ -1,0 +1,946 @@
+
+/* ==========================================================================
+   1. DESIGN TOKENS & UNIFIED VARIABLES
+   ========================================================================== */
+
+:root {
+    --color-primary: #0284c7;
+    --color-primary-dark: #0369a1;
+    --color-primary-light: #38bdf8;
+    --color-primary-soft: #e0f2fe;
+    --color-primary-tint: #f0f9ff;
+
+    --color-secondary: #0d9488;
+    --color-secondary-soft: #ccfbf1;
+    --color-accent: #d97706;
+    --color-accent-soft: #fef3c7;
+    --color-indigo: #4f46e5;
+    --color-indigo-soft: #e0e7ff;
+    --color-danger: #dc2626;
+    --color-danger-soft: #fef2f2;
+    --color-success: #16a34a;
+    --color-success-dark: #15803d;
+    --color-success-soft: #dcfce7;
+    --color-success-border: #86efac;
+    --color-success-strong: #22c55e;
+    --color-success-tint: #f0fdf4;
+    --color-success-deep: #166534;
+    --color-danger-soft-strong: #fee2e2;
+    --color-teal-deep: #0f766e;
+    --color-teal-bright: #14b8a6;
+    --color-teal-tint: #f0fdfa;
+    --color-sky-bright: #0ea5e9;
+    --color-highlight: #fde047;
+    --color-warning-border: #fcd34d;
+    --color-warning-text: #92400e;
+    --color-warning-bg: #fffbeb;
+
+    --bg-body: #ffffff;
+    --bg-page: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-surface-tint: #fafdff;
+    --bg-section-alt: #f8fafc;
+    --bg-muted: #f1f5f9;
+    --bg-footer: #f1f5f9;
+
+    --text-heading: #0f172a;
+    --text-slate: #1e293b;
+    --text-body: #334155;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-light: #ffffff;
+    --text-on-primary-soft: #0c4a6e;
+
+    --border-color: #e2e8f0;
+    --border-muted: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --border-primary-soft: #bae6fd;
+
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.03);
+    --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 28px rgba(15, 23, 42, 0.08);
+    --shadow-xl: 0 12px 30px rgba(15, 23, 42, 0.1);
+    --shadow-primary: 0 4px 12px rgba(2, 132, 199, 0.22);
+    --shadow-primary-lg: 0 8px 20px rgba(2, 132, 199, 0.25);
+    --shadow-primary-xl: 0 10px 24px rgba(2, 132, 199, 0.22);
+
+    /* --------------------------------------------------------------------
+       Alpha tokens: các lớp mờ dùng lại cho focus, hover, overlay, text trên nền.
+       Gom về một nguồn để mọi thành phần có cùng độ đậm nhạt.
+       -------------------------------------------------------------------- */
+    --ring-primary: rgba(2, 132, 199, 0.14);      /* viền focus */
+    --ring-primary-strong: rgba(2, 132, 199, 0.3);/* viền focus nổi bật */
+    --tint-primary-hover: rgba(2, 132, 199, 0.08);/* nền hover nhẹ */
+    --tint-primary-hover-subtle: rgba(2, 132, 199, 0.07);
+
+    --scrim-light: rgba(15, 23, 42, 0.04);        /* bóng/nền tối rất nhẹ */
+    --scrim-medium: rgba(15, 23, 42, 0.12);       /* lớp phủ trung bình */
+    --scrim-strong: rgba(15, 23, 42, 0.25);       /* lớp phủ đậm */
+    --scrim-modal: rgba(15, 23, 42, 0.58);        /* nền sau modal */
+    --scrim-image: rgba(15, 23, 42, 0.82);        /* lớp phủ trên ảnh */
+
+    --on-image-text: rgba(255, 255, 255, 0.94);   /* chữ trên nền ảnh/tối */
+    --on-image-text-soft: rgba(255, 255, 255, 0.88);
+    --on-image-text-muted: rgba(255, 255, 255, 0.8);
+    --glass-fill: rgba(255, 255, 255, 0.16);      /* nền kính (glassmorphism) */
+    --glass-fill-hover: rgba(255, 255, 255, 0.22);
+    --glass-border: rgba(255, 255, 255, 0.32);
+    --glass-border-strong: rgba(255, 255, 255, 0.65);
+    --glass-surface: rgba(255, 255, 255, 0.96);
+    --glass-divider: rgba(255, 255, 255, 0.4);
+    --glass-fill-faint: rgba(255, 255, 255, 0.12);
+
+    --shadow-neutral: rgba(0, 0, 0, 0.1);          /* bóng đổ trung tính */
+    --shadow-neutral-strong: rgba(0, 0, 0, 0.12);
+    --shadow-deep: rgba(15, 23, 42, 0.22);         /* bóng đậm cho thẻ nổi */
+    --glow-primary: rgba(3, 105, 161, 0.28);       /* quầng sáng trên nền gradient */
+    --glow-primary-soft: rgba(3, 105, 161, 0.25);
+    --glow-secondary: rgba(13, 148, 136, 0.35);
+    --veil-medium: rgba(15, 23, 42, 0.65);         /* lớp phủ ảnh Hero */
+    --veil-strong: rgba(15, 23, 42, 0.95);
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-2xl: 14px;
+    --radius-3xl: 16px;
+    --radius-full: 999px;
+
+    --container-max: 1240px;
+    --container-gap: 2.5rem;
+    --section-padding: 2.5rem 0 4.5rem;
+
+    --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --transition: all 0.2s ease;
+
+    /* --------------------------------------------------------------------
+       TYPOGRAPHY SCALE (thang bậc chữ dùng chung toàn site)
+       7 bậc rõ ràng thay cho hàng chục kích thước rời rạc trước đây.
+       -------------------------------------------------------------------- */
+    --fs-2xs: 0.6875rem;  /* 11px – nhãn rất nhỏ, chú thích ảnh */
+    --fs-xs: 0.75rem;     /* 12px – nhãn, badge, meta phụ */
+    --fs-sm: 0.8125rem;   /* 13px – thông tin phụ, ngày tháng */
+    --fs-base: 0.875rem;  /* 14px – mô tả, nội dung phụ */
+    --fs-md: 0.9375rem;   /* 15px – nội dung chính */
+    --fs-lg: 1rem;        /* 16px – đoạn văn đọc lâu, tiêu đề thẻ */
+    --fs-xl: 1.125rem;    /* 18px – tiêu đề cấp 3 */
+    --fs-2xl: 1.375rem;   /* 22px – tiêu đề mục */
+    --fs-3xl: 1.75rem;    /* 28px – số liệu nổi bật, KPI */
+
+    --lh-tight: 1.25;     /* tiêu đề lớn */
+    --lh-heading: 1.4;    /* tiêu đề thẻ */
+    --lh-body: 1.7;       /* đoạn văn */
+    --lh-relaxed: 1.85;   /* bài đọc dài */
+
+    --breakpoint-tablet: 992px;
+    --breakpoint-mobile: 768px;
+    --breakpoint-small: 480px;
+}
+
+/* ==========================================================================
+   1b. ALIAS TOKENS (tương thích với spec V1.1.0 — không ghi đè tokens trên)
+   ========================================================================== */
+
+:root {
+  /* Alias màu sắc */
+  --color-primary-alias: var(--color-primary);       /* #0284c7 */
+  --color-secondary-alias: #c0392b;
+  --color-error: var(--color-danger, #e74c3c);
+
+  /* Alias nền */
+  --bg-primary: var(--bg-surface, #ffffff);
+  --bg-secondary: var(--bg-section-alt, #f8fafc);
+  --bg-tertiary: var(--bg-muted, #f1f5f9);
+
+  /* Alias border-radius */
+  --border-radius-sm: var(--radius-sm, 6px);
+  --border-radius: var(--radius-md, 8px);
+  --border-radius-lg: var(--radius-xl, 12px);
+  --border-radius-xl: var(--radius-3xl, 16px);
+
+  /* Alias shadow */
+  --shadow: var(--shadow-md, 0 6px 20px rgba(15,23,42,0.04));
+
+  /* Alias spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Alias font-weight */
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  /* Alias line-height */
+  --lh-normal: var(--lh-body, 1.7);
+
+  /* Alias z-index */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+
+  /* Alias transition */
+  --transition-fast: 150ms ease;
+  --transition-slow: 400ms ease;
+
+  /* Alias breakpoints */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1600px;
+}
+
+/* Hỗ trợ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip to main content */
+.skip-to-main {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: white;
+  z-index: 9999;
+  border-radius: 0 0 8px 0;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Chống tràn text toàn cục */
+h1, h2, h3, h4, h5, h6 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+p, li, td, th, label, span {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Loading state */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+  color: var(--color-primary);
+}
+.loading-spinner::after {
+  content: '';
+  width: 32px;
+  height: 32px;
+  border: 3px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+}
+.empty-state__icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.empty-state__title {
+  font-size: var(--fs-xl, 1.125rem);
+  font-weight: var(--fw-semibold, 600);
+  margin-bottom: 8px;
+}
+.empty-state__desc {
+  font-size: var(--fs-sm, 0.8125rem);
+  max-width: 320px;
+}
+
+/* Error state */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-error, #dc2626);
+}
+.error-state__icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+.error-state__title {
+  font-size: var(--fs-xl, 1.125rem);
+  font-weight: var(--fw-semibold, 600);
+  margin-bottom: 8px;
+}
+.error-state__desc {
+  font-size: var(--fs-sm, 0.8125rem);
+  max-width: 320px;
+}
+
+/* ==========================================================================
+   2. RESET & BASE STYLES
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 1rem;
+}
+
+body {
+    min-width: 320px;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-body);
+    background-color: var(--bg-body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+img {
+    height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+ul,
+ol {
+    list-style: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+}
+
+/* ==========================================================================
+   3. ACCESSIBILITY & INTERACTION
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   3.1. TIỆN ÍCH TRẠNG THÁI DÙNG CHUNG (dùng cho mọi thành phần)
+   Quy ước: JS chỉ bật/tắt class, không ghi style trực tiếp vào phần tử.
+   -------------------------------------------------------------------------- */
+
+/* Ẩn hoàn toàn phần tử nhưng vẫn giữ trong DOM */
+.is-hidden {
+    display: none !important;
+}
+
+/* Ẩn phần tử đã bị bộ lọc loại khỏi danh sách */
+.is-filtered-out {
+    display: none !important;
+}
+
+/* Khoá cuộn nền khi mở hộp thoại (modal) */
+body.is-modal-open {
+    overflow-y: hidden;
+}
+
+:focus-visible {
+    outline: 3px solid var(--color-primary-light);
+    outline-offset: 3px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+::selection {
+    color: var(--text-heading);
+    background-color: var(--color-primary-soft);
+}
+
+/* ==========================================================================
+   4. SHARED BUTTONS & BADGES
+   ========================================================================== */
+
+.site-main__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: inherit;
+    text-align: center;
+    white-space: nowrap;
+    border: 2px solid transparent;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.site-main__button--primary {
+    color: var(--text-light);
+    background: linear-gradient(
+        135deg,
+        var(--color-primary),
+        var(--color-primary-dark)
+    );
+    box-shadow: var(--shadow-primary-lg);
+}
+
+.site-main__button--primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+    box-shadow: var(--shadow-primary-lg);
+}
+
+.site-main__button--light {
+    color: var(--color-primary-dark);
+    background-color: var(--bg-surface);
+    box-shadow: var(--shadow-neutral);
+}
+
+.site-main__button--light:hover {
+    background-color: var(--color-primary-tint);
+    transform: translateY(-2px);
+}
+
+.site-main__button--outline {
+    color: var(--text-light);
+    background-color: var(--glass-fill-faint);
+    border-color: var(--glass-border-strong);
+    backdrop-filter: blur(6px);
+}
+
+.site-main__button--outline:hover {
+    color: var(--color-primary-dark);
+    background-color: var(--bg-surface);
+    border-color: var(--bg-surface);
+    transform: translateY(-2px);
+}
+
+.site-main__category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-primary-dark);
+    background-color: var(--color-primary-soft);
+    border-radius: var(--radius-full);
+    margin-bottom: 0.65rem;
+}
+
+.site-main__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    font-size: 0.825rem;
+    color: var(--text-muted);
+}
+
+.site-main__date::before {
+    content: "\f017";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 400;
+    color: var(--color-primary);
+}
+
+/* ==========================================================================
+   5. SITE HEADER
+   ========================================================================== */
+
+.site-header {
+    position: relative;
+    z-index: 100;
+    background-color: var(--bg-surface);
+}
+
+/* --------------------------------------------------------------------------
+   5.1. TOPBAR
+   -------------------------------------------------------------------------- */
+
+.site-header__topbar {
+    color: var(--text-body);
+    font-size: 0.825rem;
+    background-color: var(--color-primary-tint);
+    border-bottom: 1px solid var(--color-primary-soft);
+}
+
+.site-header__topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.4rem;
+}
+
+.site-header__topbar-info,
+.site-header__system-links {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.site-header__city,
+.site-header__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+}
+
+.site-header__city i,
+.site-header__date i {
+    color: var(--color-primary);
+}
+
+.site-header__divider {
+    color: var(--border-strong);
+}
+
+.site-header__system-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    border-radius: var(--radius-sm);
+}
+
+.site-header__system-link:hover {
+    color: var(--color-primary);
+    background-color: var(--color-primary-soft);
+}
+
+/* --------------------------------------------------------------------------
+   5.2. IDENTITY / BRAND
+   -------------------------------------------------------------------------- */
+
+.site-header__identity {
+    padding-block: 1.15rem;
+    background: linear-gradient(
+        180deg,
+        var(--text-light) 0%,
+        var(--bg-surface-tint) 100%
+    );
+    border-bottom: 1px solid var(--border-color);
+}
+
+.site-header__identity-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.site-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.site-header__logo {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 2px solid var(--color-primary-soft);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.site-header__logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.site-header__brand-name {
+    font-size: 1.08rem;
+    font-weight: 800;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--color-primary-dark);
+}
+
+.site-header__brand-name-en {
+    margin-top: 0.2rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   5.3. SEARCH BOX
+   -------------------------------------------------------------------------- */
+
+.site-header__search {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 320px;
+}
+
+.site-header__search-form {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.35rem 0.25rem 1rem;
+    background-color: var(--bg-section-alt);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+}
+
+.site-header__search-form:focus-within {
+    background-color: var(--bg-surface);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--ring-primary);
+}
+
+.site-header__search-input {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-heading);
+    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+.site-header__search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.site-header__search-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    color: var(--text-light);
+    background: linear-gradient(
+        135deg,
+        var(--color-primary),
+        var(--color-primary-dark)
+    );
+    border: none;
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+}
+
+.site-header__search-button:hover {
+    transform: scale(1.05);
+    filter: brightness(1.08);
+}
+
+/* --------------------------------------------------------------------------
+   5.4. MOBILE MENU TOGGLE
+   -------------------------------------------------------------------------- */
+
+.site-header__menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    font-size: 1.15rem;
+    color: var(--color-primary-dark);
+    background-color: var(--bg-surface);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.site-header__menu-toggle:hover {
+    background-color: var(--color-primary-tint);
+    border-color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   5.5. MAIN NAVIGATION
+   -------------------------------------------------------------------------- */
+
+.site-header__navigation {
+    position: relative;
+    z-index: 99;
+    background-color: var(--glass-surface);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xs);
+    backdrop-filter: blur(10px);
+}
+
+.site-header__nav-list {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+}
+
+.site-header__nav-link {
+    position: relative;
+    display: block;
+    padding: 0.95rem 0.85rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    white-space: nowrap;
+}
+
+.site-header__nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0;
+    height: 3px;
+    background-color: var(--color-primary);
+    border-radius: 3px 3px 0 0;
+    transform: scaleX(0);
+    transition: transform 0.25s ease;
+}
+
+.site-header__nav-link:hover {
+    color: var(--color-primary);
+    background-color: var(--color-primary-tint);
+}
+
+.site-header__nav-link:hover::after,
+.site-header__nav-link--active::after {
+    transform: scaleX(1);
+}
+
+.site-header__nav-link--active {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   6. SITE FOOTER
+   ========================================================================== */
+
+.site-footer {
+    color: var(--text-body);
+    background-color: var(--bg-footer);
+    border-top: 4px solid var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   6.1. FOOTER MAIN
+   -------------------------------------------------------------------------- */
+
+.site-footer__main {
+    padding-block: 3.5rem 2.75rem;
+}
+
+.site-footer__main-inner {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.2fr;
+    gap: 2.5rem;
+}
+
+.site-footer__brand {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.site-footer__logo {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 2px solid var(--bg-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.site-footer__logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.site-footer__brand-title {
+    margin-bottom: 0.65rem;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.4;
+    color: var(--color-primary-dark);
+}
+
+.site-footer__description {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   6.2. FOOTER HEADINGS
+   -------------------------------------------------------------------------- */
+
+.site-footer__heading {
+    position: relative;
+    margin-bottom: 1.15rem;
+    padding-bottom: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--text-heading);
+}
+
+.site-footer__heading::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 36px;
+    height: 3px;
+    background-color: var(--color-primary);
+    border-radius: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   6.3. FOOTER LINKS
+   -------------------------------------------------------------------------- */
+
+.site-footer__link-list,
+.site-footer__contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.site-footer__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    font-size: 0.92rem;
+    color: var(--text-body);
+}
+
+.site-footer__link:hover {
+    color: var(--color-primary);
+    transform: translateX(4px);
+}
+
+/* --------------------------------------------------------------------------
+   6.4. FOOTER CONTACT
+   -------------------------------------------------------------------------- */
+
+.site-footer__contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.92rem;
+}
+
+.site-footer__contact-item i {
+    flex-shrink: 0;
+    width: 16px;
+    margin-top: 0.25rem;
+    color: var(--color-primary);
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   6.5. FOOTER BOTTOM
+   -------------------------------------------------------------------------- */
+
+.site-footer__bottom {
+    padding-block: 1.15rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background-color: var(--border-color);
+}
+
+.site-footer__bottom-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}

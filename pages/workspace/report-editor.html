@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Biên tập báo cáo – khu vực Workspace phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>BIÊN TẬP BÁO CÁO | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/workspace.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/workspace.js" defer></script>
+</head>
+
+<body class="ws-body">
+    <div class="ws-app">
+        <aside class="ws-sidebar" id="ws-sidebar" aria-label="Điều hướng Workspace"></aside>
+
+        <div class="ws-shell">
+            <header class="ws-header">
+                <button type="button" class="ws-header__toggle" id="ws-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="ws-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="ws-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="ws-breadcrumb" id="ws-breadcrumb"></ol>
+                    </nav>
+                    <p class="ws-header__title" id="ws-page-title">Biên tập báo cáo</p>
+                </div>
+                <div class="ws-header__right">
+                    <form class="ws-header__search" id="ws-search" role="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" name="q" placeholder="Tìm nhiệm vụ…" aria-label="Tìm kiếm nhanh">
+                    </form>
+                    <span id="ws-notifications"></span>
+                    <span id="ws-user-host"></span>
+                </div>
+            </header>
+
+            <main class="ws-main">
+                <div class="ws-main__inner" id="ws-report-editor">
+                    <div class="ws-page-head">
+                        <div class="ws-page-head__text">
+                            <div class="ws-page-head__badges">
+                                <span class="ws-code" id="ws-report-code">BC</span>
+                                <span class="ws-badge ws-badge--info">Dữ liệu máy chủ</span>
+                            </div>
+                            <h1 class="ws-page-head__title">Biên tập báo cáo</h1>
+                            <p class="ws-page-head__desc">
+                                Soạn thảo nội dung báo cáo theo phong cách văn bản hành chính, lưu nháp, xem trước,
+                                gửi duyệt và xử lý yêu cầu bổ sung.
+                            </p>
+                        </div>
+                        <div class="ws-page-head__actions">
+                            <a class="ws-btn" href="reports.html">
+                                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách
+                            </a>
+                            <button type="button" class="ws-btn" id="ws-report-save">
+                                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu báo cáo
+                            </button>
+                            <button type="button" class="ws-btn" id="ws-report-preview">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem trước
+                            </button>
+                            <button type="button" class="ws-btn ws-btn--success" id="ws-report-approve"
+                                data-perm="report.approve">
+                                <i class="fa-solid fa-check" aria-hidden="true"></i> Duyệt
+                            </button>
+                            <button type="button" class="ws-btn" id="ws-report-revision" data-perm="report.approve">
+                                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Yêu cầu bổ sung
+                            </button>
+                            <button type="button" class="ws-btn ws-btn--primary" id="ws-report-send">
+                                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi báo cáo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ws-editor-layout">
+                        <section class="ws-card" aria-labelledby="ws-report-form-title">
+                            <div class="ws-card__head">
+                                <h2 class="ws-card__title" id="ws-report-form-title">
+                                    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Nội dung báo cáo
+                                </h2>
+                                <p class="ws-card__subtitle">Thông tin chung và nội dung theo bố cục văn bản hành chính
+                                </p>
+                            </div>
+                            <div class="ws-card__body">
+                                <form class="ws-form" id="ws-report-form" novalidate>
+                                    <div class="ws-field ws-field--wide">
+                                        <label class="ws-label" for="ws-report-name">Tên báo cáo <span
+                                                class="ws-label__req">*</span></label>
+                                        <input type="text" class="ws-input" id="ws-report-name" required
+                                            placeholder="Ví dụ: Báo cáo công tác phòng, chống ma túy tháng 11/2026">
+                                    </div>
+                                    <div class="ws-field">
+                                        <label class="ws-label" for="ws-report-type-sel">Loại báo cáo</label>
+                                        <select class="ws-select" id="ws-report-type-sel"></select>
+                                    </div>
+                                    <div class="ws-field">
+                                        <label class="ws-label" for="ws-report-org-sel">Đơn vị báo cáo</label>
+                                        <select class="ws-select" id="ws-report-org-sel"></select>
+                                    </div>
+                                    <div class="ws-field">
+                                        <label class="ws-label" for="ws-report-period">Kỳ báo cáo <span
+                                                class="ws-label__req">*</span></label>
+                                        <input type="text" class="ws-input" id="ws-report-period" required
+                                            placeholder="Ví dụ: Tháng 11/2026">
+                                    </div>
+                                    <div class="ws-field">
+                                        <label class="ws-label" for="ws-report-date">Ngày lập</label>
+                                        <input type="date" class="ws-input" id="ws-report-date">
+                                    </div>
+                                </form>
+
+                                <h3 class="ws-subhead">I. Nội dung báo cáo</h3>
+                                <div class="ws-editor-toolbar" role="toolbar" aria-label="Định dạng văn bản">
+                                    <button type="button" class="ws-tool-btn" data-cmd="bold" title="Đậm"
+                                        aria-label="Đậm"><i class="fa-solid fa-bold" aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="italic" title="Nghiêng"
+                                        aria-label="Nghiêng"><i class="fa-solid fa-italic"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="underline" title="Gạch chân"
+                                        aria-label="Gạch chân"><i class="fa-solid fa-underline"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="insertUnorderedList"
+                                        title="Danh sách" aria-label="Danh sách"><i class="fa-solid fa-list-ul"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="insertOrderedList"
+                                        title="Danh sách số" aria-label="Danh sách số"><i class="fa-solid fa-list-ol"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="justifyLeft" title="Căn trái"
+                                        aria-label="Căn trái"><i class="fa-solid fa-align-left"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="justifyCenter" title="Căn giữa"
+                                        aria-label="Căn giữa"><i class="fa-solid fa-align-center"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="justifyFull" title="Căn đều"
+                                        aria-label="Căn đều"><i class="fa-solid fa-align-justify"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="formatBlock" data-value="h3"
+                                        title="Tiêu đề mục" aria-label="Tiêu đề mục">H3</button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="insertHorizontalRule"
+                                        title="Đường kẻ" aria-label="Đường kẻ"><i class="fa-solid fa-minus"
+                                            aria-hidden="true"></i></button>
+                                    <button type="button" class="ws-tool-btn" data-cmd="removeFormat"
+                                        title="Xóa định dạng" aria-label="Xóa định dạng"><i class="fa-solid fa-eraser"
+                                            aria-hidden="true"></i></button>
+                                </div>
+                                <div class="ws-editor-surface" id="ws-report-content" contenteditable="true"
+                                    role="textbox" aria-multiline="true" aria-label="Nội dung báo cáo"
+                                    aria-describedby="ws-report-counter"></div>
+                                <div class="ws-editor-foot">
+                                    <span id="ws-report-counter">0 từ</span>
+                                    <span>Nội dung được lưu trực tiếp vào cơ sở dữ liệu</span>
+                                </div>
+
+                                <div class="ws-form ws-form--spaced">
+                                    <div class="ws-field ws-field--wide">
+                                        <label class="ws-label" for="ws-report-results">II. Kết quả thực hiện</label>
+                                        <textarea class="ws-textarea" id="ws-report-results" rows="3"
+                                            placeholder="Tóm tắt kết quả đạt được, số liệu chính"></textarea>
+                                    </div>
+                                    <div class="ws-field ws-field--wide">
+                                        <label class="ws-label" for="ws-report-issues">III. Khó khăn, vướng mắc</label>
+                                        <textarea class="ws-textarea" id="ws-report-issues" rows="3"
+                                            placeholder="Nêu khó khăn, vướng mắc trong quá trình thực hiện"></textarea>
+                                    </div>
+                                    <div class="ws-field ws-field--wide">
+                                        <label class="ws-label" for="ws-report-proposals">IV. Kiến nghị, đề xuất</label>
+                                        <textarea class="ws-textarea" id="ws-report-proposals" rows="3"
+                                            placeholder="Kiến nghị, đề xuất với cấp có thẩm quyền"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <aside class="ws-grid ws-grid--aside">
+                            <section class="ws-card" aria-labelledby="ws-report-meta-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-report-meta-title">
+                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Thông tin báo cáo
+                                    </h2>
+                                </div>
+                                <div class="ws-card__body" id="ws-report-meta"></div>
+                            </section>
+
+                            <section class="ws-card" aria-labelledby="ws-report-tools-title">
+                                <div class="ws-card__head">
+                                    <h2 class="ws-card__title" id="ws-report-tools-title">
+                                        <i class="fa-solid fa-toolbox" aria-hidden="true"></i> Công cụ
+                                    </h2>
+                                </div>
+                                <div class="ws-card__body">
+                                    <div class="ws-editor-actions">
+                                        <button type="button" class="ws-btn ws-btn--sm" id="ws-report-attach"
+                                            data-perm="doc.manage">
+                                            <i class="fa-solid fa-paperclip" aria-hidden="true"></i> Đính kèm tài liệu
+                                        </button>
+                                        <button type="button" class="ws-btn ws-btn--sm" id="ws-report-export">
+                                            <i class="fa-solid fa-file-export" aria-hidden="true"></i> Xuất tệp
+                                        </button>
+                                        <button type="button" class="ws-btn ws-btn--sm" id="ws-report-history">
+                                            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Lịch sử xử
+                                            lý
+                                        </button>
+                                    </div>
+                                    <div class="ws-note ws-note--muted ws-note--spaced">
+                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                        Báo cáo sau khi gửi sẽ chuyển “Chờ duyệt”. Người có quyền duyệt báo cáo mới được
+                                        phê duyệt.
+                                    </div>
+                                </div>
+                            </section>
+                        </aside>
+                    </div>
+
+                    <footer class="ws-main__footer">
+                        <div class="ws-main__footer-inner">
+                            <p>© <span class="ws-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

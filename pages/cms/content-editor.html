@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Biên tập nội dung cho Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>BIÊN TẬP NỘI DUNG | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng"
+                    aria-expanded="false" aria-controls="cms-sidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn">
+                        <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
+                    </nav>
+                    <p class="cms-header__title" id="cms-page-title">Biên tập nội dung</p>
+                </div>
+
+                <div class="cms-header__right">
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+
+            <main class="cms-main" id="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-alert cms-alert--warning cms-u-hidden" id="editor-readonly">
+                        <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                        <div>
+                            <strong>Chế độ chỉ đọc:</strong> bài viết này thuộc người dùng khác và vai trò hiện tại
+                            không có quyền chỉnh sửa. Hãy liên hệ biên tập viên phụ trách hoặc người quản trị.
+                        </div>
+                    </div>
+
+                    <!-- Thanh trạng thái & thao tác -->
+                    <div class="cms-editor-head">
+                        <div class="cms-editor-head__status">
+                            <span id="editor-status"></span>
+                            <span class="cms-editor-head__meta" id="editor-meta"></span>
+                            <span class="cms-dirty-hint" id="editor-dirty">
+                                <i class="fa-solid fa-circle cms-dirty-hint__indicator" aria-hidden="true"></i>
+                                Có thay đổi chưa lưu
+                            </span>
+                        </div>
+                        <div class="cms-editor-head__actions">
+                            <button type="button" class="cms-btn" id="editor-preview">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> Xem trước
+                            </button>
+                            <button type="button" class="cms-btn" id="editor-save">
+                                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu nháp
+                            </button>
+                            <button type="button" class="cms-btn" id="editor-review"
+                                title="Chấp thuận nội dung (dành cho kiểm duyệt viên)">
+                                <i class="fa-solid fa-stamp" aria-hidden="true"></i> Duyệt
+                            </button>
+                            <button type="button" class="cms-btn cms-btn--success" id="editor-submit">
+                                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi duyệt
+                            </button>
+                            <button type="button" class="cms-btn cms-btn--primary" id="editor-publish">
+                                <i class="fa-solid fa-rocket" aria-hidden="true"></i> Xuất bản
+                            </button>
+                            <button type="button" class="cms-btn cms-btn--danger cms-btn--icon" id="editor-delete"
+                                aria-label="Xóa bài viết" title="Xóa bài viết">
+                                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form class="cms-editor-layout cms-u-mt-md" id="editor-form" novalidate>
+                        <!-- Cột biên tập chính -->
+                        <div class="cms-editor-main">
+                            <div class="cms-card">
+                                <div class="cms-card__body">
+                                    <div class="cms-field">
+                                        <label class="cms-label" for="editor-title-input">
+                                            Tiêu đề bài viết <span class="cms-label__req">*</span>
+                                        </label>
+                                        <input type="text" class="cms-title-input" id="editor-title-input"
+                                            maxlength="220" placeholder="Nhập tiêu đề bài viết…"
+                                            aria-describedby="title-error">
+                                        <span class="cms-error-text" id="title-error"></span>
+                                    </div>
+
+                                    <div class="cms-field cms-u-mt-md">
+                                        <label class="cms-label" for="editor-slug">
+                                            Đường dẫn (slug) <span class="cms-label__hint">– tự tạo từ tiêu đề</span>
+                                        </label>
+                                        <div class="cms-u-flex cms-u-gap-sm cms-u-items-center">
+                                            <span
+                                                class="cms-u-text-sm cms-u-text-muted cms-u-nowrap">hcmdpp.gov.vn/tin-tuc/</span>
+                                            <input type="text" class="cms-input" id="editor-slug"
+                                                placeholder="duong-dan-bai-viet">
+                                        </div>
+                                        <span class="cms-help">Chỉ dùng chữ thường không dấu, số và dấu gạch nối.</span>
+                                    </div>
+
+                                    <div class="cms-field cms-u-mt-md">
+                                        <label class="cms-label" for="editor-excerpt">
+                                            Mô tả ngắn <span class="cms-label__hint">(hiển thị ở danh sách và
+                                                SEO)</span>
+                                        </label>
+                                        <textarea class="cms-textarea" id="editor-excerpt" rows="3"
+                                            placeholder="Tóm tắt nội dung trong 1–3 câu…"></textarea>
+                                        <div class="cms-u-flex cms-u-justify-between cms-u-items-center">
+                                            <span class="cms-help">Nên dài 150–300 ký tự.</span>
+                                            <span class="cms-counter" id="excerpt-count">0/300</span>
+                                        </div>
+                                        <span class="cms-error-text"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trình soạn thảo -->
+                            <div class="cms-card">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title">
+                                        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i> Nội dung chính
+                                    </h2>
+                                    <span class="cms-u-text-sm cms-u-text-muted">
+                                        Phím tắt: <kbd>Ctrl</kbd> + <kbd>S</kbd> để lưu nháp
+                                    </span>
+                                </div>
+                                <div class="cms-card__body">
+                                    <div class="cms-editor">
+                                        <div class="cms-editor__toolbar" id="editor-toolbar" role="toolbar"
+                                            aria-label="Định dạng văn bản">
+                                            <div class="cms-editor__group">
+                                                <select class="cms-editor__select" data-block-select
+                                                    aria-label="Kiểu đoạn">
+                                                    <option value="p">Đoạn văn</option>
+                                                    <option value="h2">Tiêu đề 2</option>
+                                                    <option value="h3">Tiêu đề 3</option>
+                                                    <option value="h4">Tiêu đề 4</option>
+                                                </select>
+                                            </div>
+                                            <div class="cms-editor__group">
+                                                <button type="button" class="cms-editor__btn" data-cmd="bold"
+                                                    aria-label="In đậm" title="In đậm (Ctrl+B)">
+                                                    <i class="fa-solid fa-bold" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="italic"
+                                                    aria-label="In nghiêng" title="In nghiêng (Ctrl+I)">
+                                                    <i class="fa-solid fa-italic" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="underline"
+                                                    aria-label="Gạch chân" title="Gạch chân (Ctrl+U)">
+                                                    <i class="fa-solid fa-underline" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                            <div class="cms-editor__group">
+                                                <button type="button" class="cms-editor__btn" data-cmd="justifyLeft"
+                                                    aria-label="Căn trái" title="Căn trái">
+                                                    <i class="fa-solid fa-align-left" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="justifyCenter"
+                                                    aria-label="Căn giữa" title="Căn giữa">
+                                                    <i class="fa-solid fa-align-center" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="justifyRight"
+                                                    aria-label="Căn phải" title="Căn phải">
+                                                    <i class="fa-solid fa-align-right" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="justifyFull"
+                                                    aria-label="Căn đều hai bên" title="Căn đều">
+                                                    <i class="fa-solid fa-align-justify" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                            <div class="cms-editor__group">
+                                                <button type="button" class="cms-editor__btn"
+                                                    data-cmd="insertUnorderedList" aria-label="Danh sách không thứ tự"
+                                                    title="Danh sách">
+                                                    <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn"
+                                                    data-cmd="insertOrderedList" aria-label="Danh sách có thứ tự"
+                                                    title="Danh sách số">
+                                                    <i class="fa-solid fa-list-ol" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="formatBlock"
+                                                    data-value="blockquote" aria-label="Trích dẫn" title="Trích dẫn">
+                                                    <i class="fa-solid fa-quote-left" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                            <div class="cms-editor__group">
+                                                <button type="button" class="cms-editor__btn" data-cmd="createLink"
+                                                    aria-label="Chèn liên kết" title="Chèn liên kết">
+                                                    <i class="fa-solid fa-link" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="insertImage"
+                                                    aria-label="Chèn hình ảnh" title="Chèn hình ảnh">
+                                                    <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="insertTable"
+                                                    aria-label="Chèn bảng" title="Chèn bảng">
+                                                    <i class="fa-solid fa-table" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn"
+                                                    data-cmd="insertHorizontalRule" aria-label="Đường kẻ ngang"
+                                                    title="Đường kẻ ngang">
+                                                    <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                            <div class="cms-editor__group">
+                                                <button type="button" class="cms-editor__btn" data-cmd="undo"
+                                                    aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)">
+                                                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="redo"
+                                                    aria-label="Làm lại" title="Làm lại (Ctrl+Y)">
+                                                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="cms-editor__btn" data-cmd="removeFormat"
+                                                    aria-label="Xóa định dạng" title="Xóa định dạng">
+                                                    <i class="fa-solid fa-eraser" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="cms-editor__canvas" id="editor-canvas" contenteditable="true"
+                                            role="textbox" aria-multiline="true" aria-label="Nội dung bài viết"
+                                            data-placeholder="Bắt đầu viết nội dung bài viết tại đây…"></div>
+
+                                        <div class="cms-editor__statusbar">
+                                            <span><i class="fa-solid fa-font" aria-hidden="true"></i>
+                                                <strong id="editor-words">0</strong> từ</span>
+                                            <span><i class="fa-solid fa-text-width" aria-hidden="true"></i>
+                                                <strong id="editor-chars">0</strong> ký tự</span>
+                                            <span><i class="fa-regular fa-clock" aria-hidden="true"></i>
+                                                <strong id="editor-readtime">1 phút</strong> đọc</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEO -->
+                            <div class="cms-card">
+                                <div class="cms-card__head">
+                                    <h2 class="cms-card__title">
+                                        <i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>
+                                        Tối ưu tìm kiếm (SEO)
+                                    </h2>
+                                </div>
+                                <div class="cms-card__body">
+                                    <div class="cms-field">
+                                        <label class="cms-label" for="editor-seo-title">SEO Title</label>
+                                        <input type="text" class="cms-input" id="editor-seo-title" maxlength="90"
+                                            placeholder="Tiêu đề hiển thị trên công cụ tìm kiếm">
+                                        <div class="cms-u-flex cms-u-justify-between">
+                                            <span class="cms-help">Khuyến nghị 50–60 ký tự.</span>
+                                            <span class="cms-counter" id="seo-title-count">0/60</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="cms-field cms-u-mt-md">
+                                        <label class="cms-label" for="editor-seo-desc">SEO Description</label>
+                                        <textarea class="cms-textarea" id="editor-seo-desc" rows="2" maxlength="200"
+                                            placeholder="Mô tả ngắn hiển thị dưới tiêu đề trên công cụ tìm kiếm"></textarea>
+                                        <div class="cms-u-flex cms-u-justify-between">
+                                            <span class="cms-help">Khuyến nghị 140–160 ký tự.</span>
+                                            <span class="cms-counter" id="seo-desc-count">0/160</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="cms-seo-preview" id="editor-seo-preview">
+                                        <p class="cms-seo-preview__url">hcmdpp.gov.vn › tin-tuc › duong-dan-bai-viet
+                                        </p>
+                                        <p class="cms-seo-preview__title">Tiêu đề bài viết</p>
+                                        <p class="cms-seo-preview__desc">Mô tả ngắn của bài viết sẽ hiển thị tại
+                                            đây.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar thuộc tính -->
+                        <aside class="cms-editor-aside">
+                            <div class="cms-card">
+                                <div class="cms-aside-section">
+                                    <h2 class="cms-aside-section__title">
+                                        <span><i class="fa-solid fa-rocket" aria-hidden="true"></i>Xuất bản</span>
+                                    </h2>
+                                    <div class="cms-aside-stack">
+                                        <div class="cms-field">
+                                            <label class="cms-label" for="editor-date">Ngày đăng</label>
+                                            <div class="cms-datetime">
+                                                <input type="date" class="cms-input" id="editor-date">
+                                                <input type="time" class="cms-input" id="editor-time"
+                                                    aria-label="Giờ đăng">
+                                            </div>
+                                            <button type="button" class="cms-btn cms-btn--block" id="editor-save-side">
+                                                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu bản
+                                                nháp
+                                            </button>
+                                            <p class="cms-help">
+                                                Bài viết đã xuất bản sẽ hiển thị công khai ngay sau khi được phát
+                                                hành.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="cms-aside-section">
+                                        <h2 class="cms-aside-section__title">
+                                            <span><i class="fa-solid fa-folder-tree" aria-hidden="true"></i>Chuyên
+                                                mục</span>
+                                            <span class="cms-label__req" aria-hidden="true">*</span>
+                                        </h2>
+                                        <div class="cms-field">
+                                            <label class="cms-u-sr-only" for="editor-category">Chuyên mục</label>
+                                            <select class="cms-select" id="editor-category">
+                                                <option value="">— Chọn chuyên mục —</option>
+                                            </select>
+                                            <span class="cms-error-text"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="cms-aside-section">
+                                        <h2 class="cms-aside-section__title">
+                                            <span><i class="fa-regular fa-image" aria-hidden="true"></i>Ảnh đại
+                                                diện</span>
+                                        </h2>
+                                        <div class="cms-thumb-picker" id="editor-thumb" role="button" tabindex="0"
+                                            aria-label="Chọn ảnh đại diện">
+                                            <img alt="Ảnh đại diện bài viết" hidden>
+                                            <span class="cms-thumb-picker__placeholder">
+                                                <i class="fa-regular fa-images" aria-hidden="true"></i>
+                                                Chọn ảnh từ thư viện
+                                            </span>
+                                            <button type="button" class="cms-thumb-picker__remove"
+                                                aria-label="Bỏ ảnh đại diện">
+                                                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                        <div class="cms-thumb-picker__actions">
+                                            <button type="button" class="cms-btn cms-btn--sm cms-btn--block">
+                                                <i class="fa-solid fa-photo-film" aria-hidden="true"></i> Thư viện
+                                                tài nguyên
+                                            </button>
+                                        </div>
+                                        <p class="cms-help cms-u-mt-sm">Kích thước khuyến nghị 1200 × 675 px (16:9).
+                                        </p>
+                                    </div>
+
+                                    <div class="cms-aside-section">
+                                        <h2 class="cms-aside-section__title">
+                                            <span><i class="fa-solid fa-tags" aria-hidden="true"></i>Thẻ nội
+                                                dung</span>
+                                        </h2>
+                                        <div class="cms-tag-input">
+                                            <span id="editor-tags" class="cms-u-flex cms-u-wrap cms-u-gap-sm"></span>
+                                            <input type="text" id="editor-tag-input" placeholder="Nhập thẻ rồi Enter…"
+                                                aria-label="Thêm thẻ nội dung">
+                                        </div>
+                                        <p class="cms-help cms-u-mt-sm">Tối đa 8 thẻ. Thẻ giúp gom nhóm bài viết
+                                            theo chủ đề.</p>
+                                    </div>
+
+                                    <div class="cms-aside-section">
+                                        <h2 class="cms-aside-section__title">
+                                            <span><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Thông
+                                                tin khác</span>
+                                        </h2>
+                                        <div class="cms-aside-stack">
+                                            <div class="cms-field">
+                                                <label class="cms-label" for="editor-source">Nguồn tin</label>
+                                                <input type="text" class="cms-input" id="editor-source"
+                                                    placeholder="Ví dụ: Ban Chỉ đạo 138 TP.HCM">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        </aside>
+                    </form>
+
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

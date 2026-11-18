@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Đăng nhập khu vực quản trị nội dung Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="robots" content="noindex, nofollow">
+    <title>ĐĂNG NHẬP QUẢN TRỊ | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="../../assets/icons/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+    <link rel="stylesheet" href="../../css/login.css">
+
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+</head>
+
+<body class="cms-body cms-body--login">
+    <main class="cms-login">
+        <!-- Cột giới thiệu -->
+        <section class="cms-login__brand" aria-labelledby="login-brand-title">
+            <div class="cms-login__brand-top">
+                <div class="cms-login__identity">
+                    <span class="cms-login__logo">
+                        <img src="../../assets/icons/logo.jpg"
+                            alt="Biểu trưng Cổng thông tin điện tử phòng, chống ma túy">
+                    </span>
+                    <div>
+                        <p class="cms-login__identity-name">CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY</p>
+                        <p class="cms-login__identity-sub">Thành phố Hồ Chí Minh</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cms-login__brand-content">
+                <span class="cms-login__eyebrow">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                    Hệ thống quản trị nội dung
+                </span>
+                <h1 class="cms-login__headline" id="login-brand-title">
+                    Quản lý, biên tập và phát hành thông tin<br>phòng, chống ma túy một cách chuyên nghiệp
+                </h1>
+                <p class="cms-login__intro">
+                    Khu vực dành cho cán bộ biên tập, kiểm duyệt và xuất bản nội dung của Cổng thông tin.
+                    Mọi thao tác đều được ghi nhận để phục vụ công tác kiểm tra và báo cáo.
+                </p>
+
+                <ul class="cms-login__features">
+                    <li class="cms-login__feature">
+                        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+                        <span>
+                            <strong>Biên tập có kiểm soát</strong>
+                            Soạn thảo, lưu bản nháp và gửi duyệt theo từng bước.
+                        </span>
+                    </li>
+                    <li class="cms-login__feature">
+                        <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+                        <span>
+                            <strong>Quy trình xuất bản rõ ràng</strong>
+                            Phân tách quyền biên tập, kiểm duyệt và phát hành.
+                        </span>
+                    </li>
+                    <li class="cms-login__feature">
+                        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                        <span>
+                            <strong>Nhật ký hoạt động đầy đủ</strong>
+                            Truy vết người thực hiện, đối tượng và thời điểm.
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="cms-login__brand-foot">
+                <p>Ban Chỉ đạo phòng, chống tội phạm, tệ nạn xã hội và xây dựng phong trào toàn dân bảo vệ an ninh Tổ
+                    quốc Thành phố Hồ Chí Minh</p>
+            </div>
+        </section>
+
+        <!-- Cột đăng nhập -->
+        <section class="cms-login__panel" aria-labelledby="login-title">
+            <div class="cms-login__card">
+                <div class="cms-login__mobile-brand">
+                    <span class="cms-login__logo">
+                        <img src="../../assets/icons/logo.jpg" alt="Biểu trưng Cổng thông tin">
+                    </span>
+                    <div>
+                        <p class="cms-login__mobile-name">Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh</p>
+                        <p class="cms-login__mobile-sub">Khu vực quản trị</p>
+                    </div>
+                </div>
+
+                <h2 class="cms-login__title" id="login-title">ĐĂNG NHẬP QUẢN TRỊ</h2>
+                <p class="cms-login__subtitle">
+                    Sử dụng tài khoản được cấp để truy cập hệ thống quản lý nội dung.
+                </p>
+
+                <form class="cms-login__form" id="login-form" novalidate autocomplete="on">
+                    <div class="cms-login__error" id="login-error" role="alert">
+                        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                        <span id="login-error-text">Tên đăng nhập hoặc mật khẩu không đúng.</span>
+                    </div>
+
+                    <div class="cms-field">
+                        <label class="cms-label" for="login-username">Tên đăng nhập <span
+                                class="cms-label__req">*</span></label>
+                        <div class="cms-input-icon">
+                            <i class="fa-regular fa-user" aria-hidden="true"></i>
+                            <input type="text" class="cms-input" id="login-username" name="username"
+                                autocomplete="username" placeholder="Nhập tên đăng nhập" required
+                                aria-describedby="login-username-help">
+                        </div>
+                        <span class="cms-help" id="login-username-help">Tài khoản do đơn vị quản lý cấp.</span>
+                    </div>
+
+                    <div class="cms-field">
+                        <label class="cms-label" for="login-password">Mật khẩu <span
+                                class="cms-label__req">*</span></label>
+                        <div class="cms-password">
+                            <input type="password" class="cms-input" id="login-password" name="password"
+                                autocomplete="current-password" placeholder="Nhập mật khẩu" required>
+                            <button type="button" class="cms-password__toggle" id="login-toggle-password"
+                                aria-label="Hiện mật khẩu" aria-pressed="false">
+                                <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cms-login__row">
+                        <label class="cms-check">
+                            <input type="checkbox" id="login-remember" name="remember">
+                            <span>Ghi nhớ tên đăng nhập</span>
+                        </label>
+                        <a class="cms-login__link" href="mailto:hcmcdpcp@gmail.com?subject=Hỗ trợ truy cập CMS">
+                            Quên mật khẩu?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="cms-btn cms-btn--primary cms-btn--lg cms-btn--block" id="login-submit">
+                        <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                        Đăng nhập
+                    </button>
+                </form>
+
+                <div class="cms-login__demo">
+                    <p>Thông tin đăng nhập được xác thực tại máy chủ. Tài khoản có thể bị khóa tạm thời sau nhiều lần
+                        đăng nhập sai. Vui lòng đổi mật khẩu sau lần đăng nhập đầu tiên.</p>
+                    <p class="cms-u-mt-sm">
+                        <a class="cms-chip" href="../../pages/public/contact.html">
+                            <i class="fa-solid fa-key" aria-hidden="true"></i> Yêu cầu cấp lại mật khẩu
+                        </a>
+                        <a class="cms-chip" href="../workspace/login.html">
+                            <i class="fa-solid fa-users-gear" aria-hidden="true"></i> Khu vực Workspace
+                        </a>
+                    </p>
+                </div>
+            </div>
+
+            <footer class="cms-login__footer">
+                <div class="cms-login__footer-links">
+                    <a href="../../index.html">
+                        <i class="fa-solid fa-globe" aria-hidden="true"></i> Về Cổng thông tin
+                    </a>
+                    <a href="../../pages/public/contact.html">
+                        <i class="fa-solid fa-phone" aria-hidden="true"></i> Liên hệ hỗ trợ
+                    </a>
+                    <span class="cms-login__system-flag">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kết nối bảo mật
+                    </span>
+                </div>
+                <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+            </footer>
+        </section>
+    </main>
+</body>
+
+</html>
