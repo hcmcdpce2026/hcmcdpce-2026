@@ -98,7 +98,12 @@ function readJson(req, limitBytes = 1024 * 1024) {
   });
 }
 
-/** Đọc body thô (dùng cho upload) */
+/**
+ * Đọc body thô (dùng cho upload).
+ * Khi vượt giới hạn, dừng nhận dữ liệu (req.pause) nhưng KHÔNG huỷ socket ngay:
+ * handler vẫn trả được 413 rõ ràng cho trình duyệt. Bộ định tuyến sẽ đóng kết
+ * nối sau khi phản hồi được gửi.
+ */
 function readRaw(req, limitBytes) {
   return new Promise((resolve, reject) => {
     let size = 0;
@@ -106,8 +111,8 @@ function readRaw(req, limitBytes) {
     req.on('data', (chunk) => {
       size += chunk.length;
       if (limitBytes && size > limitBytes) {
+        req.pause();
         reject(Object.assign(new Error('Tệp tải lên vượt quá dung lượng cho phép.'), { status: 413 }));
-        req.destroy();
         return;
       }
       chunks.push(chunk);
@@ -180,12 +185,22 @@ function serveFile(req, res, filePath, options = {}) {
       return notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
     }
     const ext = path.extname(filePath).toLowerCase();
+    const isUpload = /[/\\]uploads[/\\]/i.test(filePath);
     const headers = {
       'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
       'Content-Length': stat.size,
       'X-Content-Type-Options': 'nosniff',
     };
-    if (ext === '.html') {
+    /* Tệp trong thư mục uploads được phục vụ cùng origin. Với loại KHÔNG phải
+       media (ảnh/video/âm thanh/PDF cần hiển thị trực tiếp), buộc tải xuống và
+       sandbox để một tệp lọt qua allow-list cũng không thể chạy mã. */
+    if (isUpload && !/^\.(png|jpe?g|gif|webp|avif|bmp|ico|mp4|webm|m4v|ogv|mp3|wav|ogg|pdf)$/i.test(ext)) {
+      headers['Content-Type'] = 'application/octet-stream';
+      headers['Content-Disposition'] =
+        `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(filePath))}`;
+      headers['Content-Security-Policy'] = "default-src 'none'; sandbox";
+      headers['Cache-Control'] = 'public, max-age=3600';
+    } else if (ext === '.html') {
       headers['Cache-Control'] = 'no-cache';
       headers['Content-Security-Policy'] = options.csp || "default-src 'self'";
     } else if (ext === '.js' || ext === '.css') {

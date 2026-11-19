@@ -1,6 +1,6 @@
 /**
  * main.js - Xử lý tương tác dùng chung cho Header và Footer
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initCommonLayout = () => {
@@ -308,7 +308,7 @@ function initHomepageStats() {
 
 /**
  * about.js - Xử lý tương tác riêng cho trang Giới thiệu (about.html)
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initAboutPage = () => {
@@ -528,7 +528,7 @@ function initAboutSmoothAnchors() {
 
 /**
  * news.js - Xử lý tương tác riêng cho trang Tin tức & Hoạt động (news.html)
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initNewsPage = () => {
@@ -964,7 +964,7 @@ function initEducationFontControls() {
 
 /**
  * education.js - Xử lý tương tác chuyên mục, tìm kiếm và lọc dữ liệu cho trang education.html
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initEducationPage = () => {
@@ -1130,7 +1130,7 @@ if (document.readyState === 'loading') {
 
 /**
  * education-detail.js - Kho dữ liệu chuyên sâu và xử lý tương tác cho trang chi tiết tuyên truyền (education-detail.html)
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 
@@ -1243,7 +1243,7 @@ function initArticleTools() {
 
 /**
  * laws.js - Xử lý lọc theo loại văn bản, lọc theo lĩnh vực, tìm kiếm và đặt lại cho trang laws.html
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initLawsPage = () => {
@@ -1317,7 +1317,9 @@ const initLawsPage = () => {
         const normalizedKeyword = normalizeText(state.keyword);
 
         const matchedRecords = cardRecords.filter((item) => {
-            const matchesDocType = state.docType === 'all' || item.docType === state.docType;
+            /* Tab “Luật / Bộ luật” gộp hai loại văn bản (luat, bo-luat) */
+            const itemType = item.docType === 'bo-luat' ? 'luat' : item.docType;
+            const matchesDocType = state.docType === 'all' || itemType === state.docType;
             const matchesTopic = state.topic === 'all' || item.topic === state.topic;
             const matchesKeyword = !normalizedKeyword || item.searchableText.includes(normalizedKeyword);
 
@@ -1420,7 +1422,7 @@ if (document.readyState === 'loading') {
 
 /**
  * law-detail.js - Xử lý nạp dữ liệu chi tiết văn bản pháp luật, trình xem PDF và in ấn
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 
@@ -1441,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /**
  * agencies.js - Xử lý lọc theo nhóm, địa bàn, tìm kiếm và đặt lại cho trang agencies.html
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 const initAgenciesPage = () => {
@@ -1618,7 +1620,7 @@ if (document.readyState === 'loading') {
 
 /**
  * agency-detail.js - Xử lý nạp dữ liệu chi tiết cơ quan, đơn vị và điều hướng liên quan
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 
@@ -1665,7 +1667,7 @@ if (document.readyState === 'loading') {
 
 /**
  * contact.js - Xử lý biểu mẫu liên hệ, gửi yêu cầu, kiểm tra ẩn danh và sinh mã tiếp nhận
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1850,7 +1852,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /**
  * support.js - Xử lý tính năng tra cứu cơ sở y tế, lọc theo quận/huyện và loại hình dịch vụ
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1927,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /**
  * events.js - Xử lý bộ lọc, tìm kiếm thời gian thực, điều hướng trang chi tiết và Modal sự kiện
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 
@@ -1941,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /**
  * event-detail.js - Xử lý hiển thị nội dung động, lịch trình, danh sách liên quan và form đăng ký sự kiện
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
 /* (khối dữ liệu demo đã loại bỏ: nội dung lấy từ API) */;

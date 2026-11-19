@@ -1,5 +1,5 @@
 /**
- * CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
+ * CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
  * Máy chủ ứng dụng – Node.js thuần + SQLite (node:sqlite), không dependency.
  *
  * Khởi động:  node server/index.js   (hoặc npm start)
@@ -10,7 +10,6 @@
 const http = require('node:http');
 const path = require('node:path');
 const fs = require('node:fs');
-const url = require('node:url');
 
 const libHttp = require('./lib/http');
 const sec = require('./lib/security');
@@ -246,7 +245,9 @@ function enforceSystemScope(req, res, pathname) {
 
 /* ------------------------------- Server ----------------------------------- */
 const server = http.createServer(async (req, res) => {
-  const parsed = url.parse(req.url, true);
+  /* WHATWG URL thay cho url.parse() đã lỗi thời; luôn có base để xử lý URL tương đối */
+  const parsed = new URL(req.url, 'http://localhost');
+  const parsedQuery = Object.fromEntries(parsed.searchParams);
   const pathname = parsed.pathname.replace(/\/{2,}/g, '/');
   const isApi = pathname.startsWith('/api/');
   applySecurityHeaders(req, res, isApi);
@@ -284,11 +285,16 @@ const server = http.createServer(async (req, res) => {
     // Phân vùng bảo mật: token CMS không truy cập được API Workspace và ngược lại
     if (!enforceSystemScope(req, res, pathname)) return;
     try {
-      return await route.handler(req, res, { params: route.params, query: parsed.query, pathname });
+      return await route.handler(req, res, { params: route.params, query: parsedQuery, pathname });
     } catch (err) {
       const status = err.status || 500;
       if (status >= 500) console.error('[API ERROR]', err);
       if (res.headersSent) return res.end();
+      /* 413 khi body còn dữ liệu chưa đọc: gửi lỗi rồi đóng kết nối để client
+         nhận được phản hồi thay vì kết nối bị cắt giữa chừng. */
+      if (status === 413) {
+        res.setHeader('Connection', 'close');
+      }
       return libHttp.fail(res, status, status >= 500
         ? 'Máy chủ gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.'
         : (err.message || 'Yêu cầu không hợp lệ.'));
@@ -319,8 +325,8 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   log('════════════════════════════════');
-  log('  Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh');
-  log('  HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL');
+  log('  Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh');
+  log('  HO CHI MINH CITY DRUG PREVENTION AND CONTROL E-PORTAL');
   log('════════════════════════════════');
   log(`  Môi trường : ${ENV}`);
   log(`  Địa chỉ    : http://localhost:${PORT}`);

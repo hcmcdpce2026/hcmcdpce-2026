@@ -65,7 +65,7 @@ export default async function run(page) {
       const info = await page.evaluate(() => ({
         title: document.title,
         chars: document.body.innerText.trim().length,
-        titleOk: /CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH/.test(document.title),
+        titleOk: /CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH/.test(document.title),
         titleUpper: document.title === document.title.toUpperCase(),
         unloaded: /Đang tải dữ liệu|Đang cập nhật\.\.\./.test(document.body.innerText),
       }));

@@ -1,34 +1,6 @@
 /* ==========================================================================
-   WORKSPACE STYLESHEET – Cổng thông tin điện tử phòng, chống ma túy TP. HCM
+   WORKSPACE STYLESHEET
    --------------------------------------------------------------------------
-   Chỉ chứa kiểu dáng cho khu vực làm việc nội bộ (pages/workspace/).
-   Kế thừa design tokens từ css/style.css; tiền tố BEM-block: ws-
-   (bố cục) và workspace- (trang đăng nhập/khung riêng) để không xung đột
-   với website công khai (main.css) và CMS (cms.css).
-
-   Mục lục:
-     1.  Workspace Design Tokens
-     2.  Workspace Layout
-     3.  Workspace Sidebar
-     4.  Workspace Header
-     5.  Workspace Navigation (breadcrumb, tabs, dropdown)
-     6.  Workspace Dashboard
-     7.  Workspace Statistics
-     8.  Workspace Tables
-     9.  Workspace Forms
-     10. Workspace Tasks (bảng, kanban, tiến độ, chi tiết)
-     11. Workspace Calendar
-     12. Workspace Organizations
-     13. Workspace Users
-     14. Workspace Permissions
-     15. Workspace Documents
-     16. Workspace Reports
-     17. Workspace Notifications
-     18. Workspace Activity Log
-     19. Workspace Login
-     20. Workspace Modal
-     21. Workspace Utilities
-     22. Workspace Responsive Overrides
    ========================================================================== */
 
 /* ==========================================================================
@@ -5395,3 +5367,31 @@
     .ws-spinner { animation-duration: 2.4s; }
 }
 
+
+/* ---------------------------------------------------------------------------
+   Thuộc tính [hidden] phải thắng các quy tắc display của nút/badge.
+   CSS của thành phần đặt display: inline-flex nên nếu không có quy tắc này,
+   phần tử bị ẩn quyền vẫn hiển thị (thuộc tính hidden mặc định chỉ là
+   display:none nhưng mức ưu tiên thấp hơn selector class).
+   --------------------------------------------------------------------------- */
+[hidden] {
+    display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Bảng số liệu ít cột (ví dụ: lịch sử giao/hoàn thành nhiệm vụ 3 cột).
+   .ws-table mặc định rộng tối thiểu 1080px để các bảng nhiều cột không bị bóp,
+   nhưng với bảng 3 cột điều đó làm tràn ngang khung trên laptop.
+   --------------------------------------------------------------------------- */
+.ws-table--fit {
+    min-width: 0;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.ws-table--fit th,
+.ws-table--fit td {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}

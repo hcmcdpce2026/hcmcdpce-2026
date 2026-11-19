@@ -16,7 +16,7 @@ Mở thư mục dự án trong VS Code. Thư mục gốc phải có các tệp/t
 Mở **Terminal → New Terminal** trong VS Code. Nếu dự án nằm ở đường dẫn mặc định của máy này, chạy:
 
 ```powershell
-Set-Location "D:\V5-HCMC-Drug-Prevention-Portal-Complete"
+Set-Location "D:\V6(CT)-HCMC-Drug-Prevention-Portal-Complete"
 ```
 
 Nếu dự án nằm ở nơi khác, thay đường dẫn trên bằng đường dẫn thư mục thật của bạn. Xác nhận đang ở đúng chỗ:

@@ -1018,6 +1018,24 @@
     gap: 0.85rem;
 }
 
+/*
+ * Hero trang Giới thiệu nền sáng (chữ tiêu đề màu tối), trong khi
+ * .site-main__button--outline mặc định dùng chữ trắng cho hero nền ảnh tối.
+ * Đặt lại màu theo ngữ cảnh để nút không bị chìm.
+ */
+.about-hero .site-main__button--outline {
+    color: var(--color-primary-dark);
+    background-color: var(--bg-surface);
+    border-color: var(--color-primary);
+    backdrop-filter: none;
+}
+
+.about-hero .site-main__button--outline:hover {
+    color: var(--text-light);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary-dark);
+}
+
 .about-hero__media {
     position: relative;
     padding-bottom: 1.5rem;
@@ -4270,6 +4288,10 @@
     border-radius: var(--radius-sm);
     font-size: var(--fs-xs);
     font-weight: 700;
+    /* Ảnh bên dưới có transform (zoom khi hover) tạo stacking context mới,
+       nên badge cần z-index để không bị ảnh vẽ đè lên. */
+    z-index: 2;
+    white-space: nowrap;
 }
 
 .ev-card__status--upcoming {
@@ -6204,6 +6226,29 @@ blockquote,
     transform: scale(1.04);
 }
 
+/*
+ * Ảnh giữ chỗ là hình minh họa, không phải ảnh chụp. Khi dùng làm nền thẻ Hero,
+ * phóng to để chỉ còn phần biểu tượng và chữ tiêu đề phía trên vẫn đọc rõ.
+ * (Dùng chung cho mọi thẻ vì public-pages.js gắn src này khi bài chưa có ảnh.)
+ */
+img[src*="article-placeholder"] {
+    filter: saturate(0.55) brightness(1.12);
+}
+
+/* Thẻ nhỏ: ảnh giữ chỗ là biểu tượng, không hiển thị dòng chữ lặp lại với chú thích bên dưới */
+.ev-card__thumb img[src*="article-placeholder"],
+.news-mini-card__thumb img[src*="article-placeholder"],
+.site-main__latest-image img[src*="article-placeholder"] {
+    object-position: center 34%;
+}
+
+.news-hero-card__img[src*="article-placeholder"] {
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.9);
+    filter: saturate(0.35) brightness(1.35) contrast(0.8);
+}
+
 .news-hero-card__overlay {
     position: absolute;
     inset: 0;
@@ -6322,6 +6367,21 @@ blockquote,
     font-weight: 700;
     color: var(--color-primary);
     text-transform: uppercase;
+    margin-bottom: 0.3rem;
+}
+
+/*
+ * Nhãn chuyên mục trên thẻ tin trong danh sách. Trước đây class này chưa có
+ * CSS nên chữ hiển thị theo mặc định và lệch so với cột phụ. Dùng cùng kiểu
+ * với .news-mini-card__cat để toàn bộ danh sách nhất quán.
+ */
+.news-article__cat {
+    display: inline-block;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
     margin-bottom: 0.3rem;
 }
 

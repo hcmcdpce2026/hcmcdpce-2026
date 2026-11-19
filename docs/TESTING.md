@@ -6,8 +6,10 @@ Tài liệu này liệt kê các bộ kiểm thử và cách chạy an toàn tr�
 
 | Tệp/lệnh | Phạm vi | Ghi chú |
 |---|---|---|
-| `npm test` (`server/scripts/test-api.js`) | Tích hợp API: xác thực, quyền, CSRF, PUBLIC form và nghiệp vụ | Cần server đang chạy và `server/data/credentials.local.txt` |
+| `npm run test:isolated` (`server/scripts/run-tests-isolated.js`) | **Toàn bộ suite trên database tạm** | **Khuyến nghị.** Dựng server tạm (cổng riêng, SQLite tạm), nạp seed, chạy `test-api` + `smoke-interconnect`, rồi xoá sạch |
+| `npm test` (`server/scripts/test-api.js`) | Tích hợp API: xác thực, quyền, CSRF, tải tệp, PUBLIC form và nghiệp vụ | Cần server đang chạy và `server/data/credentials.local.txt`; **ghi vào database của server đó** |
 | `npm run test:interconnect` (`server/scripts/smoke-interconnect.js`) | Luồng PUBLIC → CMS → Workspace | Ghi các bản ghi kiểm thử vào database được cấu hình |
+| `npm run test:clean` (`server/scripts/clean-test-data.js`) | Báo cáo dữ liệu kiểm thử còn sót | Mặc định chỉ báo cáo; thêm `--yes` để xoá |
 | `npm run check` | Kiểm tra mã hóa và quét tĩnh bảo mật | Không thay thế kiểm thử runtime |
 | `scripts/qa-*.mjs` | Một số kịch bản trình duyệt cho PUBLIC, CMS, Workspace và biểu mẫu | Cần browser automation harness; trang bảo vệ đọc credential từ `server/data/qa-creds.json`, `credentials.local.txt` hoặc `QA_CREDENTIALS_JSON` |
 | `server/scripts/run-tests.ps1` | Runner API trên Windows | Dừng tiến trình Node đang chạy và thay đổi dữ liệu/log kiểm thử |
@@ -43,6 +45,25 @@ npm test
 ```
 
 Có thể đổi base URL bằng biến `API_BASE`. Suite đọc credential từ `server/data/credentials.local.txt`. Nó có thể tạo/cập nhật dữ liệu, thay đổi trạng thái tài khoản thử nghiệm hoặc tạo các bản ghi nghiệp vụ; dùng database disposable.
+
+> **Lưu ý: suite chạy qua HTTP tới server đang hoạt động.** Nếu server đó trỏ vào `server/data/portal.sqlite` của môi trường vận hành, **dữ liệu kiểm thử sẽ lẫn vào nội dung thật**. Hãy dùng
+>
+> ```bash
+> npm run test:isolated
+> ```
+>
+> Lệnh này dựng server tạm (cổng `8123`, tệp SQLite trong thư mục tạm), nạp seed, chạy cả hai suite rồi xoá sạch. Database vận hành và `server/data/credentials.local.txt` được bảo toàn.
+
+## Dọn dữ liệu kiểm thử còn sót
+
+Nếu đã chạy suite trên database vận hành, kiểm tra và dọn theo hai bước:
+
+```bash
+npm run test:clean                         # chỉ báo cáo
+node server/scripts/clean-test-data.js --yes   # xoá sau khi xem báo cáo
+```
+
+Bộ dọn nhận diện CHÍNH XÁC bản ghi do suite sinh ra (tiêu đề “Đề xuất nội dung kiểm thử…”, “Bài kiểm thử liên thông CMS”, tệp mẫu trong `uploads/`) và không nhận diện theo thời gian, để không xoá nội dung người dùng vừa tạo.
 
 ## Kiểm thử liên thông
 

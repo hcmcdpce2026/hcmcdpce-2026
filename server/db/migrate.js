@@ -41,6 +41,11 @@ console.log('  Đối chiếu các cột theo dõi nguồn dữ liệu…');
 });
 
 /* Ghi nhận migration */
+/* Logo cơ quan: cột bổ sung cho phiên bản có upload ảnh trong CMS */
+if (addColumnIfMissing('public_agencies', 'logo_url', 'TEXT')) {
+  console.log('  ✓ Thêm cột public_agencies.logo_url');
+}
+
 const id = '001-init-schema';
 if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id)) {
   db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id, new Date().toISOString());

@@ -1,6 +1,6 @@
 /**
  * api.js – Lớp giao tiếp API dùng chung cho PUBLIC, CMS và WORKSPACE.
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh –
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh –
  *
  * - Tự nhận diện gốc API theo vị trí trang (index.html ở gốc, trang trong /pages/...).
  * - Gửi kèm cookie phiên (same-origin) và X-CSRF-Token cho thao tác ghi.

@@ -17,9 +17,18 @@ const { getDb } = require('../lib/db');
 const http = require('../lib/http');
 const auth = require('../lib/auth');
 const sec = require('../lib/security');
+const uploadPolicy = require('../lib/upload');
 const m = require('../lib/mapper');
 
 const nowIso = () => new Date().toISOString();
+
+/** Thư mục mặc định trong thư viện tài nguyên theo loại tệp */
+const FOLDER_BY_TYPE = {
+  image: 'Hình ảnh hoạt động',
+  video: 'Video',
+  audio: 'Âm thanh',
+  document: 'Tài liệu tải lên',
+};
 
 function slugify(text) {
   return String(text || '')
@@ -362,7 +371,7 @@ async function addMedia(req, res, ctx) {
 
   const contentType = String(req.headers['content-type'] || '');
   let name = '';
-  let mime = '';
+  let declaredMime = '';
   let fileBuffer = null;
   let alt = '';
   let folder = '';
@@ -371,7 +380,8 @@ async function addMedia(req, res, ctx) {
     const match = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
     if (!match) return http.badRequest(res, 'Không xác định được dữ liệu multipart.');
     const boundary = match[1] || match[2];
-    const raw = await http.readRaw(req);
+    /* Giới hạn tổng dung lượng body ngay khi đọc: tránh ghi tệp quá lớn vào bộ nhớ. */
+    const raw = await http.readRaw(req, uploadPolicy.MAX_BODY_BYTES);
     const delimiter = Buffer.from(`--${boundary}`);
     let offset = 0;
 
@@ -396,7 +406,7 @@ async function addMedia(req, res, ctx) {
         const fileNameMatch = headers.match(/filename="([^"]*)"/i);
         name = sec.cleanText(fileNameMatch ? fileNameMatch[1] : 'tep-tai-len', 250);
         const mimeMatch = headers.match(/Content-Type:\s*([^\r\n]+)/i);
-        mime = sec.cleanText(mimeMatch ? mimeMatch[1] : 'application/octet-stream', 100);
+        declaredMime = sec.cleanText(mimeMatch ? mimeMatch[1] : 'application/octet-stream', 100);
         fileBuffer = data;
       } else if (field === 'alt') {
         alt = sec.cleanText(data.toString('utf8'), 250);
@@ -413,18 +423,22 @@ async function addMedia(req, res, ctx) {
   if (!name) return http.badRequest(res, 'Thiếu tên tệp.');
   if (!fileBuffer) return http.badRequest(res, 'Vui lòng chọn tệp cần tải lên.');
 
+  /* Chính sách tải tệp: chỉ nhận định dạng trong allow-list và giới hạn dung lượng.
+   Từ chối HTML/SVG/mã thực thi để tránh stored XSS vì tệp được phục vụ cùng origin. */
+  const verdict = uploadPolicy.checkFile(name, fileBuffer.length);
+  if (!verdict.ok) return http.badRequest(res, verdict.message, { field: 'file' });
+
   const uploadDir = path.resolve(__dirname, '..', '..', 'uploads');
   fs.mkdirSync(uploadDir, { recursive: true });
-  const ext = (path.extname(name).slice(1) || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+  const ext = verdict.ext;
+  const mime = uploadPolicy.normalizeMime(ext, declaredMime);
   const safeBase = path.basename(name, path.extname(name))
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').slice(0, 80) || 'tep';
   const storedName = `${sec.makeId('upload')}-${safeBase}.${ext}`;
   fs.writeFileSync(path.join(uploadDir, storedName), fileBuffer);
   const url = `/uploads/${storedName}`;
-  const type = mime.startsWith('image/') ? 'image'
-    : mime.startsWith('video/') ? 'video'
-      : 'document';
+  const type = verdict.type;
 
   const id = sec.makeId('med');
   const ts = nowIso();
@@ -432,7 +446,7 @@ async function addMedia(req, res, ctx) {
               VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
     .run(id, name, url, type,
       ext, mime, fileBuffer.length,
-      folder || (type === 'image' ? 'Hình ảnh hoạt động' : type === 'video' ? 'Video' : 'Tài liệu tải lên'), alt,
+      folder || FOLDER_BY_TYPE[type] || 'Tài liệu tải lên', alt,
       'operational', process.env.APP_ENV || 'development', ts, ts, s.user.id);
   auth.logActivity({ systemKey: 'cms', user: s.user, action: 'media.upload', targetType: 'Tài nguyên', targetId: id, targetName: name, detail: 'Thêm tài nguyên vào thư viện', req });
   return http.created(res, m.media(db.prepare('SELECT * FROM media WHERE id = ?').get(id)));
@@ -828,6 +842,7 @@ function catalogRow(table, body, existing) {
       email: pick(['email'], text),
       website: pick(['website'], text),
       description: pick(['description'], text),
+      logo_url: pick(['logo', 'logoUrl', 'logo_url'], text),
       sort_order: pick(['sortOrder', 'sort_order'], (v) => Number(v) || 0),
       status: pick(['status'], text),
     };

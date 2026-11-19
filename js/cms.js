@@ -14,17 +14,20 @@
         storageKey: 'hcm-cms-state-v1',
         sessionKey: 'hcm-cms-session',
         preferenceKey: 'hcm-cms-prefs',
+        /* Chính sách tải tệp phải khớp server/lib/upload.js (máy chủ là nơi quyết định
+           cuối cùng; danh sách ở đây chỉ để giao diện báo lỗi sớm). */
         upload: {
-            maxSize: null,
-            imageTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'],
-            videoTypes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/x-msvideo', 'video/ogg'],
-            docTypes: [
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ]
+            maxSize: 25 * 1024 * 1024,
+            text: 'JPG, PNG, WEBP, GIF · PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX · MP4, WEBM · MP3, WAV · tối đa 25 MB/tệp',
+            ext: [
+                'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp', 'ico',
+                'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'zip',
+                'mp4', 'webm', 'm4v', 'ogv', 'mp3', 'wav', 'ogg'
+            ],
+            imageExt: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp', 'ico'],
+            videoExt: ['mp4', 'webm', 'm4v', 'ogv'],
+            audioExt: ['mp3', 'wav', 'ogg'],
+            accept: '.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.ico,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.webm,.m4v,.ogv,.mp3,.wav,.ogg'
         },
         labels: {
             category: 'Chuyên mục',
@@ -1047,7 +1050,7 @@ const Store = (function () {
                         <img src="../../assets/icons/logo.jpg" alt="Biểu trưng Cổng thông tin">
                     </a>
                     <div class="cms-sidebar__brand-text">
-                        <span class="cms-sidebar__brand-title">CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</span>
+                        <span class="cms-sidebar__brand-title">CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</span>
                         <span class="cms-sidebar__brand-sub">Hệ thống quản trị</span>
                     </div>
                 </div>
@@ -1143,7 +1146,7 @@ const Store = (function () {
             const roleInfo = user ? { label: user.roleName || roleLabel(user.role) } : null;
 
             if (titleEl) titleEl.textContent = page.title;
-            document.title = `${page.title} | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH`.toUpperCase();
+            document.title = `${page.title} | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH`.toUpperCase();
 
             if (crumbEl) {
                 const file = currentFile();
@@ -1856,8 +1859,7 @@ const Store = (function () {
             const foot = elements.tfoot;
             if (foot) {
                 foot.innerHTML = `<tr><td colspan="8">
-                    Tổng <strong>${util.formatNumber(total)}</strong> nội dung ·
-                    dữ liệu minh họa lưu trên thiết bị (localStorage)
+                    Tổng <strong>${util.formatNumber(total)}</strong> nội dung
                 </td></tr>`;
             }
 
@@ -2517,7 +2519,7 @@ const Store = (function () {
             if (el.btnPublish) el.btnPublish.classList.toggle('cms-u-hidden', !Store.can('content.publish'));
             if (el.btnReview) el.btnReview.classList.toggle('cms-u-hidden', !canReview());
             if (el.btnDelete) el.btnDelete.classList.toggle('cms-u-hidden', !Store.can('content.delete'));
-            document.title = ((fresh.title || 'Bài viết mới') + ' | ' + 'CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase();
+            document.title = ((fresh.title || 'Bài viết mới') + ' | ' + 'CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase();
         };
 
         /* ---------- Nạp dữ liệu vào form ---------- */
@@ -2897,7 +2899,7 @@ const Store = (function () {
                 ui.confirm({
                     tone: 'primary',
                     heading: 'Xuất bản bài viết?',
-                    message: 'Bài viết sẽ hiển thị công khai trên Cổng thông tin điện tử.',
+                    message: 'Bài viết sẽ hiển thị công khai trên Chuyên trang điện tử.',
                     confirmText: 'Xuất bản'
                 }).then((ok) => {
                     if (ok) save('published');
@@ -3630,13 +3632,22 @@ const Store = (function () {
             return item;
         };
 
-        const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'bmp', 'tif', 'tiff', 'heic', 'avif'];
-        const VIDEO_EXT = ['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'ogv', 'mpeg', 'mpg'];
-        const DOC_EXT = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
+        const IMAGE_EXT = CONFIG.upload.imageExt;
+        const VIDEO_EXT = CONFIG.upload.videoExt;
+        const AUDIO_EXT = CONFIG.upload.audioExt;
 
         const validateFile = (file) => {
             const ext = (file.name.split('.').pop() || '').toLowerCase();
             if (file.size === 0) return { ok: false, message: 'Tệp rỗng hoặc không đọc được.' };
+            if (CONFIG.upload.ext.indexOf(ext) === -1) {
+                return {
+                    ok: false,
+                    message: 'Định dạng .' + (ext || '?') + ' không được hỗ trợ. Chỉ nhận: ' + CONFIG.upload.text
+                };
+            }
+            if (file.size > CONFIG.upload.maxSize) {
+                return { ok: false, message: 'Tệp vượt quá 25 MB. Vui lòng nén hoặc chọn tệp nhỏ hơn.' };
+            }
             return { ok: true };
         };
 
@@ -3663,6 +3674,7 @@ const Store = (function () {
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
                 const isImage = IMAGE_EXT.indexOf(ext) !== -1;
                 const isVideo = VIDEO_EXT.indexOf(ext) !== -1;
+                const isAudio = AUDIO_EXT.indexOf(ext) !== -1;
                 showQueueItem(file, 'progress', 5);
 
                 /* Tiến trình đọc tệp và ghi nhận vào thư viện tài nguyên */
@@ -3675,7 +3687,7 @@ const Store = (function () {
                 Store.addMedia({
                     file,
                     alt: '',
-                    folder: isVideo ? 'Video' : isImage ? 'Hình ảnh hoạt động' : 'Tài liệu tải lên'
+                    folder: isVideo ? 'Video' : isAudio ? 'Âm thanh' : isImage ? 'Hình ảnh hoạt động' : 'Tài liệu tải lên'
                 }).then(() => {
                     clearInterval(timer);
                     showQueueItem(file, 'done', 100);
@@ -3893,85 +3905,182 @@ const Store = (function () {
             statistics: 'Số liệu thống kê',
         };
 
+        /* Danh sách lựa chọn cố định — tránh gõ tay sai, thống nhất với trang công khai */
+        const DOC_TYPES = {
+            'luat': 'Luật', 'bo-luat': 'Bộ luật', 'nghi-dinh': 'Nghị định',
+            'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị', 'van-ban-tphcm': 'Văn bản TP.HCM',
+        };
+        const AGENCY_ROLES = {
+            coordination: 'Chỉ đạo & Chuyên trách',
+            enforcement: 'Thực thi pháp luật',
+            health: 'Y tế & Điều trị',
+            education: 'Giáo dục - Tuyên truyền',
+            association: 'Mặt trận & Đoàn thể',
+            local: 'Chính quyền cơ sở',
+            rehab: 'Cơ sở cai nghiện',
+        };
+        const EVENT_STATUS = { upcoming: 'Sắp diễn ra', ongoing: 'Đang diễn ra', past: 'Đã kết thúc' };
+        /* Nhãn trạng thái dùng chung cho bảng danh sách (tránh hiển thị khóa kỹ thuật) */
+        const STATUS_LABEL = Object.assign({
+            active: 'Đang hoạt động', inactive: 'Tạm ẩn',
+            reported: 'Đã báo cáo', verified: 'Đã phê duyệt',
+        }, EVENT_STATUS);
+        const FACILITY_TYPES = {
+            'tu-van': 'Tư vấn hỗ trợ', 'co-so': 'Cơ sở điều trị, cai nghiện',
+            'cong-dong': 'Tổ tư vấn cộng đồng', 'duong-day-nong': 'Đường dây nóng',
+        };
+
+        /** Chọn tệp qua hộp thoại, tải lên thư viện tài nguyên, trả về URL công khai */
+        const pickAndUpload = (accept, folder) => new Promise((resolve) => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            if (accept) input.accept = accept;
+            input.addEventListener('change', async () => {
+                const file = input.files && input.files[0];
+                if (!file) return resolve(null);
+                try {
+                    const saved = await Store.addMedia({ file, alt: '', folder: folder || 'Tài liệu tải lên' });
+                    ui.toast('Đã tải lên: ' + file.name, 'success');
+                    resolve(saved && saved.url ? saved.url : null);
+                } catch (err) {
+                    ui.toast(err.message || 'Không tải được tệp.', { type: 'error', duration: 6000 });
+                    resolve(null);
+                }
+            });
+            input.click();
+        });
+
         const fields = (item) => {
             const v = item || {};
             if (kind === 'legal-documents') {
                 return [
                     ['code', 'Số hiệu / mã văn bản', v.code || v.docNumber || '', 'text', true],
                     ['title', 'Tên văn bản', v.title || '', 'text', true],
-                    ['docType', 'Loại văn bản', v.docType || v.doc_type || '', 'text', false],
-                    ['issuedAt', 'Ngày ban hành', v.issuedAt || v.issued_at || '', 'date', false],
-                    ['effectiveAt', 'Ngày hiệu lực', v.effectiveAt || v.effective_at || '', 'date', false],
+                    ['docType', 'Loại văn bản', v.docType || v.doc_type || 'luat', { select: DOC_TYPES }, false],
                     ['issuer', 'Cơ quan ban hành', v.issuer || '', 'text', false],
+                    ['issuedAt', 'Ngày ban hành', (v.issuedAt || v.issued_at || '').slice(0, 10), 'date', false],
+                    ['effectiveAt', 'Ngày hiệu lực', (v.effectiveAt || v.effective_at || '').slice(0, 10), 'date', false],
                     ['summary', 'Tóm tắt', v.summary || '', 'textarea', false],
                     ['content', 'Nội dung', v.content || '', 'textarea', false],
-                    ['fileUrl', 'Đường dẫn tệp đính kèm', v.fileUrl || v.file_url || '', 'text', false],
+                    ['fileUrl', 'Tệp đính kèm (PDF, DOC…)', v.fileUrl || v.file_url || '', { file: '.pdf,.doc,.docx' }, false],
                 ];
             }
             if (kind === 'agencies') {
                 return [
                     ['name', 'Tên cơ quan - đơn vị', v.name || '', 'text', true],
                     ['shortName', 'Tên viết tắt', v.shortName || v.short_name || '', 'text', false],
-                    ['roleType', 'Loại cơ quan', v.roleType || v.role_type || '', 'text', false],
+                    ['roleType', 'Loại cơ quan', v.roleType || v.role_type || 'coordination', { select: AGENCY_ROLES }, false],
                     ['address', 'Địa chỉ', v.address || '', 'text', false],
                     ['phone', 'Điện thoại', v.phone || '', 'text', false],
                     ['email', 'Email', v.email || '', 'text', false],
                     ['website', 'Website', v.website || '', 'text', false],
                     ['description', 'Mô tả', v.description || '', 'textarea', false],
-                    ['status', 'Trạng thái', v.status || 'active', 'select-status', false],
+                    ['logo', 'Logo / ảnh đại diện', v.logo || v.logoUrl || '', { image: true }, false],
+                    ['status', 'Trạng thái', v.status || 'active', { select: { active: 'Đang hoạt động', inactive: 'Tạm ẩn' } }, false],
                 ];
             }
             if (kind === 'events') {
                 return [
                     ['title', 'Tên sự kiện', v.title || '', 'text', true],
                     ['category', 'Nhóm sự kiện', v.category || '', 'text', false],
-                    ['startAt', 'Thời gian bắt đầu', v.startAt || v.start_at || '', 'datetime', false],
-                    ['endAt', 'Thời gian kết thúc', v.endAt || v.end_at || '', 'datetime', false],
+                    ['startAt', 'Thời gian bắt đầu', toLocalInput(v.startAt || v.start_at || ''), 'datetime', false],
+                    ['endAt', 'Thời gian kết thúc', toLocalInput(v.endAt || v.end_at || ''), 'datetime', false],
                     ['location', 'Địa điểm', v.location || '', 'text', false],
                     ['organizer', 'Đơn vị tổ chức', v.organizer || '', 'text', false],
                     ['summary', 'Tóm tắt', v.summary || '', 'textarea', false],
                     ['content', 'Nội dung', v.content || '', 'textarea', false],
-                    ['imageUrl', 'Đường dẫn ảnh', v.imageUrl || v.image_url || v.image || '', 'text', false],
-                    ['status', 'Trạng thái', v.status || 'upcoming', 'select-event', false],
+                    ['imageUrl', 'Ảnh sự kiện', v.imageUrl || v.image_url || v.image || '', { image: true }, false],
+                    ['status', 'Trạng thái', v.status || 'upcoming', { select: EVENT_STATUS }, false],
                 ];
             }
             if (kind === 'support-facilities') {
                 return [
                     ['name', 'Tên cơ sở', v.name || '', 'text', true],
-                    ['type', 'Loại cơ sở', v.type || '', 'text', false],
+                    ['type', 'Loại cơ sở', v.type || 'tu-van', { select: FACILITY_TYPES }, false],
                     ['district', 'Quận / huyện', v.district || '', 'text', false],
                     ['address', 'Địa chỉ', v.address || '', 'text', false],
                     ['phone', 'Điện thoại', v.phone || '', 'text', false],
                     ['hours', 'Giờ hoạt động', v.hours || '', 'text', false],
                     ['description', 'Mô tả', v.description || '', 'textarea', false],
-                    ['status', 'Trạng thái', v.status || 'active', 'select-status', false],
+                    ['status', 'Trạng thái', v.status || 'active', { select: { active: 'Đang hoạt động', inactive: 'Tạm ẩn' } }, false],
                 ];
             }
             return [
                 ['key', 'Mã kỳ số liệu', v.periodKey || v.period_key || v.key || '', 'text', true],
                 ['label', 'Tên kỳ số liệu', v.label || '', 'text', true],
                 ['scope', 'Phạm vi', v.scope || '', 'text', false],
-                ['sourceType', 'Loại số liệu', v.sourceType || v.source_type || 'reported', 'select-source', false],
+                ['sourceType', 'Loại số liệu', v.sourceType || v.source_type || 'reported', { select: { reported: 'Đã báo cáo', verified: 'Đã phê duyệt' } }, false],
                 ['note', 'Ghi chú', v.note || '', 'textarea', false],
             ];
         };
 
+        /** Chuyển ISO sang giá trị cho <input type="datetime-local"> */
+        const toLocalInput = (value) => {
+            if (!value) return '';
+            const d = new Date(value);
+            if (isNaN(d)) return '';
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
+
         const fieldHtml = ([key, label, value, type, required]) => {
             const req = required ? ' required' : '';
+            const labelHtml = util.escape(label) + (required ? ' *' : '');
+            const id = 'catalog-' + key;
+
             if (type === 'textarea') {
-                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-${key}">${util.escape(label)}${required ? ' *' : ''}</label><textarea class="cms-textarea" id="catalog-${key}" rows="4"${req}>${util.escape(value)}</textarea></div>`;
+                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                    <textarea class="cms-textarea" id="${id}" rows="4"${req}>${util.escape(value)}</textarea></div>`;
             }
-            if (type === 'select-status') {
-                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-${key}">${util.escape(label)}</label><select class="cms-select" id="catalog-${key}"><option value="active"${value === 'active' ? ' selected' : ''}>Đang hoạt động</option><option value="inactive"${value === 'inactive' ? ' selected' : ''}>Tạm ẩn</option></select></div>`;
+
+            /* Danh sách lựa chọn: tránh gõ tay sai chính tả/khóa */
+            if (type && typeof type === 'object' && type.select) {
+                const options = Object.entries(type.select).map(([val, text]) =>
+                    `<option value="${util.escape(val)}"${val === value ? ' selected' : ''}>${util.escape(text)}</option>`).join('');
+                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                    <select class="cms-select" id="${id}"${req}>${options}</select></div>`;
             }
-            if (type === 'select-event') {
-                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-${key}">${util.escape(label)}</label><select class="cms-select" id="catalog-${key}"><option value="upcoming"${value === 'upcoming' ? ' selected' : ''}>Sắp diễn ra</option><option value="ongoing"${value === 'ongoing' ? ' selected' : ''}>Đang diễn ra</option><option value="past"${value === 'past' ? ' selected' : ''}>Đã kết thúc</option></select></div>`;
+
+            /* Upload ảnh: có xem trước + nút đổi ảnh + nút xoá ảnh */
+            if (type && typeof type === 'object' && type.image) {
+                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                    <div class="catalog-upload" data-upload-for="${key}">
+                        <div class="catalog-upload__preview" id="${id}-preview">
+                            ${value ? `<img src="${util.escape(value)}" alt="Xem trước ${util.escape(label)}">` : '<span class="catalog-upload__empty">Chưa có ảnh</span>'}
+                        </div>
+                        <div class="catalog-upload__actions">
+                            <button type="button" class="cms-btn cms-btn--sm" data-upload-pick="${key}" data-accept="image/*">
+                                <i class="fa-solid fa-upload"></i> ${value ? 'Đổi ảnh' : 'Tải ảnh lên'}</button>
+                            <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost" data-upload-clear="${key}">Xoá</button>
+                        </div>
+                        <input type="text" class="cms-input cms-u-mt-sm" id="${id}" value="${util.escape(value)}"
+                            placeholder="Hoặc dán đường dẫn ảnh (VD: /uploads/ten-anh.jpg)">
+                    </div></div>`;
             }
-            if (type === 'select-source') {
-                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-${key}">${util.escape(label)}</label><select class="cms-select" id="catalog-${key}"><option value="reported"${value === 'reported' ? ' selected' : ''}>Đã báo cáo</option><option value="verified"${value === 'verified' ? ' selected' : ''}>Đã phê duyệt</option></select></div>`;
+
+            /* Upload tệp đính kèm */
+            if (type && typeof type === 'object' && type.file) {
+                const name = value ? String(value).split('/').pop() : '';
+                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                    <div class="catalog-upload" data-upload-for="${key}">
+                        <div class="catalog-upload__file" id="${id}-file">
+                            <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+                            <span>${value ? util.escape(name) : 'Chưa có tệp đính kèm'}</span>
+                        </div>
+                        <div class="catalog-upload__actions">
+                            <button type="button" class="cms-btn cms-btn--sm" data-upload-pick="${key}" data-accept="${type.file}">
+                                <i class="fa-solid fa-upload"></i> ${value ? 'Đổi tệp' : 'Tải tệp lên'}</button>
+                            ${value ? `<a class="cms-btn cms-btn--sm cms-btn--ghost" href="${util.escape(value)}" target="_blank" rel="noopener">Xem</a>` : ''}
+                            <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost" data-upload-clear="${key}">Xoá</button>
+                        </div>
+                        <input type="text" class="cms-input cms-u-mt-sm" id="${id}" value="${util.escape(value)}"
+                            placeholder="Hoặc dán đường dẫn tệp (VD: /uploads/van-ban.pdf)">
+                    </div></div>`;
             }
+
             const inputType = type === 'datetime' ? 'datetime-local' : type;
-            return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-${key}">${util.escape(label)}${required ? ' *' : ''}</label><input type="${inputType}" class="cms-input" id="catalog-${key}" value="${util.escape(value)}"${req}></div>`;
+            return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                <input type="${inputType}" class="cms-input" id="${id}" value="${util.escape(value)}"${req}></div>`;
         };
 
         const openForm = (item) => {
@@ -3982,6 +4091,42 @@ const Store = (function () {
                     (kind === 'statistics' ? '<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-items">Chỉ số (mỗi dòng: tên|giá trị|đơn vị)</label><textarea class="cms-textarea" id="catalog-items" rows="5"></textarea></div>' : '') +
                     '</form>',
             });
+            const form = dlg.query('#public-catalog-form');
+
+            /* Upload ảnh / tệp ngay trong form (không phải dán đường dẫn thủ công) */
+            form.addEventListener('click', async (e) => {
+                const pick = e.target.closest('[data-upload-pick]');
+                if (pick) {
+                    const key = pick.dataset.uploadPick;
+                    const accept = pick.dataset.accept || '';
+                    const isImage = accept.indexOf('image/') === 0;
+                    const url = await pickAndUpload(accept, isImage ? 'Hình ảnh hoạt động' : 'Tài liệu tải lên');
+                    if (!url) return;
+                    const input = dlg.query('#catalog-' + key);
+                    if (input) input.value = url;
+                    const preview = dlg.query('#catalog-' + key + '-preview');
+                    if (preview) preview.innerHTML = `<img src="${util.escape(url)}" alt="Xem trước">`;
+                    const fileBox = dlg.query('#catalog-' + key + '-file');
+                    if (fileBox) {
+                        fileBox.innerHTML = `<i class="fa-solid fa-file-circle-check" aria-hidden="true"></i><span>${util.escape(url.split('/').pop())}</span>`;
+                    }
+                    pick.innerHTML = '<i class="fa-solid fa-upload"></i> Đổi ' + (isImage ? 'ảnh' : 'tệp');
+                    return;
+                }
+                const clear = e.target.closest('[data-upload-clear]');
+                if (clear) {
+                    const key = clear.dataset.uploadClear;
+                    const input = dlg.query('#catalog-' + key);
+                    if (input) input.value = '';
+                    const preview = dlg.query('#catalog-' + key + '-preview');
+                    if (preview) preview.innerHTML = '<span class="catalog-upload__empty">Chưa có ảnh</span>';
+                    const fileBox = dlg.query('#catalog-' + key + '-file');
+                    if (fileBox) {
+                        fileBox.innerHTML = '<i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Chưa có tệp đính kèm</span>';
+                    }
+                }
+            });
+
             if (item && kind === 'statistics' && Array.isArray(item.items)) {
                 dlg.query('#catalog-items').value = item.items.map((i) => `${i.label}|${i.value}|${i.unit || ''}`).join('\n');
             }
@@ -4022,12 +4167,25 @@ const Store = (function () {
                     host.innerHTML = ui.emptyState({ icon: 'fa-folder-open', title: 'Chưa có dữ liệu', text: 'Nhấn “Thêm mới” để nhập bản ghi đầu tiên.' });
                     return;
                 }
-                host.innerHTML = `<div class="cms-table-wrap"><table class="cms-table cms-table--stack"><thead><tr><th>Tên / tiêu đề</th><th>Thông tin</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>` +
+                host.innerHTML = `<div class="cms-table-wrap"><table class="cms-table cms-table--stack"><thead><tr><th>Ảnh</th><th>Tên / tiêu đề</th><th>Thông tin</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>` +
                     rows.map((r) => {
                         const name = r.title || r.name || r.label || r.code || r.id;
                         const detail = r.summary || r.description || r.address || r.location || r.scope || r.category || '—';
-                        const status = r.status || (r.sourceType ? r.sourceType : '—');
-                        return `<tr><td data-label="Tên / tiêu đề">${util.escape(name)}</td><td data-label="Thông tin">${util.escape(detail)}</td><td data-label="Trạng thái">${util.escape(status)}</td><td data-label="Thao tác"><button type="button" class="cms-btn cms-btn--sm" data-catalog-edit="${util.escape(r.id)}">Sửa</button> <button type="button" class="cms-btn cms-btn--sm cms-btn--danger" data-catalog-delete="${util.escape(r.id)}">Xóa</button></td></tr>`;
+                        const status = r.status || (r.sourceType ? r.sourceType : '');
+                        const label = STATUS_LABEL[status] || status || '—';
+                        const thumb = r.image || r.imageUrl || r.logo || (r.thumbnail || '');
+                        const thumbHtml = thumb
+                            ? `<img class="catalog-thumb" src="${util.escape(thumb)}" alt="" loading="lazy">`
+                            : '<span class="catalog-thumb catalog-thumb--none"><i class="fa-regular fa-image" aria-hidden="true"></i></span>';
+                        return `<tr>
+                            <td data-label="Ảnh">${thumbHtml}</td>
+                            <td data-label="Tên / tiêu đề"><strong>${util.escape(name)}</strong></td>
+                            <td data-label="Thông tin">${util.escape(detail)}</td>
+                            <td data-label="Trạng thái"><span class="cms-badge cms-badge--${status === 'active' || status === 'verified' ? 'success' : 'muted'}">${util.escape(label)}</span></td>
+                            <td data-label="Thao tác"><div class="cms-u-flex cms-u-gap-sm">
+                                <button type="button" class="cms-btn cms-btn--sm" data-catalog-edit="${util.escape(r.id)}"><i class="fa-solid fa-pen"></i> Sửa</button>
+                                <button type="button" class="cms-btn cms-btn--sm cms-btn--danger" data-catalog-delete="${util.escape(r.id)}"><i class="fa-solid fa-trash"></i> Xóa</button>
+                            </div></td></tr>`;
                     }).join('') + '</tbody></table></div>';
             } catch (err) {
                 if (host) host.innerHTML = ui.emptyState({ icon: 'fa-triangle-exclamation', tone: 'danger', title: 'Không tải được dữ liệu', text: err.message || '' });

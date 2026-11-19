@@ -236,7 +236,7 @@ switch (cmd) {
   case 'stats': cmdStats(); break;
   case 'purge-seed': cmdPurgeSeed(rest); break;
   default:
-    console.log(`CÔNG CỤ DỮ LIỆU – CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
+    console.log(`CÔNG CỤ DỮ LIỆU – CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH
 
   node server/scripts/data-tool.js export all [--out <thư mục>]
   node server/scripts/data-tool.js export <bảng> [--out <thư mục>]

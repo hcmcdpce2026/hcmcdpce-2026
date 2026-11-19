@@ -1,6 +1,6 @@
 /**
  * public-pages.js – Kết nối các trang PUBLIC với API của Cổng thông tin.
- * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh –
+ * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh –
  *
  * - news.html / index.html : nạp tin đã xuất bản từ CMS
  * - news-detail.html       : nạp chi tiết bài viết theo ?id=
@@ -42,6 +42,8 @@
      * @param {number} _i không dùng (giữ chỗ tương thích)
      * @param {string} prefix tiền tố tới gốc dự án ('../../' ở /pages/public/...)
      */
+    const placeholderUrl = (prefix) => `${prefix}assets/images/article-placeholder.svg`;
+
     const thumbOf = (a, _i, prefix) => {
         const src = a && typeof a.thumbnail === 'string' ? a.thumbnail.trim() : '';
         if (src) {
@@ -50,8 +52,28 @@
             const normalized = src.replace(/^(\.\.?\/)+/, '').replace(/^\.\//, '');
             return prefix + normalized;
         }
-        return `${prefix}assets/images/article-placeholder.svg`;
+        return placeholderUrl(prefix);
     };
+
+    /**
+     * Ảnh đại diện có đường dẫn hỏng (tệp bị xoá, đường dẫn chép nhầm) sẽ lặp
+     * vô hạn nếu trỏ lại chính URL lỗi. Gắn listener một lần cho mỗi ảnh và
+     * thay bằng ảnh giữ chỗ tính từ gốc dự án.
+     */
+    document.addEventListener('error', (event) => {
+        const img = event.target;
+        if (!(img instanceof HTMLImageElement)) return;
+        if (img.dataset.fallbackApplied === '1') return;
+        img.dataset.fallbackApplied = '1';
+        img.src = placeholderUrl(assetPrefix());
+        /* Giữ nguyên alt nghiệp vụ (tên bài viết); chỉ bổ sung khi ảnh trang trí. */
+        if (!img.alt) img.alt = 'Chưa có hình ảnh minh họa';
+    }, true);
+
+    /** Tiền tố tới gốc dự án theo vị trí trang hiện tại (index.html ở gốc hoặc /pages/...). */
+    function assetPrefix() {
+        return /\/pages\//.test(window.location.pathname) ? '../../' : '';
+    }
 
     /** Trạng thái tải: chèn khung chờ / thông báo lỗi vào vùng chứa */
     const setLoading = (host, text) => {
@@ -150,7 +172,9 @@
     }
 
     /**
-     * Khối “Tin tiêu điểm”: bài mới nhất làm tin chính, 2 bài kế tiếp vào cột phụ.
+     * Khối “Tin tiêu điểm”: bài mới nhất làm tin chính, các bài kế tiếp vào cột phụ.
+     * Cột phụ lấy tối đa 2 bài để cân bố cục; nếu không đủ 2 bài thì lưới chuyển
+     * sang 1 cột, để không có ô trống bên phải.
      * Nội dung hoàn toàn từ API (bài đã xuất bản qua CMS).
      */
     function renderSpotlight(articles) {
@@ -158,10 +182,10 @@
         const spotlight = document.querySelector('.news-spotlight');
         if (!grid || !articles.length) return;
         const [hero, ...rest] = articles;
-        const side = rest.slice(0, 2);
+        const side = rest.length >= 2 ? rest.slice(0, 2) : rest;
 
-        /* Khi chỉ có 1 bài, lưới chuyển sang 1 cột để không bị khoảng trống bên phải */
-        if (spotlight) spotlight.classList.toggle('news-spotlight--single', side.length === 0);
+        /* Không đủ 2 bài phụ → 1 cột, tránh ô trống bên phải */
+        if (spotlight) spotlight.classList.toggle('news-spotlight--single', side.length < 2);
 
         grid.innerHTML = `
             <article class="news-hero-card">
@@ -347,7 +371,7 @@
         const setText = (el, text) => { if (el) el.textContent = text; };
         try {
             const a = await api.get(`/api/public/articles/${encodeURIComponent(id)}`);
-            document.title = `${(a.title + ' | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
+            document.title = `${(a.title + ' | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
 
             setText(document.getElementById('art-title'), a.title);
             setText(document.getElementById('art-sapo'), a.excerpt || '');
@@ -441,7 +465,7 @@
         }
         try {
             const a = await api.get(`/api/public/articles/${encodeURIComponent(id)}`);
-            document.title = `${(a.title + ' | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
+            document.title = `${(a.title + ' | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
 
             setText('edd-crumb-title', a.categoryName || 'Chuyên đề');
             setText('edd-category', a.categoryName || 'Tuyên truyền - Giáo dục');
@@ -499,6 +523,108 @@
 
     /* ------------------------------ Thống kê -------------------------------- */
 
+    /**
+     * Biểu đồ thanh ngang: tỉ trọng từng chỉ tiêu so với chỉ tiêu lớn nhất.
+     * Nguồn dữ liệu là `period.items` do API công khai trả về.
+     */
+    function renderHBar(period) {
+        const host = document.getElementById('st-hbar-container');
+        if (!host) return;
+        const items = (period.items || []).filter((i) => Number.isFinite(Number(i.value)));
+        if (!items.length) {
+            setEmpty(host, 'Chưa có số liệu cho kỳ báo cáo này.');
+            return;
+        }
+        const max = Math.max.apply(null, items.map((i) => Number(i.value) || 0)) || 1;
+        host.innerHTML = items.map((item) => {
+            const value = Number(item.value) || 0;
+            const pct = Math.max(2, Math.round((value / max) * 100));
+            return `<div class="st-hbar-item">
+                <div class="st-hbar-item__top">
+                    <span>${esc(item.label)}</span>
+                    <span class="st-hbar-item__count">${value.toLocaleString('vi-VN')}${item.unit ? ' ' + esc(item.unit) : ''}</span>
+                </div>
+                <div class="st-hbar-item__track">
+                    <div class="st-hbar-item__fill" style="width:${pct}%"></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    /**
+     * Biểu đồ cột theo quý, dựng từ các kỳ báo cáo có nhãn dạng “Quý I..IV”.
+     * Kỳ hiện tại được làm nổi bật; quý không có số liệu hiển thị cột 0.
+     */
+    const QUARTER_LABELS = ['Quý I', 'Quý II', 'Quý III', 'Quý IV'];
+
+    function quarterIndexOf(key) {
+        const k = String(key || '').toLowerCase();
+        if (/q1|quy-?1|quý-?1|quy_?i\b/.test(k)) return 0;
+        if (/q2|quy-?2|quý-?2|quy_?ii\b/.test(k)) return 1;
+        if (/q3|quy-?3|quý-?3|quy_?iii\b/.test(k)) return 2;
+        if (/q4|quy-?4|quý-?4|quy_?iv\b/.test(k)) return 3;
+        return -1;
+    }
+
+    function renderVChart(period, periods) {
+        const host = document.getElementById('st-vchart-bars');
+        if (!host) return;
+
+        /* Ưu tiên chỉ tiêu mô tả lượng người được tư vấn/điều trị, nếu không có thì dùng chỉ tiêu đầu tiên */
+        const pickMetric = (p) => {
+            const items = p.items || [];
+            return items.find((i) => /tư vấn|điều trị|cai nghiện/i.test(String(i.label || ''))) || items[0];
+        };
+
+        const values = QUARTER_LABELS.map(() => 0);
+        let matched = 0;
+        (periods || []).forEach((p) => {
+            const idx = quarterIndexOf(p.key);
+            if (idx === -1) return;
+            const metric = pickMetric(p);
+            if (!metric) return;
+            values[idx] = Number(metric.value) || 0;
+            matched += 1;
+        });
+
+        if (!matched) {
+            /* #st-vchart-bars là lưới 4 cột: thông báo trống phải trải hết chiều ngang,
+               nếu không nó bị bóp trong một cột và chữ xuống dòng theo từng ký tự. */
+            host.innerHTML = `<div class="pub-state" style="grid-column:1/-1;align-self:center">
+                <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                <span>Chưa có số liệu theo quý được công bố.</span></div>`;
+            return;
+        }
+
+        const max = Math.max.apply(null, values) || 1;
+        host.innerHTML = values.map((v) => {
+            const pct = Math.max(v > 0 ? 6 : 0, Math.round((v / max) * 100));
+            return `<div class="st-vchart__col" title="${v.toLocaleString('vi-VN')} lượt">
+                <span class="st-vchart__val">${v ? v.toLocaleString('vi-VN') : '—'}</span>
+                <div class="st-vchart__bar" style="height:${pct}%"></div>
+            </div>`;
+        }).join('');
+    }
+
+    /** Bảng tổng hợp chỉ tiêu của kỳ đang chọn. */
+    function renderStatTable(period) {
+        const body = document.getElementById('st-table-body');
+        if (!body) return;
+        const items = period.items || [];
+        if (!items.length) {
+            body.innerHTML = '<tr><td colspan="5">Chưa có số liệu cho kỳ báo cáo này.</td></tr>';
+            return;
+        }
+        body.innerHTML = items.map((item) => `
+            <tr>
+                <td>${esc(item.label)}</td>
+                <td>${esc(item.unit || '—')}</td>
+                <td class="st-table__num">${Number(item.value || 0).toLocaleString('vi-VN')}</td>
+                <td>${period.verified ? '<span class="st-text-success">Đã phê duyệt</span>' : '<span>Kỳ báo cáo</span>'}</td>
+                <td><span class="st-badge-pos">${period.verified ? 'Đã xác minh' : 'Đang tổng hợp'}</span></td>
+            </tr>`).join('');
+    }
+
     async function initStatistics() {
         const kpiHost = document.querySelector('.st-kpi-grid');
         if (!kpiHost) return;
@@ -541,6 +667,10 @@
                 if (tableTag) tableTag.textContent = `Kỳ báo cáo: ${period.label}`;
                 const chartTag = document.getElementById('chart-1-tag');
                 if (chartTag) chartTag.textContent = period.label;
+
+                renderHBar(period);
+                renderVChart(period, periods);
+                renderStatTable(period);
             };
 
             renderPeriod(periods[0]);
@@ -654,8 +784,36 @@
 
             const TYPE_LABEL = {
                 'luat': 'Luật', 'bo-luat': 'Bộ luật', 'nghi-dinh': 'Nghị định',
-                'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị',
+                'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị', 'van-ban-tphcm': 'Văn bản TP.HCM',
             };
+            /* Nhãn tab: giữ nhóm “Luật / Bộ luật” gộp hai loại như tab mặc định của trang */
+            const TAB_LABEL = {
+                'luat': 'Luật / Bộ luật',
+                'nghi-dinh': 'Nghị định',
+                'thong-tu': 'Thông tư',
+                'van-ban-tphcm': 'Văn bản TP.HCM',
+                'chi-thi': 'Chỉ thị',
+            };
+
+            /* Dựng lại toàn bộ tab loại văn bản từ dữ liệu thật (không để cố định trong HTML) */
+            const tabsHost = document.getElementById('lw-type-tabs');
+            if (tabsHost) {
+                const counts = {};
+                docs.forEach((d) => {
+                    const key = d.docType === 'bo-luat' ? 'luat' : d.docType;
+                    if (!key) return;
+                    counts[key] = (counts[key] || 0) + 1;
+                });
+                const order = ['luat', 'nghi-dinh', 'thong-tu', 'van-ban-tphcm', 'chi-thi'];
+                const extra = Object.keys(counts).filter((k) => order.indexOf(k) === -1);
+                tabsHost.innerHTML = `<button type="button" class="lw-tab-btn is-active" data-doctype="all">
+                        Tất cả văn bản (${docs.length})
+                    </button>` + [...order, ...extra]
+                    .filter((key) => counts[key])
+                    .map((key) => `<button type="button" class="lw-tab-btn" data-doctype="${esc(key)}">
+                        ${esc(TAB_LABEL[key] || key)} (${counts[key]})
+                    </button>`).join('');
+            }
 
             /* Danh sách do API cung cấp; báo main.js lập lại chỉ mục bộ lọc/tìm kiếm. */
             host.innerHTML = docs.map((d) => `
@@ -716,7 +874,7 @@
         }
         try {
             const e = await api.get('/api/public/events' + api.qs({ id }));
-            document.title = `${(e.title + ' | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
+            document.title = `${(e.title + ' | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
 
             setText('evd-crumb-name', e.title);
             setText('evd-category', e.category || 'Hoạt động - Sự kiện');
@@ -819,7 +977,7 @@
         }
         try {
             const o = await api.get('/api/public/agencies' + api.qs({ id }));
-            document.title = `${(o.name + ' | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
+            document.title = `${(o.name + ' | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH').toUpperCase()}`;
 
             setText('agd-crumb-name', o.name);
             setText('agd-badge', o.shortName || o.name);
@@ -1094,16 +1252,20 @@
             const GROUPS = {
                 coordination: 'chuyen-trach', enforcement: 'chuyen-trach',
                 health: 'y-te', education: 'giao-duc', association: 'doan-the', local: 'chuyen-trach',
+                /* Cơ sở điều trị, cai nghiện: trước đây không có nhóm nên luôn rơi về tab đầu */
+                rehab: 'cai-nghien', treatment: 'cai-nghien',
             };
             const BADGES = {
                 coordination: 'Chỉ đạo & Chuyên trách', enforcement: 'Lực lượng nòng cốt',
                 health: 'Y tế & Điều trị', education: 'Giáo dục - Tuyên truyền',
                 association: 'Đoàn thể - Xã hội', local: 'Chính quyền cơ sở',
+                rehab: 'Cơ sở cai nghiện', treatment: 'Cơ sở cai nghiện',
             };
             const GROUP_LABELS = {
                 'chuyen-trach': 'Chỉ đạo & Chuyên trách',
                 'y-te': 'Y tế & Điều trị',
                 'giao-duc': 'Giáo dục - Tuyên truyền',
+                'cai-nghien': 'Cơ sở cai nghiện',
                 'doan-the': 'Đoàn thể - Xã hội',
             };
 
@@ -1141,11 +1303,19 @@
             if (tab) tab.textContent = `Tất cả đơn vị (${list.length})`;
             const tabsHost = document.querySelector('.ag-tabs');
             if (tabsHost) {
-                const groups = [...new Set(list.map((agency) => GROUPS[agency.roleType] || 'chuyen-trach'))];
+                /* Thứ tự nhóm cố định để cột nút không nhảy khi dữ liệu thay đổi */
+                const ORDER = ['chuyen-trach', 'y-te', 'cai-nghien', 'doan-the', 'giao-duc'];
+                const countOf = {};
+                list.forEach((agency) => {
+                    const g = GROUPS[agency.roleType] || 'chuyen-trach';
+                    countOf[g] = (countOf[g] || 0) + 1;
+                });
+                const present = ORDER.filter((g) => countOf[g])
+                    .concat(Object.keys(countOf).filter((g) => ORDER.indexOf(g) === -1));
                 tabsHost.innerHTML = `<button type="button" class="ag-tab-btn is-active" data-group="all">
                         Tất cả đơn vị (${list.length})
-                    </button>` + groups.map((group) => `
-                    <button type="button" class="ag-tab-btn" data-group="${group}">${GROUP_LABELS[group]}</button>`).join('');
+                    </button>` + present.map((group) => `
+                    <button type="button" class="ag-tab-btn" data-group="${group}">${GROUP_LABELS[group] || group} (${countOf[group]})</button>`).join('');
             }
             refreshStaticPage(host);
         } catch (err) {

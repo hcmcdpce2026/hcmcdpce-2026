@@ -28,7 +28,7 @@ const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,
 async function health(req, res) {
   return http.ok(res, {
     status: 'ok',
-    service: 'HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL',
+    service: 'HO CHI MINH CITY DRUG PREVENTION AND CONTROL E-PORTAL',
     version: '1.1.0',
     timestamp: nowIso(),
     uptime: Math.floor(process.uptime()),

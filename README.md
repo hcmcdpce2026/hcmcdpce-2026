@@ -1,6 +1,6 @@
 <div align="center">
 
-# Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+# Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
 
 **PUBLIC · CMS · WORKSPACE**
 
@@ -176,13 +176,19 @@ Không commit `.env`, database, credentials hoặc dữ liệu người dùng. S
 | `npm.cmd run db:seed` | Bổ sung dữ liệu hệ thống ban đầu | Không phải công cụ reset |
 | `npm.cmd run export:static-public` | Xuất snapshot PUBLIC và media | Chỉ đưa dữ liệu đã duyệt lên host tĩnh |
 | `npm.cmd run check` | Kiểm tra mã hóa và quét tĩnh | Không thay thế kiểm thử runtime |
-| `npm.cmd test` | Kiểm thử tích hợp API | Có thể ghi dữ liệu; chỉ chạy với DB thử nghiệm |
+| `npm.cmd run test:isolated` | **Kiểm thử tích hợp trên database tạm** | Khuyến nghị dùng: không chạm database vận hành |
+| `npm.cmd test` | Kiểm thử tích hợp API | Ghi vào database **đang cấu hình** — chỉ dùng khi chắc chắn |
 | `npm.cmd run test:interconnect` | Kiểm thử luồng liên thông | Ghi dữ liệu vào database đang cấu hình |
+| `npm.cmd run test:clean` | Báo cáo dữ liệu do kiểm thử để lại | Thêm `--yes` để xoá; mặc định chỉ báo cáo |
 | `npm.cmd run data` | Công cụ nhập/xuất/kiểm tra dữ liệu | Xem [docs/DATABASE.md](docs/DATABASE.md) |
 | `npm.cmd run db:reset` | Đặt lại database | **Thao tác phá hủy dữ liệu** |
 | `node server/db/seed.js --reset --with-demo` | Tạo lại DB và nạp dữ liệu demo | **Chỉ dùng với database thử nghiệm có thể xóa** |
 
 Không chạy các lệnh reset hoặc kiểm thử ghi dữ liệu trên môi trường production. Đọc [docs/TESTING.md](docs/TESTING.md) trước khi chạy runner; một số script có thể dừng tiến trình Node hoặc xóa database thử nghiệm.
+
+> **Quan trọng:** `npm run test` và `npm run test:interconnect` thao tác qua HTTP tới máy chủ đang chạy, nên **dữ liệu kiểm thử sẽ nằm trong database mà máy chủ đó dùng**. Hãy dùng `npm run test:isolated` — lệnh này dựng máy chủ tạm trên cổng riêng với tệp SQLite tạm, chạy cùng bộ kiểm thử rồi xoá sạch, không ảnh hưởng dữ liệu thật.
+>
+> Nếu đã lỡ chạy bộ kiểm thử trên database vận hành, dùng `npm run test:clean` để xem danh sách bản ghi kiểm thử, sau đó `node server/scripts/clean-test-data.js --yes` để xoá.
 
 ## Cấu trúc dự án
 
@@ -217,7 +223,9 @@ Không chạy các lệnh reset hoặc kiểm thử ghi dữ liệu trên môi t
 - Thay mật khẩu khởi tạo, cấp quyền tối thiểu cần thiết, bảo vệ `.env`, database, log và bản sao lưu.
 - Không đưa thông tin cá nhân, phản ánh nội bộ, nội dung nháp, database hoặc credential vào repository public.
 - SQLite và rate limit trong bộ nhớ phù hợp một instance trên ổ đĩa bền vững; không dùng chung một tệp SQLite cho nhiều máy chủ ghi đồng thời.
-- Upload bị giới hạn thực tế bởi bộ nhớ, ổ đĩa, proxy và thời gian xử lý; “không giới hạn” không có nghĩa là vô hạn.
+- Upload được kiểm soát bởi chính sách tập trung tại `server/lib/upload.js`: chỉ nhận ảnh (JPG, PNG, WEBP, GIF, AVIF, BMP, ICO), tài liệu (PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, CSV, TXT, ZIP), video (MP4, WEBM, M4V, OGV) và âm thanh (MP3, WAV, OGG); **tối đa 25 MB mỗi tệp**. Tệp HTML, SVG và mọi tệp thực thi bị từ chối vì chúng được phục vụ cùng origin và có thể dẫn tới stored XSS.
+- Tệp trong `uploads/` được phục vụ với `X-Content-Type-Options: nosniff`; loại không phải media (ảnh/video/âm thanh/PDF) bị ép tải xuống và sandbox bằng Content-Security-Policy.
+- Upload vẫn bị giới hạn thực tế bởi dung lượng ổ đĩa, proxy và thời gian xử lý phía máy chủ.
 - GitHub Pages chỉ phù hợp cho bản PUBLIC tĩnh. CMS, Workspace và các thao tác cần ghi dữ liệu phải chạy trên backend Node.js.
 - Font và biểu tượng từ CDN cần kết nối Internet để tải đầy đủ.
 

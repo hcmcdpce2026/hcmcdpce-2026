@@ -1,29 +1,7 @@
-/* ==========================================================================
-   CMS STYLESHEET – Cổng thông tin điện tử phòng, chống ma túy TP. HCM
-   --------------------------------------------------------------------------
-   File này CHỈ chứa kiểu dáng cho khu vực quản trị (pages/cms/).
-   Mọi biến màu/kích thước dùng chung lấy từ css/style.css (design tokens).
-   Tiền tố BEM-block: cms-  =>  hạn chế xung đột với website công khai.
 
-   Mục lục:
-     1.  CMS Design Tokens
-     2.  CMS Layout
-     3.  CMS Sidebar
-     4.  CMS Header
-     5.  CMS Navigation
-     6.  CMS Dashboard
-     7.  CMS Tables
-     8.  CMS Forms
-     9.  CMS Editor
-     10. CMS Media Library
-     11. CMS Workflow
-     12. CMS Activity Log
-     13. CMS Modal
-     14. CMS Notifications
-     15. CMS Login
-     16. CMS Utilities
-     17. CMS Responsive Overrides
-   ========================================================================== */
+/* ==========================================================================
+   CMS STYLESHEET
+    ========================================================================== */
 
 /* ==========================================================================
    1. CMS DESIGN TOKENS
@@ -6595,6 +6573,12 @@
 
 
 /* Chip lọc trạng thái tiếp nhận */
+
+/* Hàng chip nằm ngay trên bảng danh sách: cần khoảng cách để không dính vào bảng */
+#sub-list-host {
+    margin-bottom: 1rem;
+}
+
 .cms-chip {
     display: inline-flex;
     align-items: center;
@@ -6696,4 +6680,84 @@
     line-height: 1.65;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   NỘI DUNG CÔNG KHAI (public-catalog.html)
+   Khối tải ảnh/tệp trong form và ảnh thu nhỏ trong bảng danh sách.
+   --------------------------------------------------------------------------- */
+.catalog-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem;
+    border: 1px dashed var(--color-border, #d8e0ec);
+    border-radius: var(--radius-md, 10px);
+    background: var(--bg-surface, #fbfcfe);
+}
+
+.catalog-upload__preview {
+    width: 100%;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--bg-muted, #eef2f8);
+    overflow: hidden;
+}
+
+.catalog-upload__preview img {
+    max-width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+    display: block;
+}
+
+.catalog-upload__empty {
+    font-size: var(--fs-sm, 0.85rem);
+    color: var(--text-muted, #7b8aa3);
+}
+
+.catalog-upload__file {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--bg-muted, #eef2f8);
+    font-size: var(--fs-sm, 0.85rem);
+    color: var(--text-secondary, #4a5a75);
+    word-break: break-all;
+}
+
+.catalog-upload__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Ảnh thu nhỏ trong bảng danh sách */
+.catalog-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm, 8px);
+    object-fit: cover;
+    border: 1px solid var(--color-border, #e1e7f0);
+    background: var(--bg-muted, #eef2f8);
+    display: block;
+}
+
+.catalog-thumb--none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #97a5ba);
+    font-size: 1rem;
+}
+
+/* Nhãn trạng thái trong bảng nội dung công khai */
+.cms-badge--muted {
+    background: var(--bg-muted, #eef2f8);
+    color: var(--text-secondary, #556580);
 }

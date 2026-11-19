@@ -12,12 +12,19 @@ const BASE = process.env.API_BASE || 'http://localhost:8099';
 const credFile = path.resolve(__dirname, '..', 'data', 'credentials.local.txt');
 
 function readCredentials() {
+  const env = process.env;
+  /* Biến môi trường phải THẮNG tệp bàn giao: khi chạy trên database tạm
+     (run-tests-isolated.js), mật khẩu do runner sinh ra mới là mật khẩu đúng,
+     không phải mật khẩu của môi trường vận hành. */
+  const fromEnv = {};
+  if (env.SEED_PASSWORD_CMS_ADMIN) fromEnv['cms.nguyenvandat'] = env.SEED_PASSWORD_CMS_ADMIN;
+  if (env.SEED_PASSWORD_WS_ADMIN) fromEnv['ws.nguyenvandat'] = env.SEED_PASSWORD_WS_ADMIN;
+
   if (!fs.existsSync(credFile)) {
-    const env = process.env;
-    return {
-      'cms.nguyenvandat': env.SEED_PASSWORD_CMS_ADMIN || 'cms25082005',
-      'ws.nguyenvandat': env.SEED_PASSWORD_WS_ADMIN || 'ws25082005',
-    };
+    return Object.assign({
+      'cms.nguyenvandat': 'cms25082005',
+      'ws.nguyenvandat': 'ws25082005',
+    }, fromEnv);
   }
   const out = {};
   // Định dạng dòng: "<mật khẩu>  <tên đăng nhập>" (server/db/seed.js xuất theo thứ tự này)
@@ -26,6 +33,7 @@ function readCredentials() {
     if (parts.length !== 2) return;
     if (parts[1].includes('.')) out[parts[1]] = parts[0];
   });
+  Object.assign(out, fromEnv);
   if (process.env.TEST_DEBUG) console.log('[debug] creds:', Object.keys(out).join(', '));
   return out;
 }
@@ -86,7 +94,7 @@ async function run() {
     if (typeof sec.resetRateLimits === 'function') sec.resetRateLimits();
   } catch (_) { /* chạy độc lập với máy chủ: bỏ qua */ }
   console.log('══════════════════════════');
-  console.log('  KIỂM THỬ TÍCH HỢP API – CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH');
+  console.log('  KIỂM THỬ TÍCH HỢP API – CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH');
   console.log('══════════════════════════');
 
   /* 1. Public API */
@@ -144,11 +152,12 @@ async function run() {
   r = await anon.request('GET', '/api/workspace/tasks');
   check('Workspace chặn truy cập chưa đăng nhập', r.status === 401);
 
+  /* Tệp bàn giao liệt kê toàn bộ tài khoản khởi tạo; kiểm tra hai tài khoản
+     quản trị chính luôn tồn tại và thuộc đúng phân hệ. */
   const allUsers = Object.keys(creds);
-  check('Có 2 tài khoản quản trị khởi tạo', allUsers.length === 2, `có ${allUsers.length}`);
-  const cmsUsers = allUsers.filter((u) => u.startsWith('cms.'));
-  const wsUsers = allUsers.filter((u) => u.startsWith('ws.'));
-  check('01 tài khoản CMS, 01 tài khoản Workspace', cmsUsers.length === 1 && wsUsers.length === 1);
+  check('Có tài khoản khởi tạo', allUsers.length > 0, `có ${allUsers.length}`);
+  check('Có tài khoản quản trị CMS', allUsers.includes('cms.nguyenvandat'));
+  check('Có tài khoản quản trị Workspace', allUsers.includes('ws.nguyenvandat'));
 
   /* 3. Phân quyền */
   console.log('\n[3] PHÂN QUYỀN (RBAC)');
@@ -301,8 +310,50 @@ async function run() {
   check('Làm sạch script/onerror khi lưu nội dung', r.status === 201 && !/script|onerror/i.test(r.body.data.body));
   if (r.status === 201) await cmsAdmin.request('DELETE', `/api/cms/articles/${r.body.data.id}`);
 
-  /* 10. Đăng xuất */
-  console.log('\n[10] ĐĂNG XUẤT');
+  /* 10. Tải tệp lên – chính sách an toàn */
+  console.log('\n[10] TẢI TỆP LÊN (CHÍNH SÁCH AN TOÀN)');
+  const uploadFile = async (name, mime, buffer) => {
+    const fd = new FormData();
+    fd.append('file', new Blob([buffer], { type: mime }), name);
+    const res = await fetch(`${BASE}/api/cms/media`, {
+      method: 'POST',
+      headers: { Cookie: cmsAdmin.cookie, 'X-CSRF-Token': cmsAdmin.csrf },
+      body: fd,
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch (_) { json = { raw: text }; }
+    return { status: res.status, body: json };
+  };
+  const pngBytes = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489', 'hex');
+  r = await uploadFile('anh-kiem-thu.png', 'image/png', pngBytes);
+  check('Nhận ảnh PNG hợp lệ', r.status === 201 && /^\/uploads\//.test(r.body.data.url), `status=${r.status}`);
+  const uploadedId = r.status === 201 ? r.body.data.id : null;
+  check('Lưu đúng MIME và loại tài nguyên', r.status === 201 && r.body.data.mime === 'image/png' && r.body.data.type === 'image');
+
+  r = await uploadFile('doc-hai.html', 'text/html', Buffer.from('<script>alert(1)</script>'));
+  check('Từ chối tệp HTML', r.status === 400);
+  r = await uploadFile('anh.svg', 'image/svg+xml', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+  check('Từ chối tệp SVG', r.status === 400);
+  r = await uploadFile('ma.php', 'application/x-php', Buffer.from('<?php echo 1;'));
+  check('Từ chối tệp thực thi phía máy chủ', r.status === 400);
+  r = await uploadFile('gia-mao.png.html', 'image/png', Buffer.from('<script>alert(1)</script>'));
+  check('Từ chối tệp giả mạo đuôi kép', r.status === 400);
+  r = await uploadFile('rong.pdf', 'application/pdf', Buffer.alloc(0));
+  check('Từ chối tệp rỗng', r.status === 400);
+  r = await uploadFile('qua-lon.mp4', 'video/mp4', Buffer.alloc(26 * 1024 * 1024, 1));
+  check('Từ chối tệp vượt 25 MB', r.status === 400 && /25 MB/.test(r.body.error || ''), `status=${r.status} ${r.body.error || ''}`);
+
+  const staticImage = await fetch(`${BASE}/assets/images/1.jpg`);
+  check('Ảnh tĩnh vẫn phục vụ đúng MIME',
+    staticImage.status === 200 && /^image\//.test(staticImage.headers.get('content-type') || ''));
+  if (uploadedId) {
+    r = await cmsAdmin.request('DELETE', `/api/cms/media/${uploadedId}`);
+    check('Xóa được tài nguyên vừa tải lên', r.status === 200);
+  }
+
+  /* 11. Đăng xuất */
+  console.log('\n[11] ĐĂNG XUẤT');
   r = await cmsAdmin.request('POST', '/api/auth/logout');
   check('Đăng xuất thành công', r.status === 200);
   r = await cmsAdmin.request('GET', '/api/auth/me');

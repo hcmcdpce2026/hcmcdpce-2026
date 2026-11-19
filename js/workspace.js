@@ -1476,7 +1476,18 @@ const Store = (function () {
         const applyPermissions = () => {
             document.querySelectorAll('[data-perm]').forEach((el) => {
                 const allowed = el.dataset.perm.split('|').some((p) => Store.can(p.trim()));
-                if (!allowed && el.parentNode) el.parentNode.removeChild(el);
+                /* Ẩn thay vì xoá khỏi DOM: nếu quyền được nạp lại (đăng nhập, đổi vai trò)
+                   thì phần tử có thể hiện lại; xoá hẳn sẽ làm mất vĩnh viễn cho phiên đó. */
+                if (allowed) {
+                    el.removeAttribute('hidden');
+                    return;
+                }
+                if (el.tagName === 'OPTION') {
+                    el.setAttribute('hidden', '');
+                } else {
+                    el.setAttribute('hidden', '');
+                    el.setAttribute('aria-hidden', 'true');
+                }
             });
         };
 
@@ -2141,7 +2152,7 @@ const Store = (function () {
                 '<li><span class="ws-chart__swatch ws-chart__swatch--primary"></span>Nhiệm vụ giao mới</li>' +
                 '<li><span class="ws-chart__swatch ws-chart__swatch--success"></span>Nhiệm vụ hoàn thành</li></ul>' +
                 '<details class="ws-chart__data"><summary>Xem bảng dữ liệu</summary>' +
-                '<table class="ws-table ws-table--compact"><thead><tr><th scope="col">Thời điểm</th><th scope="col">Giao mới</th><th scope="col">Hoàn thành</th></tr></thead><tbody>' +
+                '<table class="ws-table ws-table--compact ws-table--fit"><thead><tr><th scope="col">Thời điểm</th><th scope="col">Giao mới</th><th scope="col">Hoàn thành</th></tr></thead><tbody>' +
                 buckets.map((b) => '<tr><td>' + b.label + '</td><td>' + b.created + '</td><td>' + b.done + '</td></tr>').join('') +
                 '</tbody></table></details></div>';
         };
@@ -2297,7 +2308,7 @@ const Store = (function () {
 
                 const delBtn = e.target.closest('[data-task-delete]');
                 if (delBtn) {
-                    if (!Shell.requirePerm('doc.manage', 'Vai trò của bạn không có quyền xóa nhiệm vụ.')) return;
+                    if (!Shell.requirePerm('task.delete', 'Vai trò của bạn không có quyền xóa nhiệm vụ.')) return;
                     const task = Store.taskById(delBtn.dataset.taskDelete);
                     if (!task) return;
                     ui.confirm({
@@ -2393,8 +2404,8 @@ const Store = (function () {
                         '<td data-label="Tiến độ">' + ui.progress(t.progress, 'Tiến độ ' + t.code) + '</td>' +
                         '<td data-label="Thao tác"><div class="ws-row-actions">' +
                         '<a class="ws-btn ws-btn--icon ws-btn--ghost" href="task-detail.html?id=' + t.id + '" title="Xem chi tiết" aria-label="Xem chi tiết ' + util.escape(t.code) + '"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>' +
-                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-task-edit="' + t.id + '" data-perm="data.edit" title="Chỉnh sửa" aria-label="Chỉnh sửa ' + util.escape(t.code) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
-                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-task-delete="' + t.id + '" data-perm="data.delete" title="Xóa" aria-label="Xóa ' + util.escape(t.code) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
+                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-task-edit="' + t.id + '" data-perm="task.edit" title="Chỉnh sửa" aria-label="Chỉnh sửa ' + util.escape(t.code) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
+                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-task-delete="' + t.id + '" data-perm="task.delete" title="Xóa" aria-label="Xóa ' + util.escape(t.code) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
                         '</div></td></tr>';
                 }).join('') || '<tr><td colspan="8">' + ui.emptyState({ icon: 'fa-list-check', title: 'Không có nhiệm vụ', message: 'Không có nhiệm vụ phù hợp với bộ lọc hiện tại.' }) + '</td></tr>';
             }
@@ -2544,9 +2555,9 @@ const Store = (function () {
                 '<p class="ws-page-head__desc">' + util.escape(Store.orgName(task.ownerOrgId)) + ' · Giao ngày ' +
                 util.formatDate(task.assignDate) + ' · Thời hạn ' + util.formatDate(task.dueDate) + '</p></div>' +
                 '<div class="ws-page-head__actions"><a class="ws-btn" href="tasks.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>' +
-                '<button type="button" class="ws-btn" id="ws-task-edit-btn" data-perm="data.edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Chỉnh sửa</button>' +
-                '<button type="button" class="ws-btn ws-btn--primary" id="ws-task-progress-btn" data-perm="data.edit"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Cập nhật tiến độ</button>' +
-                '<button type="button" class="ws-btn ws-btn--success" id="ws-task-submit-btn" data-perm="data.edit"' +
+                '<button type="button" class="ws-btn" id="ws-task-edit-btn" data-perm="task.edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Chỉnh sửa</button>' +
+                '<button type="button" class="ws-btn ws-btn--primary" id="ws-task-progress-btn" data-perm="task.edit"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Cập nhật tiến độ</button>' +
+                '<button type="button" class="ws-btn ws-btn--success" id="ws-task-submit-btn" data-perm="task.edit"' +
                 (task.status === 'review' || task.status === 'done' ? ' disabled' : '') +
                 '><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Đề xuất hoàn thành</button>' +
                 '<button type="button" class="ws-btn ws-btn--success" id="ws-task-confirm-btn" data-perm="task.approve"' +
@@ -2635,7 +2646,7 @@ const Store = (function () {
             const items = Store.taskItems(task.id);
             const done = items.filter((i) => i.done).length;
             host.innerHTML = '<div class="ws-section-head"><div><p class="ws-card__subtitle">' + done + '/' + items.length + ' hạng mục hoàn thành</p></div>' +
-                '<button type="button" class="ws-btn ws-btn--sm" id="ws-add-item" data-perm="data.edit"><i class="fa-solid fa-plus" aria-hidden="true"></i> Thêm hạng mục</button></div>' +
+                '<button type="button" class="ws-btn ws-btn--sm" id="ws-add-item" data-perm="task.edit"><i class="fa-solid fa-plus" aria-hidden="true"></i> Thêm hạng mục</button></div>' +
                 (items.length ? '<ul class="ws-checklist-list">' + items.map((i) => '<li class="ws-checklist-row' + (i.done ? ' is-done' : '') + '">' +
                     '<label class="ws-check"><input type="checkbox" data-item-toggle="' + i.id + '"' + (i.done ? ' checked' : '') + '>' +
                     '<span>' + util.escape(i.title) + '</span></label><span class="ws-checklist-row__meta">' +
@@ -2677,7 +2688,7 @@ const Store = (function () {
             if (!host) return;
             const docs = (task.attachments || []).map(Store.docById).filter(Boolean);
             host.innerHTML = '<div class="ws-section-head"><p class="ws-card__subtitle">' + docs.length + ' tài liệu đính kèm</p>' +
-                '<button type="button" class="ws-btn ws-btn--sm" id="ws-attach-doc" data-perm="data.edit"><i class="fa-solid fa-link" aria-hidden="true"></i> Đính kèm từ kho</button></div>' +
+                '<button type="button" class="ws-btn ws-btn--sm" id="ws-attach-doc" data-perm="task.edit"><i class="fa-solid fa-link" aria-hidden="true"></i> Đính kèm từ kho</button></div>' +
                 (docs.length ? '<ul class="ws-file-list">' + docs.map((d) => '<li class="ws-file-item">' +
                     '<span class="ws-file-item__icon"><i class="fa-solid fa-file-' + (d.format === 'PDF' ? 'pdf' : 'word') + '" aria-hidden="true"></i></span>' +
                     '<span class="ws-file-item__body"><span class="ws-file-item__name">' + util.escape(d.name) + '</span>' +
@@ -3095,7 +3106,7 @@ const Store = (function () {
                 if (edit) { openForm(Store.orgById(edit.dataset.orgEdit)); return; }
                 const del = e.target.closest('[data-org-delete]');
                 if (del) {
-                    if (!Shell.requirePerm('doc.manage', 'Vai trò của bạn không có quyền xóa đơn vị.')) return;
+                    if (!Shell.requirePerm('org.manage', 'Vai trò của bạn không có quyền xóa đơn vị.')) return;
                     const org = Store.orgById(del.dataset.orgDelete);
                     ui.confirm({
                         heading: 'Xóa đơn vị?',
@@ -3157,8 +3168,8 @@ const Store = (function () {
                         '<td data-label="Trạng thái">' + ui.statusBadge(o.status, 'org') + '</td>' +
                         '<td data-label="Thao tác"><div class="ws-row-actions">' +
                         '<a class="ws-btn ws-btn--icon ws-btn--ghost" href="organization-detail.html?id=' + o.id + '" title="Xem chi tiết" aria-label="Xem ' + util.escape(o.name) + '"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>' +
-                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-org-edit="' + o.id + '" data-perm="data.edit" title="Chỉnh sửa" aria-label="Sửa ' + util.escape(o.name) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
-                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-org-delete="' + o.id + '" data-perm="data.delete" title="Xóa" aria-label="Xóa ' + util.escape(o.name) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
+                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-org-edit="' + o.id + '" data-perm="org.manage" title="Chỉnh sửa" aria-label="Sửa ' + util.escape(o.name) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
+                        '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-org-delete="' + o.id + '" data-perm="org.manage" title="Xóa" aria-label="Xóa ' + util.escape(o.name) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
                         '</div></td></tr>';
                 }).join('') || '<tr><td colspan="8">' + ui.emptyState({ icon: 'fa-building-circle-xmark', title: 'Không tìm thấy đơn vị', message: 'Không có đơn vị phù hợp với bộ lọc hiện tại.' }) + '</td></tr>';
             }
@@ -4710,7 +4721,7 @@ const Store = (function () {
                     '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-notice-toggle="' + n.id + '" title="' +
                     (n.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc') + '" aria-label="' + (n.read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc') + '">' +
                     '<i class="fa-solid ' + (n.read ? 'fa-envelope' : 'fa-envelope-open') + '" aria-hidden="true"></i></button>' +
-                    '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-notice-delete="' + n.id + '" data-perm="notice.manage" title="Xóa thông báo" aria-label="Xóa thông báo">' +
+                    '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-notice-delete="' + n.id + '" data-perm="notification.view" title="Xóa thông báo" aria-label="Xóa thông báo">' +
                     '<i class="fa-solid fa-trash" aria-hidden="true"></i></button></div></li>').join('') ||
                     '<li>' + ui.emptyState({ icon: 'fa-bell-slash', title: 'Không có thông báo', message: 'Không có thông báo phù hợp với bộ lọc hiện tại.' }) + '</li>';
             }

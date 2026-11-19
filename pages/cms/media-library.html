@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Thư viện tài nguyên Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="description" content="Thư viện tài nguyên Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
     <meta name="robots" content="noindex, nofollow">
-    <title>THƯ VIỆN TÀI NGUYÊN | CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+    <title>THƯ VIỆN TÀI NGUYÊN | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,12 +58,13 @@
                         <div class="cms-page-head__text">
                             <h1 class="cms-page-head__title">Quản lý tài nguyên</h1>
                             <p class="cms-page-head__desc">
-                                Hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin. Kiểm tra định dạng
-                                và dung lượng tệp trước khi tải lên.
+                                Hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin. Hỗ trợ JPG, PNG,
+                                WEBP, GIF, PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, MP4, WEBM, MP3, WAV; tối đa 25 MB mỗi tệp.
                             </p>
                         </div>
                         <div class="cms-page-head__actions">
-                            <input type="file" id="media-file-input" multiple hidden>
+                            <input type="file" id="media-file-input" multiple hidden
+                                accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.ico,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.webm,.m4v,.ogv,.mp3,.wav,.ogg">
                             <button type="button" class="cms-btn cms-btn--primary" id="media-upload-btn">
                                 <i class="fa-solid fa-upload" aria-hidden="true"></i> Tải tệp lên
                             </button>
@@ -157,7 +158,7 @@
                                         <span class="cms-dropzone__title">Kéo thả tệp vào đây</span>
                                         <span class="cms-dropzone__hint">
                                             hoặc bấm để chọn tệp từ máy tính<br>
-                                            Hình ảnh, video và mọi loại tệp · không giới hạn dung lượng
+                                            Ảnh, tài liệu, video, âm thanh · tối đa 25 MB/tệp
                                         </span>
                                     </div>
                                     <div class="cms-upload-queue" id="media-queue" aria-live="polite"></div>
@@ -186,8 +187,8 @@
                                             <span>Thư viện</span>
                                         </div>
                                         <p class="cms-help">
-                                            Không giới hạn dung lượng tệp. Quản lý dung lượng toàn thư viện
-                                            và sao lưu phía máy chủ.
+                                            Giới hạn 25 MB mỗi tệp. Dung lượng trên là tổng các tệp đang lưu
+                                            trong thư viện; sao lưu thư mục <code>uploads/</code> cùng cơ sở dữ liệu.
                                         </p>
                                     </div>
                                 </div>
@@ -197,7 +198,7 @@
 
                     <footer class="cms-main__footer">
                         <div class="cms-main__footer-inner">
-                            <p>© <span class="cms-year">2026</span> Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                            <p>© <span class="cms-year">2026</span> Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
                             
                         </div>
                     </footer>

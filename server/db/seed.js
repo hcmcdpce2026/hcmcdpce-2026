@@ -392,7 +392,7 @@ const ARTICLES = [
         body: '<p>Theo cơ quan chức năng, nhiều vụ việc xuất phát từ lời mời làm việc nhẹ, lương cao trên mạng xã hội.</p><h2>Dấu hiệu cần cảnh giác</h2><ul><li>Yêu cầu nhận, gửi hàng hóa không rõ nguồn gốc.</li><li>Trả thù lao cao bất thường.</li><li>Hướng dẫn tránh né kiểm tra, không khai báo nội dung hàng hóa.</li></ul>',
     },
     {
-        id: 'art-0017', title: 'Hướng dẫn sử dụng Cổng thông tin điện tử cho cán bộ đầu mối tại cơ sở',
+        id: 'art-0017', title: 'Hướng dẫn sử dụng Chuyên trang điện tử cho cán bộ đầu mối tại cơ sở',
         slug: 'huong-dan-su-dung-cong-thong-tin-cho-can-bo-dau-moi', cat: 'cat-02', status: 'published', author: 'u-cms-01',
         excerpt: 'Tài liệu hướng dẫn tra cứu văn bản pháp luật, gửi tin bài và sử dụng thư viện tài liệu trên Cổng thông tin.',
         tags: ['Hướng dẫn', 'Cổng thông tin'], source: 'Ban Biên tập Cổng thông tin',
@@ -436,7 +436,7 @@ const MEDIA = [
     { id: 'med-03', name: 'hoc-sinh-tham-gia-chuyen-de.jpg', url: '../../assets/images/3.jpg', type: 'image', ext: 'jpg', size: 37452, folder: 'Hình ảnh hoạt động', alt: 'Học sinh tham gia chuyên đề phòng, chống ma túy' },
     { id: 'med-04', name: 'hoi-nghi-tap-huan-nghiep-vu.jpg', url: '../../assets/images/4.jpg', type: 'image', ext: 'jpg', size: 37451, folder: 'Hình ảnh hoạt động', alt: 'Hội nghị tập huấn nghiệp vụ' },
     { id: 'med-05', name: 'chuong-trinh-truyen-thong-luu-dong.jpg', url: '../../assets/images/5.jpg', type: 'image', ext: 'jpg', size: 37450, folder: 'Hình ảnh hoạt động', alt: 'Chương trình truyền thông lưu động tại trường học' },
-    { id: 'med-06', name: 'bieu-trung-cong-thong-tin.jpg', url: '../../assets/icons/logo.jpg', type: 'image', ext: 'jpg', size: 398888, folder: 'Biểu trưng', alt: 'Biểu trưng Cổng thông tin điện tử' },
+    { id: 'med-06', name: 'bieu-trung-cong-thong-tin.jpg', url: '../../assets/icons/logo.jpg', type: 'image', ext: 'jpg', size: 398888, folder: 'Biểu trưng', alt: 'Biểu trưng Chuyên trang điện tử' },
     { id: 'med-07', name: 'cam-nang-ky-nang-phong-ngua.pdf', url: 'media/cam-nang-ky-nang-phong-ngua.pdf', type: 'document', ext: 'pdf', size: 3125248, folder: 'Tài liệu tuyên truyền', alt: '' },
     { id: 'med-08', name: 'bo-an-pham-truyen-thong-co-so.pdf', url: 'media/bo-an-pham-truyen-thong-co-so.pdf', type: 'document', ext: 'pdf', size: 1820000, folder: 'Tài liệu tuyên truyền', alt: '' },
     { id: 'med-09', name: 'mau-bao-cao-cong-tac-thang.docx', url: 'media/mau-bao-cao-cong-tac-thang.docx', type: 'document', ext: 'docx', size: 245760, folder: 'Biểu mẫu', alt: '' },
@@ -1103,8 +1103,8 @@ function seedAll({ reset = false, forceResetPassword = false, withDemo = false }
             insert(db, 'settings', {
                 key: 'site',
                 value: JSON.stringify({
-                    name: 'Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh',
-                    nameEn: 'HO CHI MINH CITY DRUG PREVENTION AND CONTROL PORTAL',
+                    name: 'Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh',
+                    nameEn: 'HO CHI MINH CITY DRUG PREVENTION AND CONTROL E-PORTAL',
                     version: '1.1.0',
                     contactEmail: 'hcmcdpcp@gmail.com',
                     hotline: '028.0000.0100',
@@ -1161,7 +1161,7 @@ if (require.main === module) {
             if (!fs.existsSync(handoverDir)) fs.mkdirSync(handoverDir, { recursive: true });
             const handoverFile = path.join(handoverDir, 'credentials.local.txt');
             const lines = [
-                'CỔNG THÔNG TIN ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH',
+                'CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH',
                 'Tệp bàn giao tài khoản khởi tạo – KHÔNG commit, KHÔNG chia sẻ công khai.',
                 `Thời điểm tạo: ${new Date().toISOString()}`,
                 `Môi trường: ${ENV}`, '',
