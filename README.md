@@ -148,7 +148,7 @@ Lệnh ghi/cập nhật:
 - `public-data/public.json`;
 - `public-data/media/*` cho media công khai còn tồn tại trong `uploads`.
 
-Exporter chỉ lấy bài `published`, danh mục hoạt động và danh mục công khai được phép. Nó không xuất tài khoản, phiên, nhật ký, submission cá nhân hoặc dữ liệu Workspace.
+Exporter chỉ lấy bài `published`, danh mục hoạt động và danh mục công khai được phép. Nó không xuất tài khoản, phiên, nhật ký, submission cá nhân hoặc dữ liệu Workspace. Lệnh export tự kiểm tra snapshot và mọi media được tham chiếu; sau `git add public-data/`, chạy `npm.cmd run check:static-public:git` để xác nhận chúng nằm trong Git index. GitHub Actions sẽ báo lỗi nếu snapshot hoặc media được tham chiếu chưa có trong commit.
 
 Kiểm tra trước khi commit:
 
@@ -156,6 +156,7 @@ Kiểm tra trước khi commit:
 git status --short
 git diff --stat
 git add public-data/
+npm.cmd run check:static-public:git
 git diff --cached --stat
 git diff --cached --name-only
 git commit -m "Cap nhat noi dung cong khai"
