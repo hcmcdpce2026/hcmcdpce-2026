@@ -57,7 +57,34 @@ async function waitForServer(timeoutMs = 30000) {
   let exitCode = 1;
   try {
     log(`Database tạm: ${dbFile}`);
+    const legacyCategoryGroups = `
+      const { getDb } = require('./server/lib/db');
+      const db = getDb();
+      const ts = new Date().toISOString();
+      const insertGroup = db.prepare(\`INSERT INTO system_categories
+        (id, category_type, code, name, created_at, updated_at)
+        VALUES (?, 'category_group', ?, ?, ?, ?)\`);
+      insertGroup.run('test-legacy-news', 'news', 'Tin tức', ts, ts);
+      insertGroup.run('test-canonical-news', 'tin-tuc', 'News', ts, ts);
+      const insertCategory = db.prepare(\`INSERT INTO categories
+        (id, name, slug, group_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)\`);
+      insertCategory.run('test-legacy-news-category', 'Legacy news', 'legacy-news', 'news', ts, ts);
+      insertCategory.run('test-legacy-education-category', 'Legacy education', 'legacy-education', 'education', ts, ts);
+    `;
+    if (runNode(['-e', legacyCategoryGroups]) !== 0) throw new Error('khởi tạo fixture mã nhóm cũ thất bại');
     if (runNode(['server/db/migrate.js']) !== 0) throw new Error('migrate thất bại');
+    const verifyCategoryGroups = `
+      const assert = require('node:assert/strict');
+      const { getDb } = require('./server/lib/db');
+      const db = getDb();
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM system_categories WHERE category_type = 'category_group' AND code IN ('news', 'education')").get().count, 0);
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM system_categories WHERE category_type = 'category_group' AND code = 'tin-tuc'").get().count, 1);
+      assert.equal(db.prepare("SELECT name FROM system_categories WHERE category_type = 'category_group' AND code = 'tin-tuc'").get().name, 'Tin tức');
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM system_categories WHERE category_type = 'category_group' AND code = 'tuyen-truyen-giao-duc'").get().count, 1);
+      assert.equal(db.prepare("SELECT group_key FROM categories WHERE id = 'test-legacy-news-category'").get().group_key, 'tin-tuc');
+      assert.equal(db.prepare("SELECT group_key FROM categories WHERE id = 'test-legacy-education-category'").get().group_key, 'tuyen-truyen-giao-duc');
+    `;
+    if (runNode(['-e', verifyCategoryGroups]) !== 0) throw new Error('đồng bộ mã nhóm chuyên mục thất bại');
     const realCreds = path.join(ROOT, 'server', 'data', 'credentials.local.txt');
     const credsBackup = fs.existsSync(realCreds) ? fs.readFileSync(realCreds) : null;
     try {
@@ -80,8 +107,8 @@ async function waitForServer(timeoutMs = 30000) {
 
       db.exec('BEGIN IMMEDIATE');
       try {
-        insert('categories', { id: 'test-cat-news', name: 'News test category', slug: 'news-test-category', group_key: 'news' });
-        insert('categories', { id: 'test-cat-education', name: 'Education test category', slug: 'education-test-category', group_key: 'education' });
+        insert('categories', { id: 'test-cat-news', name: 'News test category', slug: 'news-test-category', group_key: 'tin-tuc' });
+        insert('categories', { id: 'test-cat-education', name: 'Education test category', slug: 'education-test-category', group_key: 'tuyen-truyen-giao-duc' });
 
         insert('articles', {
           id: 'test-article-news', title: 'Tin tức kiểm thử', slug: 'test-article-news',

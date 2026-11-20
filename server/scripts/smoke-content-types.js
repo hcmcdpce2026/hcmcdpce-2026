@@ -35,7 +35,7 @@ async function req(path, options) {
 (async () => {
   console.log(`\nKIỂM THỬ 6 NHÓM NỘI DUNG — ${BASE}\n`);
 
-  /* 1. Tin tức: chỉ bài đã xuất bản, không lẫn nhóm education */
+  /* 1. Tin tức: chỉ bài đã xuất bản, không lẫn nhóm tuyên truyền - giáo dục */
   const news = await req('/api/public/articles?limit=50');
   check('GET /api/public/articles trả danh sách', news.status === 200 && Array.isArray(news.data));
   const newsRows = Array.isArray(news.data) ? news.data : [];
@@ -47,21 +47,21 @@ async function req(path, options) {
   check('Bài viết trả categoryGroup để lọc theo nhóm',
     newsRows.every((a) => a.categoryGroup === undefined || typeof a.categoryGroup === 'string'));
 
-  /* 2. Nhóm education chỉ trả đúng nhóm */
-  const edu = await req('/api/public/articles?limit=50&group=education');
-  check('Lọc group=education trả 200', edu.status === 200);
+  /* 2. Nhóm tuyên truyền - giáo dục chỉ trả đúng nhóm */
+  const edu = await req('/api/public/articles?limit=50&group=tuyen-truyen-giao-duc');
+  check('Lọc group=tuyen-truyen-giao-duc trả 200', edu.status === 200);
   const eduRows = Array.isArray(edu.data) ? edu.data : [];
-  check('Mọi bài trong nhóm education đều thuộc education',
-    eduRows.every((a) => a.categoryGroup === 'education'),
+  check('Mọi bài trong nhóm tuyên truyền đều thuộc đúng nhóm',
+    eduRows.every((a) => a.categoryGroup === 'tuyen-truyen-giao-duc'),
     JSON.stringify(eduRows.map((a) => a.categoryGroup)));
   check('Có bài tuyên truyền đã xuất bản', eduRows.length > 0);
-  check('Không lẫn bài nhóm news vào education',
+  check('Không lẫn bài nhóm tin tức vào tuyên truyền',
     !eduRows.some((a) => /Bài tin tức kiểm thử/.test(a.title)));
 
-  const newsOnly = await req('/api/public/articles?limit=50&group=news');
+  const newsOnly = await req('/api/public/articles?limit=50&group=tin-tuc');
   const newsOnlyRows = Array.isArray(newsOnly.data) ? newsOnly.data : [];
-  check('Lọc group=news không trả bài education',
-    newsOnlyRows.every((a) => a.categoryGroup === 'news'));
+  check('Lọc group=tin-tuc không trả bài tuyên truyền',
+    newsOnlyRows.every((a) => a.categoryGroup === 'tin-tuc'));
 
   /* 3. Chi tiết bài viết theo id */
   if (newsRows[0]) {

@@ -19,6 +19,7 @@ const auth = require('../lib/auth');
 const sec = require('../lib/security');
 const uploadPolicy = require('../lib/upload');
 const m = require('../lib/mapper');
+const { normalizeCategoryGroupCode } = require('../lib/category-groups');
 
 const nowIso = () => new Date().toISOString();
 
@@ -298,7 +299,8 @@ async function saveCategory(req, res, ctx) {
     const row = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!row) return http.notFound(res, 'Chuyên mục không tồn tại.');
     if (body.parentId === id) return http.badRequest(res, 'Chuyên mục không thể là cha của chính nó.');
-    const group = body.group === undefined ? row.group_key : sec.cleanText(body.group, 80);
+    const rawGroup = body.group === undefined ? row.group_key : sec.cleanText(body.group, 80);
+    const group = normalizeCategoryGroupCode(rawGroup);
     const categoryGroup = db.prepare(`SELECT status FROM system_categories
       WHERE category_type = 'category_group' AND code = ?`).get(group);
     if (!categoryGroup || (categoryGroup.status !== 'active' && group !== row.group_key)) {
@@ -313,7 +315,7 @@ async function saveCategory(req, res, ctx) {
     return http.ok(res, m.category(db.prepare('SELECT * FROM categories WHERE id = ?').get(id)));
   }
 
-  const group = sec.cleanText(body.group, 80);
+  const group = normalizeCategoryGroupCode(sec.cleanText(body.group, 80));
   const categoryGroup = group && db.prepare(`SELECT status FROM system_categories
     WHERE category_type = 'category_group' AND code = ?`).get(group);
   if (!categoryGroup || categoryGroup.status !== 'active') {
@@ -1040,6 +1042,7 @@ async function saveCatalog(req, res, ctx) {
         const entry = { id: effectiveId };
         Object.keys(row).forEach((k) => { if (row[k] !== undefined) entry[k] = row[k]; });
         if (colExists(db, table, 'created_at')) entry.created_at = ts;
+        if (colExists(db, table, 'updated_at')) entry.updated_at = ts;
         const keys = Object.keys(entry).filter((k) => entry[k] !== undefined);
         db.prepare(`INSERT INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`)
           .run(...keys.map((k) => entry[k]));
@@ -1179,7 +1182,8 @@ async function saveSystemCategory(req, res, ctx) {
 
   const name = sec.cleanText(body.name, 200);
   const rawCode = sec.cleanText(body.code, 100) || name;
-  const code = existing && rawCode === existing.code ? existing.code : slugify(rawCode);
+  const rawGeneratedCode = existing && rawCode === existing.code ? existing.code : slugify(rawCode);
+  const code = type === 'category_group' ? normalizeCategoryGroupCode(rawGeneratedCode) : rawGeneratedCode;
   if (!name) return http.badRequest(res, 'Tên danh mục là bắt buộc.');
   if (!code) return http.badRequest(res, 'Mã danh mục không hợp lệ.');
   const duplicate = db.prepare(`SELECT id FROM system_categories

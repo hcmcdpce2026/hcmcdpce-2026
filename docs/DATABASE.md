@@ -82,7 +82,7 @@ Không chạy `db:reset` ngoài database thử nghiệm. Lệnh reset xóa datab
 | Nhóm | Bảng/trường chính |
 |---|---|
 | Tin tức | `articles`: title, slug, excerpt, body, thumbnail, author, published_at, tags |
-| Tuyên truyền - giáo dục | Cùng `articles`; ngoài ra category education và trường `source` |
+| Tuyên truyền - giáo dục | Cùng `articles`; ngoài ra `categories.group_key=tuyen-truyen-giao-duc` và trường `source` |
 | Sự kiện | `public_events`: title, slug, category, start_at, end_at, location, organizer, status, publish_status |
 | Pháp luật | `legal_documents`: doc_number, doc_type, legal_field, issuer, issued_at, effective_at, expiry_at, effect_status, file_url, is_public |
 | Cơ quan | `public_agencies`: name, role_type, management_level, address, phone, email, functions, structure, head_name |

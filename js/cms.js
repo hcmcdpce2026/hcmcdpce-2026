@@ -338,6 +338,7 @@ const Store = (function () {
     const get = () => cache;
     const contents = () => cache.articles.slice();
     const contentById = (id) => cache.articles.find((a) => a.id === id) || null;
+    const getContent = (id) => api.get(`/api/cms/articles/${encodeURIComponent(id)}`);
     const categories = () => cache.categories.slice();
     const categoryById = (id) => cache.categories.find((c) => c.id === id) || null;
     const categoryName = (id) => {
@@ -561,7 +562,7 @@ const Store = (function () {
 
     return {
         /* dữ liệu */
-        get, load, reload, loadSession, setSession, clearSession, logout, getSession, currentUser, can,
+        get, load, reload, loadSession, setSession, clearSession, logout, getSession, currentUser, can, getContent,
         contents, contentById, categories, categoryById, categoryName, categoryGroup, categoryChildren, categoryArticleCount,
         media, mediaById, logs, notifications, users, userById, workflow,
         stats, monthlySeries,
@@ -1969,7 +1970,14 @@ const Store = (function () {
 
         /* ---------- Xem trước bài viết ---------- */
 
-        const previewContent = (record) => {
+        const previewContent = async (summary) => {
+            let record;
+            try {
+                record = await Store.getContent(summary.id);
+            } catch (error) {
+                ui.toast(error.message || 'Không tải được nội dung bài viết để xem trước.', { type: 'error' });
+                return;
+            }
             const cat = Store.categoryName(record.categoryId);
             ui.modal({
                 title: 'Xem trước bài viết',
@@ -2554,13 +2562,11 @@ const Store = (function () {
 
         /* ---------- Nạp dữ liệu vào form ---------- */
 
-        const loadRecord = () => {
-            if (currentId) record = Store.contentById(currentId);
-            if (!record) {
-                if (currentId) {
-                    ui.toast('Không tìm thấy bài viết yêu cầu, đã mở trình biên tập trống.', 'warning');
-                    currentId = null;
-                }
+        const loadRecord = async () => {
+            if (currentId) {
+                record = await Store.getContent(currentId);
+                if (!record) throw new Error('Không tìm thấy bài viết yêu cầu.');
+            } else {
                 record = {
                     id: null, title: '', slug: '', excerpt: '', body: '', thumbnail: '',
                     categoryId: '', tags: [], source: '', status: 'draft', seoTitle: '', seoDescription: ''
@@ -2709,7 +2715,7 @@ const Store = (function () {
             if (!el.seoPreview) return;
             const slug = el.slug.value || util.slugify(el.title.value) || 'duong-dan-bai-viet';
             const category = Store.categoryById(el.category ? el.category.value : '');
-            const detailPage = category && category.group === 'education'
+            const detailPage = category && category.group === 'tuyen-truyen-giao-duc'
                 ? 'pages/public/education-detail.html'
                 : 'pages/public/news-detail.html';
             el.seoPreview.querySelector('.cms-seo-preview__url').textContent =
@@ -2750,7 +2756,7 @@ const Store = (function () {
         /* ---------- Toolbar ---------- */
 
         const exec = (command, value) => {
-            canvas.focus();
+            restoreSelection();
             try {
                 document.execCommand(command, false, value || null);
             } catch (e) {
@@ -2907,6 +2913,15 @@ const Store = (function () {
             const blockSelect = el.toolbar.querySelector('[data-block-select]');
             if (blockSelect) {
                 blockSelect.addEventListener('change', () => exec('formatBlock', blockSelect.value));
+            }
+
+            const fontSelect = el.toolbar.querySelector('[data-font-select]');
+            if (fontSelect) {
+                fontSelect.addEventListener('change', () => {
+                    if (!fontSelect.value) return;
+                    exec('fontName', fontSelect.value);
+                    fontSelect.value = '';
+                });
             }
 
             canvas.addEventListener('keyup', refreshToolbarState);
@@ -3067,7 +3082,7 @@ const Store = (function () {
             });
         };
 
-        const init = () => {
+        const init = async () => {
             if (!document.getElementById('editor-form')) return;
             canvas = document.getElementById('editor-canvas');
             el.form = document.getElementById('editor-form');
@@ -3102,7 +3117,7 @@ const Store = (function () {
             el.charCount = document.getElementById('editor-chars');
             el.readTime = document.getElementById('editor-readtime');
 
-            loadRecord();
+            await loadRecord();
             bindActions();
             bindToolbar();
             refreshToolbarState();
@@ -4408,12 +4423,13 @@ const Store = (function () {
         };
 
         const currentRecord = () => {
-            if (state.selectedId) {
-                const rec = Store.contentById(state.selectedId);
-                if (rec) return rec;
-            }
             const list = listFor(state.tab);
-            return list[0] || null;
+            const id = state.selectedId || (list[0] && list[0].id);
+            if (!id) return null;
+            const workflow = Store.workflow() || {};
+            const detailed = ['pending', 'approved', 'rejected', 'published']
+                .reduce((found, key) => found || (workflow[key] || []).find((item) => item.id === id), null);
+            return detailed || Store.contentById(id) || list.find((item) => item.id === id) || null;
         };
 
         /* ---------- Lịch sử phê duyệt ---------- */
@@ -5523,7 +5539,7 @@ const Store = (function () {
 
             Dashboard.init();
             ContentList.init();
-            Editor.init();
+            await Editor.init();
             Categories.init();
             PublicCatalog.init();
             Media.init();

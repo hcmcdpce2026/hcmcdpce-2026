@@ -113,8 +113,15 @@ function escapeHtml(value) {
  */
 const ALLOWED_TAGS = new Set([
   'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'h2', 'h3', 'h4',
-  'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'figure', 'figcaption',
+  'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'figure', 'figcaption', 'font',
   'img', 'span', 'div', 'hr', 'code', 'pre',
+]);
+const ALLOWED_FONT_FAMILIES = new Map([
+  ['arial', 'Arial'],
+  ['georgia', 'Georgia'],
+  ['tahoma', 'Tahoma'],
+  ['times new roman', 'Times New Roman'],
+  ['verdana', 'Verdana'],
 ]);
 
 function sanitizeHtml(html) {
@@ -132,6 +139,8 @@ function sanitizeHtml(html) {
         ? ['src', 'alt', 'title', 'width', 'height', 'loading']
         : t === 'table'
           ? ['border', 'cellpadding', 'cellspacing']
+          : t === 'font'
+            ? ['face']
           : t === 'th' || t === 'td'
             ? ['colspan', 'rowspan', 'align']
             : []);
@@ -142,6 +151,11 @@ function sanitizeHtml(html) {
       const name = attrMatch[1].toLowerCase();
       if (!allowed.has(name)) continue;
       const value = attrMatch[2] ?? attrMatch[3] ?? attrMatch[4] ?? '';
+      if (t === 'font' && name === 'face') {
+        const family = ALLOWED_FONT_FAMILIES.get(value.trim().toLowerCase());
+        if (family) safeAttrs.push(` face="${escapeHtml(family)}"`);
+        continue;
+      }
       if ((name === 'href' || name === 'src') &&
           !/^(https?:\/\/|\/|\.\/|\.\.\/|#)[^\s]*$/i.test(value)) continue;
       if (name === 'target' && !['_blank', '_self'].includes(value)) continue;

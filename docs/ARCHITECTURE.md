@@ -102,8 +102,8 @@ Backend luôn kiểm tra lại:
 
 | Nhóm | Cấu trúc dữ liệu | Trang |
 |---|---|---|
-| Tin tức | `articles` thuộc `categories.group_key=news` | `news.html`, trang chủ |
-| Tuyên truyền - Giáo dục | `articles` thuộc `categories.group_key=education` | `education.html`, trang chủ |
+| Tin tức | `articles` thuộc `categories.group_key=tin-tuc` | `news.html`, trang chủ |
+| Tuyên truyền - Giáo dục | `articles` thuộc `categories.group_key=tuyen-truyen-giao-duc` | `education.html`, trang chủ |
 | Sự kiện | `public_events` | `events.html` |
 | Pháp luật | `legal_documents` | `laws.html` |
 | Cơ quan - đơn vị | `public_agencies` | `agencies.html` |

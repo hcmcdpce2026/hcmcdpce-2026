@@ -275,6 +275,10 @@ function serveFile(req, res, filePath, options = {}) {
       'Content-Length': stat.size,
       'X-Content-Type-Options': 'nosniff',
     };
+    if (isUpload && ext.toLowerCase() === '.pdf') {
+      headers['Content-Security-Policy'] = "frame-ancestors 'self'";
+      headers['X-Frame-Options'] = 'SAMEORIGIN';
+    }
     /* Tệp trong thư mục uploads được phục vụ cùng origin. Với loại KHÔNG phải
        media (ảnh/video/âm thanh/PDF cần hiển thị trực tiếp), buộc tải xuống và
        sandbox để một tệp lọt qua allow-list cũng không thể chạy mã. */

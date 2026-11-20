@@ -9,6 +9,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { getDb, DB_FILE } = require('../lib/db');
+const {
+  CATEGORY_GROUP_ALIASES,
+  CATEGORY_GROUP_LABELS,
+} = require('../lib/category-groups');
 
 const db = getDb();
 
@@ -110,8 +114,13 @@ addColumnIfMissing('organizations', 'management_level', 'TEXT');
  * Chỉ chuyển các mã đang được bản ghi nghiệp vụ sử dụng; không tạo lựa chọn mẫu.
  * Giá trị địa bàn cũ được ghép vào địa chỉ trước khi bỏ cột district.
  * ------------------------------------------------------------------------- */
+const categoryGroupLabels = Object.assign({}, CATEGORY_GROUP_LABELS);
+Object.entries(CATEGORY_GROUP_ALIASES).forEach(([legacyCode, canonicalCode]) => {
+  categoryGroupLabels[legacyCode] = CATEGORY_GROUP_LABELS[canonicalCode];
+});
+
 const LEGACY_CATEGORY_LABELS = {
-  category_group: { news: 'Tin tức', education: 'Tuyên truyền - Giáo dục' },
+  category_group: categoryGroupLabels,
   doc_type: {
     luat: 'Luật', 'bo-luat': 'Bộ luật', 'nghi-dinh': 'Nghị định',
     'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị', 'van-ban-tphcm': 'Văn bản TP.HCM',
@@ -271,6 +280,56 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id5)) {
   console.log('  ✓ Nạp lĩnh vực pháp luật hiện hành vào danh mục CMS');
 } else {
   console.log('  • Migration', id5, 'đã áp dụng trước đó');
+}
+
+const id6 = '006-canonical-category-groups';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id6)) {
+  const ts = new Date().toISOString();
+  const findCategoryGroup = db.prepare(`SELECT * FROM system_categories
+    WHERE category_type = 'category_group' AND code = ?`);
+  const findName = db.prepare(`SELECT id FROM system_categories
+    WHERE category_type = 'category_group' AND name = ? COLLATE NOCASE AND id NOT IN (?, ?)`);
+  const countReferences = db.prepare('SELECT COUNT(*) AS count FROM categories WHERE group_key = ?');
+  const updateReferences = db.prepare('UPDATE categories SET group_key = ? WHERE group_key = ?');
+  const deleteCategoryGroup = db.prepare('DELETE FROM system_categories WHERE id = ?');
+  const insertCategoryGroup = db.prepare(`INSERT INTO system_categories
+    (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
+    VALUES (?, 'category_group', ?, ?, ?, 'active', ?, ?, 'migration')`);
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    Object.entries(CATEGORY_GROUP_ALIASES).forEach(([legacyCode, canonicalCode]) => {
+      const legacyRow = findCategoryGroup.get(legacyCode);
+      const canonicalRow = findCategoryGroup.get(canonicalCode);
+      const referenceCount = countReferences.get(legacyCode).count;
+      updateReferences.run(canonicalCode, legacyCode);
+      const label = CATEGORY_GROUP_LABELS[canonicalCode];
+
+      if (legacyRow && canonicalRow) {
+        const conflictingName = findName.get(label, canonicalRow.id, legacyRow.id);
+        deleteCategoryGroup.run(legacyRow.id);
+        db.prepare(`UPDATE system_categories SET name = ?, description = COALESCE(NULLIF(description, ''), ?),
+          sort_order = MIN(sort_order, ?), updated_at = ? WHERE id = ?`)
+          .run(conflictingName ? canonicalRow.name : label, legacyRow.description,
+            legacyRow.sort_order, ts, canonicalRow.id);
+      } else if (legacyRow) {
+        const conflictingName = findName.get(label, legacyRow.id, legacyRow.id);
+        db.prepare(`UPDATE system_categories SET code = ?, name = ?, updated_at = ? WHERE id = ?`)
+          .run(canonicalCode, conflictingName ? legacyRow.name : label, ts, legacyRow.id);
+      } else if (referenceCount && !canonicalRow) {
+        const idHash = crypto.createHash('sha1').update(`category_group:${canonicalCode}`).digest('hex').slice(0, 20);
+        insertCategoryGroup.run(`sc-${idHash}`, canonicalCode, label, 0, ts, ts);
+      }
+    });
+    db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id6, ts);
+    db.exec('COMMIT');
+    console.log('  ✓ Đồng bộ mã nhóm chuyên mục CMS về mã chuẩn');
+  } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) { /* bỏ qua */ }
+    throw err;
+  }
+} else {
+  console.log('  • Migration', id6, 'đã áp dụng trước đó');
 }
 
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();

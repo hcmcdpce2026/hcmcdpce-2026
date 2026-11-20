@@ -143,6 +143,24 @@ async function run() {
   check('Đăng nhập CMS admin thành công', r.status === 200 && !!cmsAdmin.csrf, `status=${r.status} ${r.status !== 200 ? JSON.stringify(r.body).slice(0, 120) : ''}`);
   check('Không trả mật khẩu/hash trong phản hồi', !JSON.stringify(r.body).includes('scrypt') && !JSON.stringify(r.body).includes('password_hash'));
 
+  const statisticsKey = `test-stat-${Date.now()}`;
+  r = await cmsAdmin.request('POST', '/api/cms/catalog/statistics', {
+    key: statisticsKey,
+    label: 'Kỳ kiểm thử thống kê',
+    items: [{ key: 'test-metric', label: 'Chỉ số kiểm thử', value: 1, unit: 'lượt' }],
+  });
+  const savedStatistics = r.body && r.body.data;
+  check('Tạo kỳ thống kê lưu được thời gian tạo và cập nhật',
+    r.status === 200 && !!(savedStatistics && savedStatistics.created_at)
+      && !!(savedStatistics && savedStatistics.updated_at)
+      && !!(savedStatistics && savedStatistics.items && savedStatistics.items.length === 1),
+    `status=${r.status} ${JSON.stringify(r.body).slice(0, 180)}`);
+  if (savedStatistics && savedStatistics.id) {
+    const cleanupStatistics = await cmsAdmin.request(
+      'DELETE', `/api/cms/catalog/statistics/${encodeURIComponent(savedStatistics.id)}`);
+    check('Dọn kỳ thống kê kiểm thử', cleanupStatistics.status === 200, `status=${cleanupStatistics.status}`);
+  }
+
   const noCsrf = new Session('csrf');
   r = await noCsrf.login('cms.nguyenvandat', creds['cms.nguyenvandat'], 'cms');
   noCsrf.csrf = '';
@@ -177,6 +195,13 @@ async function run() {
   check('Quản trị CMS được xuất bản', r.status !== 403);
   r = await cmsEditor.request('POST', '/api/cms/articles', { title: 'Bài kiểm thử liên thông CMS', body: '<p>Nội dung liên thông kiểm thử</p>' });
   editorArticleId = r.body.data && r.body.data.id;
+  const formattedBody = '<p><font face="Arial">Nội dung có định dạng</font></p><font face="Comic Sans MS">Font không được phép</font>';
+  r = await cmsEditor.request('PUT', `/api/cms/articles/${editorArticleId}`, { body: formattedBody });
+  check('Lưu nội dung bài viết giữ lại font an toàn', r.status === 200 && r.body.data.body.includes('<font face="Arial">'));
+  check('Không lưu font ngoài danh sách cho phép', r.status === 200 && !r.body.data.body.includes('face="Comic Sans MS"'));
+  r = await cmsEditor.request('GET', `/api/cms/articles/${editorArticleId}`);
+  check('Mở chi tiết bài viết trả lại phần nội dung đã lưu',
+    r.status === 200 && r.body.data.body.includes('Nội dung có định dạng'));
 
   const wsAdmin = new Session('ws.nguyenvandat');
   r = await wsAdmin.login('ws.nguyenvandat', creds['ws.nguyenvandat'], 'workspace');
@@ -196,6 +221,37 @@ async function run() {
   check('PUBLIC nhận lựa chọn liên hệ mới từ CMS', r.status === 200 && r.body.data.some((item) => item.code === contactTopicCode));
   r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${contactTopic.id}`);
   check('CMS xóa được lựa chọn liên hệ chưa dùng', r.status === 200);
+  const categoryGroupSuffix = Date.now().toString(36);
+  r = await cmsAdmin.request('GET', '/api/cms/system-categories?type=category_group');
+  const existingGroupRows = r.body.data || [];
+  const canonicalNewsGroup = existingGroupRows.find((item) => item.code === 'tin-tuc');
+  if (canonicalNewsGroup) {
+    r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
+      categoryType: 'category_group', code: 'news', name: `Nhóm tin tức kiểm thử ${categoryGroupSuffix}`,
+    });
+    check('CMS không tạo lại mã nhóm news đã chuẩn hóa', r.status === 409);
+  } else {
+    r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
+      categoryType: 'category_group', code: 'news', name: `Nhóm tin tức kiểm thử ${categoryGroupSuffix}`,
+    });
+    const newsGroup = r.body.data || {};
+    check('CMS chuẩn hóa mã nhóm cũ khi tạo', r.status === 201 && newsGroup.code === 'tin-tuc');
+    r = await cmsAdmin.request('POST', '/api/cms/categories', {
+      name: `Chuyên mục kiểm thử ${categoryGroupSuffix}`,
+      slug: `chuyen-muc-kiem-thu-${categoryGroupSuffix}`,
+      group: 'news',
+    });
+    const newsCategory = r.body.data || {};
+    check('CMS lưu chuyên mục theo mã nhóm chuẩn', r.status === 201 && newsCategory.group === 'tin-tuc');
+    if (r.status === 201 && newsCategory.id) {
+      r = await cmsAdmin.request('DELETE', `/api/cms/categories/${newsCategory.id}`);
+      check('CMS xóa chuyên mục kiểm thử mã nhóm', r.status === 200);
+    }
+    if (newsGroup && newsGroup.id) {
+      r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${newsGroup.id}`);
+      check('CMS xóa nhóm chuyên mục kiểm thử', r.status === 200);
+    }
+  }
   r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
     categoryType: 'organization_type', code: orgTypeCode, name: `Loại đơn vị kiểm thử ${categorySuffix}`,
   });
@@ -305,6 +361,10 @@ async function run() {
   console.log('\n[5] CMS ↔ PUBLIC');
   r = await cmsEditor.request('POST', `/api/cms/articles/${editorArticleId}/submit`);
   check('Gửi duyệt nội dung', r.status === 200 && r.body.data.status === 'pending');
+  r = await cmsEditor.request('GET', '/api/cms/workflow');
+  check('Danh sách duyệt có đầy đủ nội dung bài viết',
+    r.status === 200 && r.body.data.pending.some((article) =>
+      article.id === editorArticleId && article.body.includes('Nội dung có định dạng')));
   const cmsReviewer = new Session('cms.nguyenvandat');
   await cmsReviewer.login('cms.nguyenvandat', creds['cms.nguyenvandat'], 'cms');
   r = await cmsReviewer.request('POST', `/api/cms/articles/${editorArticleId}/approve`, { note: 'Đồng ý xuất bản' });
