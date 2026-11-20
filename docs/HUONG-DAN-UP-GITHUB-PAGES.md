@@ -150,4 +150,5 @@ Trong GitHub, vào **Settings → Pages**, chọn nguồn triển khai theo cấ
 | Push bị từ chối vì remote có commit mới | Không dùng `--force`. Dừng lại, kiểm tra thông báo lỗi và đồng bộ nhánh trước khi thử push lại. |
 | Git yêu cầu đăng nhập hoặc báo không có quyền | Đăng nhập GitHub trong VS Code/Git Credential Manager và kiểm tra quyền ghi vào repository. Không dán token vào lệnh hoặc commit token. |
 | Push thành công nhưng website chưa đổi | Kiểm tra workflow Pages trong **Actions** và chờ triển khai hoàn tất. |
+| Trang vẫn dùng JavaScript/CSS cũ sau deploy | Tải lại mạnh bằng `Ctrl+F5`; khi cập nhật asset đã cache, đổi giá trị `v=` trong URL stylesheet/script của trang đó. |
 | CMS không chạy trên GitHub Pages | GitHub Pages chỉ phục vụ trang tĩnh; CMS và API cần server Node.js riêng. |

@@ -888,7 +888,7 @@
 
     .st-period-box {
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
 
     .st-kpi-card__value {

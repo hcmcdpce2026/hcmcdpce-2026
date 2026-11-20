@@ -6919,9 +6919,9 @@ img[src*="article-placeholder"] {
 
 .st-hero__top {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 1.25rem;
     margin-bottom: 1.65rem;
 }
@@ -6945,6 +6945,7 @@ img[src*="article-placeholder"] {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    align-self: flex-end;
     gap: 0.65rem;
     background: var(--bg-surface);
     border: 1px solid var(--border-strong);
