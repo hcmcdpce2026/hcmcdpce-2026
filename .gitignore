@@ -26,6 +26,10 @@ server/data/*.png
 uploads/
 media/
 
+# Version public media copied into the GitHub Pages snapshot.
+!public-data/media/
+!public-data/media/**
+
 # Công cụ & hệ điều hành
 node_modules/
 .DS_Store
