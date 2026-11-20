@@ -1,212 +1,118 @@
-# Đăng bài CMS và cập nhật GitHub Pages
+# Đưa bài viết, hình ảnh và tệp văn bản lên GitHub Pages
 
-Tài liệu dùng Windows/PowerShell/VS Code.
+Hướng dẫn dùng Windows, PowerShell và VS Code cho repository đã được tải về máy và đã cấu hình remote GitHub.
 
-GitHub Pages chỉ phục vụ PUBLIC tĩnh. CMS, Workspace, SQLite, API ghi và gửi biểu mẫu cần server Node.js riêng.
+## Hiểu luồng đăng bài
 
-## 1. Chuẩn bị
+Bài tạo trong CMS local được lưu trong database SQLite trên máy. GitHub Pages không đọc database này và không chạy CMS; cần xuất dữ liệu PUBLIC cùng các tệp được tham chiếu rồi commit/push lên GitHub.
 
-Mở thư mục dự án trong VS Code. Terminal phải ở thư mục có `package.json`.
+```text
+CMS local → Xuất snapshot → public-data/ → Git commit/push → GitHub Pages
+```
+
+Chỉ bài đã xuất bản mới được xuất. Bản nháp, tài khoản, session và dữ liệu nội bộ không được đưa lên Pages.
+
+## Mỗi lần đăng bài mới
+
+### 1. Xuất bản nội dung và đính kèm tệp trong CMS
+
+1. Đăng nhập CMS tại `http://localhost:8099/pages/cms/login.html`.
+2. Mở nội dung cần đăng, hoàn tất nội dung và chọn hình ảnh/tệp được phép công khai.
+3. Gửi duyệt nếu quy trình yêu cầu, sau đó chọn **Xuất bản**.
+4. Mở trang local `http://localhost:8099/` để kiểm tra bài và trang chi tiết.
+
+Bài còn ở trạng thái nháp, chưa được duyệt, bị lưu trữ hoặc có chuyên mục không hoạt động sẽ không xuất hiện trong snapshot.
+
+Với văn bản pháp luật, văn bản phải được đặt ở trạng thái công khai và có tệp PDF đính kèm trong CMS. Bản ghi cần tham chiếu đến tệp tải lên; không chỉ dán một đường dẫn máy tính như `C:\...`.
+
+### 2. Xuất dữ liệu công khai
+
+Trong VS Code, mở terminal tại thư mục dự án (thư mục có `package.json`). Có thể để server local tiếp tục chạy và dùng terminal thứ hai:
 
 ```powershell
-Get-Location
 Test-Path .\package.json
-node --version
-npm.cmd --version
-git --version
-```
-
-`Test-Path` phải trả `True`. Node cần 22.5.0 trở lên.
-
-## 2. Khởi động CMS local
-
-Nếu đã có `.env` và database:
-
-```powershell
-npm.cmd start
-```
-
-Nếu là lần khởi tạo mới và chưa có dữ liệu cần giữ:
-
-```powershell
-Copy-Item .env.example .env
-npm.cmd run db:migrate
-npm.cmd run db:seed
-npm.cmd start
-```
-
-Không ghi đè `.env` hiện có và không chạy `db:reset` trên database vận hành.
-
-Mở CMS:
-
-```text
-http://localhost:8099/pages/cms/login.html
-```
-
-## 3. Tạo và lưu bài
-
-1. Đăng nhập tài khoản CMS.
-2. Mở Quản lý nội dung.
-3. Chọn Tạo bài viết.
-4. Nhập tiêu đề tối thiểu 10 ký tự.
-5. Chọn chuyên mục đúng nhóm PUBLIC.
-6. Kiểm tra slug.
-7. Nhập mô tả ngắn.
-8. Nhập nội dung chính.
-9. Chỉ chọn media được phép công khai.
-10. Chọn Lưu nháp.
-
-Slug nên dùng chữ thường không dấu, số và dấu gạch nối.
-
-## 4. Gửi duyệt và xuất bản
-
-Nếu cần quy trình kiểm duyệt:
-
-1. Chọn Gửi duyệt.
-2. Người có quyền review duyệt hoặc yêu cầu chỉnh sửa.
-3. Người có quyền publish xuất bản.
-
-Nếu tài khoản có quyền publish trực tiếp, có thể xuất bản sau khi đã lưu.
-
-Nội dung cần đủ mô tả và ít nhất 40 ký tự để gửi duyệt/xuất bản.
-
-Kiểm tra trên server local:
-
-```text
-http://localhost:8099/
-```
-
-Mở danh mục và trang chi tiết tương ứng.
-
-## 5. Xuất snapshot PUBLIC
-
-Mở terminal thứ hai tại thư mục gốc:
-
-```powershell
 npm.cmd run export:static-public
 ```
 
-Lệnh tạo/cập nhật:
+`Test-Path` cần trả về `True`. Lệnh export tạo/cập nhật:
 
-```text
-public-data/public.json
-public-data/media/*
-```
+- `public-data/public.json`
+- `public-data/media/` chứa bản sao của ảnh, PDF và media được snapshot tham chiếu đến
 
-Exporter chỉ xuất:
+Exporter chép các tệp `/uploads/...` được nội dung công khai tham chiếu vào `public-data/media/`, đồng thời đổi đường dẫn trong snapshot sang vị trí mới. Nếu export báo thiếu tệp, xử lý lỗi trước; đừng tiếp tục commit snapshot chưa được tạo thành công.
 
-- bài published;
-- category active;
-- legal documents public;
-- events public;
-- agencies active;
-- statistics;
-- support facilities public;
-- banner/notification công khai phù hợp.
-
-Không xuất submission, tài khoản, session, log hoặc Workspace.
-
-Media được tham chiếu trong `uploads` được sao chép vào `public-data/media`. Nếu tệp thiếu, export báo lỗi thay vì tạo snapshot giả.
-
-## 6. Kiểm tra snapshot
+### 3. Kiểm tra bài đã được xuất
 
 ```powershell
-Test-Path .\public-data\public.json
 $snapshot = Get-Content .\public-data\public.json -Raw | ConvertFrom-Json
 $snapshot.articles | Select-Object title, slug, publishedAt
-Get-ChildItem .\public-data\media -ErrorAction SilentlyContinue
+$snapshot.legalDocuments | Select-Object title, docNumber, fileUrl
+$snapshot.legalDocuments | Select-Object title, fileUrl, @{Name='FileExists'; Expression={ Test-Path -LiteralPath $_.fileUrl }}
 ```
 
-Nếu bài mới không có, quay lại CMS xác nhận:
+Đối chiếu bài mới và văn bản cần đăng. Với văn bản có tệp, `fileUrl` phải có đường dẫn `public-data/media/...` và `FileExists` phải là `True`. Nếu không, kiểm tra trạng thái công khai, tệp đính kèm và chạy export lại.
 
-- bài đã published;
-- chuyên mục active;
-- slug duy nhất;
-- bài không bị archive/unpublish.
+### 4. Chỉ stage dữ liệu cần đưa lên Pages
 
-Chạy lại export sau khi dữ liệu đã chính xác.
-
-## 7. Kiểm tra Git an toàn
+Kiểm tra repository và nhánh:
 
 ```powershell
 git status --short
-git remote -v
 git branch --show-current
+git remote -v
 ```
 
-Chỉ stage dữ liệu PUBLIC:
+Stage snapshot cùng media được export:
 
 ```powershell
 git add public-data/
-git status --short
-git diff --cached --stat
 git diff --cached --name-only
 ```
 
-Danh sách staged chỉ nên chứa:
+Trước khi commit, danh sách staged cần giới hạn trong `public-data/` — gồm `public-data/public.json` và các tệp ảnh/PDF trong `public-data/media/`. Nếu tệp media không xuất hiện trong `git status`, kiểm tra ignore rule:
 
-```text
-public-data/public.json
-public-data/media/*
+```powershell
+git check-ignore -v .\public-data\media
 ```
 
-Không stage:
-
-- `.env`;
-- `server/data/*.sqlite*`;
-- `credentials.local.txt`;
-- `uploads`;
-- `backups`;
-- log;
-- nội dung nhạy cảm/chưa duyệt.
-
-Bỏ stage tệp nhầm:
+`.gitignore` cần tiếp tục bỏ qua `uploads/` và media vận hành, nhưng cho phép theo dõi `public-data/media/`. Nếu thấy tệp khác không muốn đưa lên, bỏ stage tệp đó:
 
 ```powershell
 git restore --staged -- "duong-dan-tep"
 ```
 
-Nếu bí mật đã từng commit, xóa khỏi lịch sử không làm bí mật an toàn trở lại; cần đổi/thu hồi bí mật.
+Không dùng `git add -A` cho lần cập nhật bài viết này nếu không định đưa cả các thay đổi mã nguồn khác lên GitHub. Không commit `.env`, database `server/data/*.sqlite*`, `uploads`, credential, backup hoặc log.
 
-## 8. Commit và push cập nhật
+Thư mục `media/` và `uploads/` dùng khi vận hành vẫn bị loại trừ; riêng `public-data/media/` chứa bản sao công khai cho Pages và được Git theo dõi.
+
+Nếu vừa thay đổi cách hiển thị tệp trên trang chi tiết văn bản, stage thêm đúng các tệp giao diện đã sửa, ví dụ:
+
+```powershell
+git add js/public-pages.js pages/public/law-detail.html
+```
+
+Chỉ thêm các tệp mã nguồn khi chúng có thay đổi mong muốn đưa lên website; kiểm tra lại toàn bộ danh sách bằng `git diff --cached --name-only`.
+
+### 5. Commit và push
 
 ```powershell
 git commit -m "Cap nhat noi dung cong khai"
 git push origin main
 ```
 
-Nếu nhánh không phải `main`, dùng tên nhánh hiện tại.
+Repository này dùng nhánh `main`. Nếu `git branch --show-current` cho kết quả khác, thay `main` bằng tên nhánh đó.
 
-Nếu `nothing to commit`, kiểm tra nội dung snapshot có thay đổi hay bài chưa được publish.
+### 6. Kiểm tra website sau khi push
 
-## 9. Kiểm tra deploy Pages
+1. Mở repository trên GitHub và chọn **Actions**.
+2. Chờ workflow triển khai GitHub Pages hoàn tất thành công.
+3. Mở URL Pages, kiểm tra danh sách bài, trang chi tiết và hình ảnh.
 
-1. Mở repository trên GitHub.
-2. Mở Actions.
-3. Chờ workflow Pages hoàn tất.
-4. Mở Settings > Pages để lấy URL.
-5. Kiểm tra trang chủ, danh sách, trang chi tiết và media.
+Thời gian cập nhật phụ thuộc vào workflow Pages. Push thành công chưa có nghĩa là deploy đã hoàn tất.
 
-URL thường có dạng:
+## Lần đầu cấu hình repository
 
-```text
-https://TEN-TAI-KHOAN.github.io/TEN-REPOSITORY/
-```
-
-Không dùng Pages để đăng bài: thao tác CMS nằm local/backend.
-
-## 10. Tải repository lần đầu
-
-Tạo repository GitHub trống, không tạo README/license/.gitignore trùng dự án.
-
-Nếu chưa có Git:
-
-```powershell
-git init
-git branch -M main
-```
-
-Nếu đã là Git repository, không chạy lại `git init`.
+Chỉ làm phần này nếu repository chưa có remote `origin` hoặc GitHub Pages chưa được bật.
 
 Kiểm tra remote:
 
@@ -214,51 +120,34 @@ Kiểm tra remote:
 git remote -v
 ```
 
-Thêm remote:
+Nếu chưa có `origin`, thêm URL repository của bạn:
 
 ```powershell
 git remote add origin "https://github.com/TEN-TAI-KHOAN/TEN-REPOSITORY.git"
 ```
 
-Hoặc sửa remote:
+Nếu remote sai, cập nhật URL:
 
 ```powershell
 git remote set-url origin "https://github.com/TEN-TAI-KHOAN/TEN-REPOSITORY.git"
 ```
 
-Kiểm tra staged trước commit:
+Trong GitHub, vào **Settings → Pages**, chọn nguồn triển khai theo cấu hình của repository, lưu lại và kiểm tra workflow trong **Actions**.
 
-```powershell
-git add -A
-git status --short
-git diff --cached --name-only
-```
+## Lỗi thường gặp
 
-Kiểm tra `.gitignore` loại `.env`, SQLite, credential và backup. Sau đó:
-
-```powershell
-git commit -m "Tai du an len GitHub"
-git push -u origin main
-```
-
-## 11. Bật GitHub Pages
-
-1. Mở Settings > Pages.
-2. Chọn Deploy from a branch.
-3. Chọn `main` và `/(root)`.
-4. Save.
-5. Chờ Actions.
-6. Mở URL công khai và kiểm tra.
-
-## 12. Lỗi thường gặp
-
-| Lỗi | Cách xử lý |
+| Thông báo/tình huống | Cách xử lý |
 |---|---|
-| `not a git repository` | Chuyển đúng thư mục có `package.json` |
-| `origin already exists` | Dùng `git remote -v`, sửa bằng `set-url` nếu sai |
-| `src refspec main does not match` | Kiểm tra nhánh và đã có commit |
-| `nothing to commit` | Kiểm tra snapshot và thay đổi dữ liệu |
-| Export thiếu tệp | Khôi phục/cập nhật media trong CMS rồi export lại |
-| Trang không có bài | Chờ deploy, kiểm tra push snapshot và trạng thái published |
-| CMS không hoạt động trên Pages | Đúng giới hạn host tĩnh; dùng backend Node riêng |
-| Trang trả 404 | Kiểm tra branch/folder Pages và tên thư mục |
+| `not a git repository` | Mở terminal tại đúng thư mục dự án có `package.json`. |
+| `nothing to commit` | Kiểm tra bài đã xuất bản chưa và snapshot có thay đổi sau khi export không. |
+| Không thấy bài trong `public.json` | Kiểm tra trạng thái xuất bản, chuyên mục và chạy lại `npm.cmd run export:static-public`. |
+| Export báo thiếu media | Khôi phục tệp media được bài tham chiếu trong CMS/uploads rồi export lại. |
+| Bài có hình/PDF trong `public.json` nhưng không có tệp trong `public-data/media/` | Kiểm tra export và ignore rule; thư mục `public-data/media/` phải được Git theo dõi. |
+| Trang văn bản báo chưa có PDF dù snapshot đã có `fileUrl` | Đảm bảo đã push cả `public-data/` và phiên bản `js/public-pages.js`, `pages/public/law-detail.html` có chức năng đọc tệp; chờ Pages deploy rồi tải lại trang. |
+| Nút PDF mở được nhưng khung xem trước trống | Thử **Mở toàn màn hình** hoặc **Tải file về máy**; khả năng hiển thị trong iframe còn phụ thuộc trình duyệt. |
+| `origin already exists` | Kiểm tra `git remote -v`; dùng `git remote set-url origin ...` nếu URL sai. |
+| `src refspec main does not match` | Kiểm tra `git branch --show-current` và bảo đảm đã có commit. |
+| Push bị từ chối vì remote có commit mới | Không dùng `--force`. Dừng lại, kiểm tra thông báo lỗi và đồng bộ nhánh trước khi thử push lại. |
+| Git yêu cầu đăng nhập hoặc báo không có quyền | Đăng nhập GitHub trong VS Code/Git Credential Manager và kiểm tra quyền ghi vào repository. Không dán token vào lệnh hoặc commit token. |
+| Push thành công nhưng website chưa đổi | Kiểm tra workflow Pages trong **Actions** và chờ triển khai hoàn tất. |
+| CMS không chạy trên GitHub Pages | GitHub Pages chỉ phục vụ trang tĩnh; CMS và API cần server Node.js riêng. |
