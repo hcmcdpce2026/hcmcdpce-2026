@@ -1,108 +1,181 @@
 # Kiểm thử
 
-Tài liệu này liệt kê các bộ kiểm thử và cách chạy an toàn trên môi trường phát triển. Không chạy bài kiểm thử ghi dữ liệu trên production.
+## 1. Nguyên tắc an toàn
 
-## Công cụ trong repository
+Không chạy suite ghi dữ liệu trên production. Một số script:
 
-| Tệp/lệnh | Phạm vi | Ghi chú |
+- tạo bài/task/submission/report;
+- thay đổi trạng thái tài khoản;
+- ghi upload/log;
+- dừng server Node;
+- xóa database hoặc dữ liệu kiểm thử.
+
+Luôn xác nhận `DB_FILE` trước khi chạy.
+
+## 2. Bảng lệnh
+
+| Lệnh | Phạm vi | Ghi vào |
 |---|---|---|
-| `npm run test:isolated` (`server/scripts/run-tests-isolated.js`) | **Toàn bộ suite trên database tạm** | **Khuyến nghị.** Dựng server tạm (cổng riêng, SQLite tạm), nạp seed, chạy `test-api` + `smoke-interconnect` + `smoke-security` + `smoke-workspace-crud`, rồi xoá sạch |
-| `npm run test:security` (`server/scripts/smoke-security.js`) | Path traversal, chịu request sai định dạng, chặn thư mục nội bộ, API nội bộ yêu cầu xác thực | Chỉ đọc; cần server đang chạy (`API_BASE`) |
-| `npm run test:workspace` (`server/scripts/smoke-workspace-crud.js`) | Tạo/đọc/sửa nhiệm vụ Workspace, nhật ký, CSRF, đầu vào không hợp lệ | Tạo bản ghi `[Kiểm thử]` rồi huỷ; nên chạy trên DB thử nghiệm |
-| `npm test` (`server/scripts/test-api.js`) | Tích hợp API: xác thực, quyền, CSRF, tải tệp, PUBLIC form và nghiệp vụ | Cần server đang chạy và `server/data/credentials.local.txt`; **ghi vào database của server đó** |
-| `npm run test:interconnect` (`server/scripts/smoke-interconnect.js`) | Luồng PUBLIC → CMS → Workspace | Ghi các bản ghi kiểm thử vào database được cấu hình |
-| `npm run test:clean` (`server/scripts/clean-test-data.js`) | Báo cáo dữ liệu kiểm thử còn sót | Mặc định chỉ báo cáo; thêm `--yes` để xoá |
-| `npm run check` | Kiểm tra mã hóa và quét tĩnh bảo mật | Không thay thế kiểm thử runtime |
-| `scripts/qa-*.mjs` | Một số kịch bản trình duyệt cho PUBLIC, CMS, Workspace và biểu mẫu | Cần browser automation harness; trang bảo vệ đọc credential từ `server/data/qa-creds.json`, `credentials.local.txt` hoặc `QA_CREDENTIALS_JSON` |
-| `server/scripts/run-tests.ps1` | Runner API trên Windows | Dừng tiến trình Node đang chạy và thay đổi dữ liệu/log kiểm thử |
-| `scripts/verify-all.ps1` | Tạo lại database, seed và chạy bộ kiểm tra | **Phá hủy database hiện tại và dừng tiến trình Node**; chỉ dùng trên máy/DB disposable |
+| `npm run test:isolated` | Suite an toàn tổng hợp | Database và server tạm |
+| `npm run check` | Encoding và security pattern | Không ghi database |
+| `npm run test:content-types` | Sáu nhóm nội dung | Database tạm |
+| `npm run test:security` | Path traversal, internal path, wrong auth | Server đang chạy |
+| `npm run test:workspace` | CRUD task Workspace | Database server đang chạy |
+| `npm test` | Tích hợp API chung | Database server đang chạy |
+| `npm run test:interconnect` | PUBLIC-CMS-Workspace | Database server đang chạy |
+| `npm run test:clean` | Liệt kê dữ liệu test còn sót | Database server đang chạy |
 
-`package.json` không khai báo framework kiểm thử hoặc dependency bên ngoài; các bài API dùng Node.js tích hợp. Kịch bản trình duyệt có thể cần môi trường browser automation riêng.
+## 3. Suite cô lập khuyến nghị
 
-## Chuẩn bị môi trường kiểm thử
-
-1. Dùng checkout và database riêng cho kiểm thử; không trỏ `DB_FILE` tới dữ liệu thật.
-2. Tạo `.env` với `APP_ENV=development`, đường dẫn database thử nghiệm và `RATE_LIMIT_DISABLED` chỉ khi thật sự cần cho suite.
-3. Chạy migration và seed CLI:
-
-```bash
-npm run db:migrate
-npm run db:seed
+```powershell
+npm.cmd run test:isolated
 ```
 
-Seed CLI ghi credential ban đầu vào `server/data/credentials.local.txt`; không chia sẻ tệp đó hoặc bật `TEST_DEBUG` trong log công khai.
+Runner thực hiện:
 
-## Kiểm thử API
+1. tạo thư mục SQLite tạm;
+2. migrate và seed dữ liệu tạm;
+3. chạy server tạm ở cổng `8123`;
+4. chạy test API, liên thông, security và Workspace CRUD;
+5. dọn database, WAL/SHM và thư mục tạm;
+6. bảo toàn file credential vận hành nếu đã tồn tại.
 
-Terminal 1:
+Đây là cách chạy mặc định khi muốn xác nhận toàn bộ suite mà không chạm database hiện tại.
 
-```bash
-npm start
+## 4. Kiểm thử API trên server riêng
+
+Tạo `.env` database tạm, migrate/seed:
+
+```powershell
+npm.cmd run db:migrate
+npm.cmd run db:seed
+npm.cmd start
 ```
 
-Terminal 2:
+Terminal thứ hai:
 
-```bash
-npm test
+```powershell
+npm.cmd test
 ```
 
-Có thể đổi base URL bằng biến `API_BASE`. Suite đọc credential từ `server/data/credentials.local.txt`. Nó có thể tạo/cập nhật dữ liệu, thay đổi trạng thái tài khoản thử nghiệm hoặc tạo các bản ghi nghiệp vụ; dùng database disposable.
+Có thể đặt:
 
-> **Lưu ý: suite chạy qua HTTP tới server đang hoạt động.** Nếu server đó trỏ vào `server/data/portal.sqlite` của môi trường vận hành, **dữ liệu kiểm thử sẽ lẫn vào nội dung thật**. Hãy dùng
->
-> ```bash
-> npm run test:isolated
-> ```
->
-> Lệnh này dựng server tạm (cổng `8123`, tệp SQLite trong thư mục tạm), nạp seed, chạy cả hai suite rồi xoá sạch. Database vận hành và `server/data/credentials.local.txt` được bảo toàn.
-
-## Dọn dữ liệu kiểm thử còn sót
-
-Nếu đã chạy suite trên database vận hành, kiểm tra và dọn theo hai bước:
-
-```bash
-npm run test:clean                         # chỉ báo cáo
-node server/scripts/clean-test-data.js --yes   # xoá sau khi xem báo cáo
+```powershell
+$env:API_BASE="http://127.0.0.1:8099"
+npm.cmd test
 ```
 
-Bộ dọn nhận diện CHÍNH XÁC bản ghi do suite sinh ra (tiêu đề “Đề xuất nội dung kiểm thử…”, “Bài kiểm thử liên thông CMS”, tệp mẫu trong `uploads/`) và không nhận diện theo thời gian, để không xoá nội dung người dùng vừa tạo.
+`test-api.js` cần credential CMS/Workspace. Credential lấy theo thứ tự nội bộ của script; không đặt mật khẩu thật trong mã nguồn hoặc log.
 
-## Kiểm thử liên thông
+## 5. Kiểm thử liên thông
 
-```bash
-npm run test:interconnect
+```powershell
+npm.cmd run test:interconnect
 ```
 
-Suite tạo yêu cầu PUBLIC, xử lý/chuyển qua CMS sang Workspace, rồi kiểm tra kết quả/đề xuất. Nó ghi dữ liệu vào database đang chạy và cần credential khởi tạo. Sau khi chạy, xóa database thử nghiệm hoặc dọn dữ liệu bằng quy trình được xác nhận.
+Suite tạo submission PUBLIC, kiểm tra CMS, tạo task Workspace, rồi kiểm tra kết quả/deal proposal. Chạy trên database sạch/kiểm thử.
 
-## Kiểm tra tĩnh
+## 6. Kiểm thử bảo mật
 
-```bash
-npm run check
+```powershell
+npm.cmd run test:security
 ```
 
-Lệnh chạy `scripts/check-encoding.js` và `scripts/security-scan.js`. Đọc toàn bộ cảnh báo; kiểm tra tĩnh không chứng minh ứng dụng an toàn hoặc mọi luồng đúng.
+Kiểm tra:
 
-## QA giao diện
+- path traversal encoded;
+- backslash traversal;
+- truy cập `.env`/SQLite/credential/package;
+- route nội bộ không cần auth;
+- API CMS/Workspace sai phân hệ;
+- request sai định dạng không làm treo server.
 
-Các script `scripts/qa-*.mjs` là kịch bản chạy trong môi trường browser harness, không phải Playwright test runner được cài qua package. Chúng có thể cần server ở `http://localhost:8099`, `server/data/credentials.local.txt`, hoặc `server/data/qa-creds.json`. Kiểm tra đầu script và hướng dẫn harness tại môi trường chạy trước khi dùng.
+## 7. Kiểm thử sáu nhóm nội dung
 
-Không đặt mật khẩu thử nghiệm trực tiếp trong các script QA. Tệp credential nằm trong `server/data/` đã được `.gitignore` loại khỏi Git; nếu dùng `QA_CREDENTIALS_JSON`, chỉ đặt biến trong môi trường cục bộ/CI secret store.
+```powershell
+npm.cmd run test:content-types
+```
 
-Phạm vi kiểm thử tự động không tương đương với tất cả 38 trang HTML; hãy xác định danh sách trang được script hiện tại mở. Kiểm tra thủ công các trang chi tiết, biểu mẫu, trạng thái rỗng/lỗi và các màn hình sau đăng nhập.
+Bộ kiểm thử chạy fixture cho:
 
-## Kiểm thử thủ công đề xuất
+- tin tức;
+- tuyên truyền - giáo dục;
+- sự kiện;
+- pháp luật;
+- cơ quan;
+- cơ sở hỗ trợ.
 
-- **PUBLIC:** trang chủ, tìm kiếm/lọc nội dung, trang chi tiết, biểu mẫu, mã tiếp nhận, tra cứu sai/đúng thông tin.
-- **CMS:** đăng nhập/đăng xuất, soạn và lưu nháp, gửi duyệt, duyệt/từ chối, xuất bản/thu hồi, tiếp nhận và nhật ký.
-- **Workspace:** nhiệm vụ, cập nhật tiến độ/gửi kết quả, báo cáo, lịch, tài liệu, quyền người dùng.
-- **Liên thông:** PUBLIC → CMS → Workspace → phản hồi; Workspace proposal → CMS review/publish → PUBLIC.
-- **Bảo mật:** phiên hết hạn, sai phân hệ, thiếu quyền, thiếu CSRF, tài khoản bị khóa.
-- **Giao diện:** mobile, tablet, desktop; trạng thái loading/rỗng/error; bàn phím, focus và nhãn biểu mẫu.
-- **Dữ liệu:** xác nhận dữ liệu chưa xuất bản không hiện ở PUBLIC và số liệu được đánh dấu nguồn phù hợp.
+Database tạm tự được xóa sau runner.
 
-## Runner có thao tác phá hủy
+## 8. Kiểm tra tĩnh
 
-Không chạy `scripts/verify-all.ps1` trừ khi đã xác nhận đang ở môi trường thử nghiệm có thể xóa. Script dừng tiến trình Node, xóa `server/data/portal.sqlite*`, dựng lại database và ghi artifact kết quả. `server/scripts/run-tests.ps1` cũng dừng các tiến trình Node đang chạy và làm sạch một số dữ liệu đăng nhập; tránh dùng khi có server khác đang hoạt động.
+```powershell
+npm.cmd run check
+```
 
-Khi suite thất bại, giữ log, xác nhận base URL và database, kiểm tra `server/data/server.err.log`, và chạy lại trên DB riêng sau khi đã phân tích nguyên nhân.
+Chạy:
+
+- `scripts/check-encoding.js`;
+- `scripts/security-scan.js`.
+
+Kết quả tĩnh không thay thế kiểm thử runtime. Rà lại mọi cảnh báo và xác nhận điều đó là pattern đã chấp nhận hay thật sự cần sửa.
+
+## 9. Dọn dữ liệu test
+
+Sau khi đã chạy suite ghi database:
+
+```powershell
+npm.cmd run test:clean
+```
+
+Mặc định chỉ báo cáo. Khi đã xem và xác nhận:
+
+```powershell
+node server/scripts/clean-test-data.js --yes
+```
+
+Không dựa vào ngày giờ để dọn. Dọn bởi marker/nội dung tiêu đề do runner sinh ra.
+
+## 10. QA trình duyệt
+
+Các script `scripts/qa-*.mjs` cần môi trường browser automation tùy workspace. Server chạy phải ở base URL phù hợp.
+
+Credential được lấy từ:
+
+- `server/data/qa-creds.json`;
+- `server/data/credentials.local.txt`;
+- `QA_CREDENTIALS_JSON`.
+
+Không đặt mật khẩu thật trong repository.
+
+Checklist thủ công:
+
+- PUBLIC: trang chủ, danh mục, chi tiết, search/filter, form, lookup;
+- CMS: login, lưu nháp, submit, approve, publish, unpublish;
+- Workspace: task, progress, submit, report, document, event;
+- liên thông: submission/task/proposal và PUBLIC;
+- bảo mật: session hết hạn, sai phân hệ, thiếu CSRF, quyền;
+- responsive: mobile/tablet/desktop;
+- lỗi: loading, rỗng, network, validation.
+
+## 11. Script destructive
+
+Không chạy các lệnh sau trên production:
+
+```text
+npm run db:reset
+scripts/verify-all.ps1
+server/scripts/run-tests.ps1
+```
+
+`verify-all.ps1` có thể dừng Node, xóa SQLite và tạo lại database.
+
+## 12. Khi suite thất bại
+
+1. ghi lại lệnh và API base;
+2. xác nhận database thực tế;
+3. lưu terminal output;
+4. kiểm tra `server/data/server.err.log`;
+5. chạy lại trên database cô lập;
+6. phân loại lỗi data/config/code;
+7. dọn dữ liệu test nếu cần.

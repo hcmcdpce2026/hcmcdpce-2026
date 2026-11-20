@@ -1,58 +1,49 @@
 # Triển khai và vận hành
 
-Tài liệu dành cho người cài đặt và vận hành. Hệ thống hiện là một tiến trình Node.js phục vụ cả frontend tĩnh và API, lưu dữ liệu trong SQLite. Không có bước build hoặc cài dependency ngoài.
-
-## Mô hình triển khai
+## 1. Mô hình đề xuất
 
 ```text
-Trình duyệt ── HTTPS ──> Reverse proxy ── HTTP nội bộ ──> Node.js ──> SQLite
+Internet
+  -> HTTPS Reverse Proxy
+  -> HTTP loopback 127.0.0.1:8099
+  -> Node.js server
+  -> SQLite/WAL
 ```
 
-Khuyến nghị một instance trên một máy chủ có ổ đĩa bền vững. Không chạy nhiều instance cùng ghi vào một tệp SQLite. Khi đặt sau reverse proxy, giới hạn truy cập trực tiếp vào cổng Node.js và chỉ tin cậy header IP do proxy tin cậy gửi.
+Khuyến nghị:
 
-## Chuẩn bị môi trường
+- một service Node.js;
+- một database riêng;
+- một ổ đĩa có backup;
+- reverse proxy TLS;
+- không mở port Node ra Internet.
 
-- Node.js `22.5.0` trở lên.
-- Mã nguồn dự án và quyền ghi cho thư mục chứa database.
-- Một database riêng cho mỗi môi trường.
-- Tên miền và HTTPS trước khi cho người dùng đăng nhập.
+## 2. Chuẩn bị
 
-Không cần `npm install`. Kiểm tra Node và SQLite:
+- Node.js 22.5.0 trở lên;
+- quyền ghi database và upload;
+- quyền đọc `.env`;
+- tên miền và chứng chỉ TLS;
+- tài khoản dịch vụ không có quyền quản trị;
+- thư mục backup riêng, không public.
 
-```bash
+Kiểm tra:
+
+```powershell
 node --version
 node -e "require('node:sqlite'); console.log('node:sqlite OK')"
+npm.cmd --version
 ```
 
-## Khởi tạo lần đầu
+## 3. Cấu hình môi trường
 
-Tại thư mục gốc:
-
-```bash
-cp .env.example .env
-```
-
-Windows PowerShell:
+Tạo `.env`:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Chỉnh `.env` theo môi trường, sau đó chạy migration và seed trước khi chạy server:
-
-```bash
-npm run db:migrate
-npm run db:seed
-npm start
-```
-
-Seed CLI tạo tệp `server/data/credentials.local.txt` khi tạo tài khoản mới. Chuyển thông tin đó qua kênh an toàn rồi xóa tệp. Tránh khởi chạy server trước bước seed trên database trống nếu cần lấy tệp bàn giao; cơ chế seed tự động của server không ghi tệp này.
-
-Health check: `http://127.0.0.1:8099/api/public/health`. Cổng và host có thể cấu hình qua `PORT` và `HOST`. Khi reverse proxy cùng máy, thường giới hạn `HOST=127.0.0.1`.
-
-## Cấu hình môi trường
-
-Tham khảo danh sách biến đầy đủ trong `.env.example` và `../README.md`. Các điểm production quan trọng:
+Cấu hình production tối thiểu:
 
 ```ini
 APP_ENV=production
@@ -61,19 +52,41 @@ PORT=8099
 DB_FILE=/var/lib/hcmc-portal/portal.sqlite
 COOKIE_SECURE=true
 CORS_ORIGIN=
+SESSION_TTL_MINUTES=480
+MAX_LOGIN_ATTEMPTS=5
+LOCK_MINUTES=15
+RATE_LIMIT_DISABLED=false
 ```
 
-- Giữ `.env` ngoài Git và giới hạn quyền đọc.
-- `COOKIE_SECURE=true` chỉ hoạt động đúng khi người dùng truy cập qua HTTPS.
-- Để `CORS_ORIGIN` trống nếu giao diện và API cùng origin. Nếu tách origin, khai báo origin cụ thể; không dùng wildcard với cookie.
-- Không bật `RATE_LIMIT_DISABLED` ngoài môi trường kiểm thử cô lập.
-- Đặt `DB_FILE` trên ổ đĩa bền vững, không phải thư mục tạm.
+Nếu tách frontend và API, đặt `CORS_ORIGIN` chính xác. Không dùng wildcard với cookie. Nếu cùng origin, để trống.
 
-## Linux với systemd và Nginx
+Không commit `.env`, database, credential và log.
 
-Tạo user dịch vụ riêng, thư mục ứng dụng và thư mục dữ liệu; chỉ cấp quyền ghi database cho dịch vụ.
+## 4. Khởi tạo
 
-Ví dụ unit systemd (điều chỉnh đường dẫn/user):
+```powershell
+npm.cmd run db:migrate
+npm.cmd run db:seed
+npm.cmd start
+```
+
+Đối với Linux:
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm start
+```
+
+Chạy seed trên database trống để tạo `server/data/credentials.local.txt` khi tài khoản seed mới được sinh. Chuyển credential qua kênh an toàn và xóa tệp bàn giao sau khi đã đổi mật khẩu.
+
+Health check:
+
+```text
+http://127.0.0.1:8099/api/public/health
+```
+
+## 5. Systemd mẫu
 
 ```ini
 [Unit]
@@ -91,7 +104,8 @@ RestartSec=5
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/hcmc-portal
+ReadWritePaths=/var/lib/hcmc-portal /opt/hcmc-portal/uploads
+EnvironmentFile=/opt/hcmc-portal/.env
 StandardOutput=journal
 StandardError=journal
 
@@ -99,9 +113,9 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Đặt `.env` trong thư mục ứng dụng với quyền phù hợp và `DB_FILE=/var/lib/hcmc-portal/portal.sqlite`. Xác nhận `ReadWritePaths` khớp thư mục database.
+Điều chỉnh đường dẫn, user và quyền. Không để tài khoản service có quyền sửa mã nguồn ngoài phạm vi deploy.
 
-Nginx cần chuyển tiếp tới Node trên loopback, bật TLS ở proxy và chuyển tiếp các header cần thiết:
+## 6. Reverse proxy Nginx
 
 ```nginx
 location / {
@@ -114,58 +128,91 @@ location / {
 }
 ```
 
-Chỉ cho phép proxy truy cập cổng Node. Ứng dụng dùng `X-Forwarded-For` để xác định IP; không để client Internet gửi trực tiếp header này tới app.
+Chỉ proxy tin cậy được đặt header `X-Forwarded-*`. Tải ứng dụng không chấp nhận header IP tùy ý từ Internet.
 
-## Windows Server
+## 7. Windows Server
 
 1. Cài Node.js 22.x.
-2. Đặt mã nguồn ở thư mục ứng dụng; đặt database và backup ở thư mục dữ liệu riêng.
-3. Tạo `.env`, chạy `npm run db:migrate` và `npm run db:seed`.
-4. Chạy `node server/index.js` dưới một tài khoản dịch vụ không có quyền quản trị, dùng Task Scheduler hoặc service manager để tự khởi động lại.
-5. Đặt IIS ARR/URL Rewrite, Caddy hoặc reverse proxy tương đương trước ứng dụng để cung cấp HTTPS.
-6. Giới hạn truy cập trực tiếp vào port Node và kiểm tra quyền NTFS đối với `.env`, database, log và tệp bàn giao.
+2. Cấp service account quyền hạn chế.
+3. Tạo `.env` và database riêng.
+4. Chạy migration/seed.
+5. Dùng Task Scheduler/Service manager để tự khởi động.
+6. Chèn IIS ARR/URL Rewrite, Caddy hoặc reverse proxy tương đương trước port Node.
+7. Giới hạn Firewall port Node.
 
-Không dùng script khởi động phát triển trong production nếu chưa đọc nội dung; một số script tiện ích có thể dừng tiến trình Node đang chạy.
+Không dùng script `verify-all.ps1` hoặc runner destructive trên môi trường production.
 
-## Kiểm tra sau triển khai
+## 8. Kiểm tra sau deploy
 
-1. Xác nhận service đang chạy và health check trả HTTP `200`.
-2. Kiểm tra trang PUBLIC, đăng nhập CMS/Workspace bằng tài khoản đã bàn giao.
-3. Kiểm tra request ghi có CSRF, quyền sai phân hệ trả `403`, nội dung chưa xuất bản không xuất hiện công khai.
-4. Xác nhận HTTPS, cookie `Secure`, database trên ổ đĩa bền vững và `.env` không thể tải qua HTTP.
-5. Kiểm tra log và thực hiện thử quy trình backup/restore trên bản sao.
+- health trả HTTP 200;
+- PUBLIC tải;
+- CMS và Workspace đăng nhập bằng tài khoản riêng;
+- cookie `Secure` xuất hiện qua HTTPS;
+- lỗi sai phân hệ/thiếu quyền trả 403;
+- request ghi thiếu CSRF bị từ chối;
+- bài chưa xuất bản không hiển thị PUBLIC;
+- `.env` không truy cập qua HTTP;
+- database không truy cập qua static server;
+- upload danh sách file/MIME hoạt động.
 
-## Sao lưu, khôi phục và nâng cấp
+## 9. Sao lưu
 
-Xuất logic trước bảo trì:
+Trước bảo trì:
 
-```bash
+```powershell
 node server/scripts/data-tool.js export all --out backups/pre-maintenance
 ```
 
-Đây là dữ liệu có thể chứa thông tin cá nhân; bảo vệ thư mục backup và kiểm tra quyền truy cập. Sao chép trực tiếp SQLite chỉ khi ứng dụng đã dừng hoặc dùng phương pháp backup SQLite nhất quán. Không chỉ sao chép `.sqlite` trong lúc WAL đang có dữ liệu chưa checkpoint.
+Với SQLite, dừng service hoặc dùng SQLite backup API. Không copy từng tệp `.sqlite`, `-wal`, `-shm` như nhau nếu không quản lý nhất quán.
 
-Quy trình nâng cấp:
+Sao lưu nên gồm:
 
-1. Thông báo bảo trì và xác nhận có thể khôi phục từ backup.
-2. Xuất dữ liệu hoặc tạo bản backup nhất quán; dừng service.
-3. Cập nhật mã nguồn theo quy trình phát hành của đơn vị.
-4. Chạy `npm run db:migrate`; không chạy reset.
-5. Khởi động service, kiểm tra health check, đăng nhập và các luồng chính.
-6. Nếu lỗi, dừng service và khôi phục database/mã nguồn theo kế hoạch rollback đã thử.
+- database;
+- `uploads`;
+- `.env` được mã hóa/giới hạn;
+- cấu hình reverse proxy;
+- mã nguồn/commit SHA.
 
-## Khả năng triển khai và giới hạn
+Không để thư mục backup trong web root.
 
-- GitHub Pages chỉ phục vụ tệp tĩnh, không chạy Node.js/SQLite hoặc các chức năng ghi; không phù hợp làm deployment đầy đủ.
-- Có thể dùng CMS trên máy phát triển rồi xuất riêng dữ liệu PUBLIC đã được phê duyệt cho GitHub Pages:
+## 10. Khôi phục
 
-  1. Lưu và xuất bản nội dung trong CMS local.
-  2. Tại thư mục dự án, chạy `npm run export:static-public`.
-  3. Kiểm tra thư mục `public-data/`, sau đó commit/push các tệp dữ liệu và ảnh/tệp trong đó cùng mã nguồn.
-  4. GitHub Pages phục vụ phiên bản mới; các trang PUBLIC tự dùng snapshot khi API không tồn tại.
+1. Dừng Node.
+2. Ghi lại trạng thái hiện tại.
+3. Khôi phục database/mã nguồn/asset đã xác thực.
+4. Chạy migration.
+5. Khởi động service.
+6. Kiểm tra health và luồng chính.
+7. Ghi nhật ký thời gian, người thực hiện và backup sử dụng.
 
-  Lệnh chỉ xuất bài viết đã xuất bản, chuyên mục đang hoạt động, văn bản, cơ quan, sự kiện được công bố, thống kê, cơ sở hỗ trợ, banner và thông báo PUBLIC. Tệp được nội dung tham chiếu từ `/uploads/` sẽ được sao chép vào `public-data/media/`; nếu thiếu tệp, lệnh xuất dừng và báo lỗi. Lệnh không xuất tài khoản, nhật ký, phản ánh của người dân, hay dữ liệu Workspace. Chỉ đưa nội dung đã được duyệt công khai lên GitHub; nếu repository public, các tệp snapshot và media đều có thể được tải công khai.
+## 11. Nâng cấp
 
-  Mỗi lần cập nhật, chạy lại lệnh và cập nhật cả `public-data/public.json` lẫn các media mới. Việc xuất không tự đẩy lên GitHub. Trên host tĩnh, đăng nhập CMS, gửi biểu mẫu và các chức năng cần ghi vào máy chủ không hoạt động; chúng cần backend đang chạy. Dùng Node.js để kiểm tra local trước khi xuất, vì `file://` không cho trình duyệt tải JSON theo cách đáng tin cậy.
-- PaaS chỉ phù hợp nếu có ổ đĩa bền vững và cấu hình đúng `DB_FILE`; ổ đĩa tạm sẽ làm mất dữ liệu khi thay instance.
-- SQLite và rate limit trong tiến trình hiện hướng tới một instance. Mở rộng ngang cần thiết kế lại lưu trữ và trạng thái dùng chung.
+1. Bắt bảo trì.
+2. Sao lưu database và cấu hình.
+3. Giữ commit rollback.
+4. Cập nhật source.
+5. Chạy migration, không chạy reset.
+6. Khởi động và chạy smoke test.
+7. Chỉ mở lại cho người dùng khi kết quả đạt.
+
+## 12. GitHub Pages
+
+Pages không chạy backend. Quy trình:
+
+1. CMS local nhập và xuất bản;
+2. chạy `npm run export:static-public`;
+3. kiểm tra `public-data/public.json` và media;
+4. commit/push;
+5. GitHub Pages deploy snapshot.
+
+Trang tĩnh không có đăng nhập, submit, CMS, Workspace hoặc API ghi.
+
+## 13. Giới hạn vận hành
+
+- SQLite phù hợp một instance ghi;
+- rate limit trong bộ nhớ không đồng bộ nhiều instance;
+- upload local disk không chia sẻ object storage;
+- session và lock đều lưu database/tại tiến trình;
+- không có MFA;
+- không có quét virus upload;
+- không có encryption-at-rest tầng ứng dụng.

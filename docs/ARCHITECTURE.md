@@ -1,154 +1,165 @@
 # Kiến trúc hệ thống
 
-## Tổng quan
+## 1. Mục tiêu
 
-Ứng dụng là một web app nhiều phân hệ. Frontend HTML/CSS/JavaScript được phục vụ cùng origin với API bởi máy chủ Node.js; dữ liệu lưu trong một cơ sở dữ liệu SQLite. Không có bundler hoặc bước build.
+Tài liệu mô tả cách frontend, API, SQLite và các luồng nghiệp vụ liên thông trong repository. Kiến trúc ưu tiên triển khai đơn giản: không bundler, không framework backend, không container bắt buộc và không dependency npm bên ngoài.
+
+## 2. Sơ đồ tổng thể
 
 ```text
 Trình duyệt
-  ├─ PUBLIC: index.html + pages/public/*
-  ├─ CMS: pages/cms/*
-  └─ Workspace: pages/workspace/*
-          │ fetch JSON, cookie phiên, CSRF
-          ▼
-Node.js HTTP server: server/index.js
-  ├─ /api/auth/*
-  ├─ /api/public/*
-  ├─ /api/cms/*
-  ├─ /api/workspace/*
-  ├─ /api/shared/*
-  └─ HTML/CSS/JS/ảnh tĩnh
-          │
-          ▼
-SQLite: server/data/portal.sqlite
+├── PUBLIC       index.html, pages/public/*
+├── CMS          pages/cms/*
+└── WORKSPACE    pages/workspace/*
+         │
+         ▼
+server/index.js
+├── Route matching
+├── Cookie/Bearer session
+├── CSRF
+├── Permission guard
+├── Static file server
+└── API route modules
+         │
+         ▼
+SQLite (WAL)
+server/data/portal.sqlite
 ```
 
-## Phân hệ và luồng dữ liệu
+## 3. Thành phần chính
 
-| Phân hệ | Trách nhiệm | Dữ liệu chính |
+| Thành phần | Trách nhiệm |
+|---|---|
+| `server/index.js` | Nạp `.env`, mở database, đăng ký route, áp dụng security headers và phục vụ tệp |
+| `server/routes/` | Handler AUTH, PUBLIC, CMS, WORKSPACE, shared |
+| `server/lib/http.js` | JSON response, đọc body, cookie, gửi tệp |
+| `server/lib/auth.js` | Phiên, đăng nhập, khóa tài khoản, CSRF, phân quyền |
+| `server/lib/security.js` | Băm mật khẩu, giới hạn tần suất, làm sạch/kiểm tra đầu vào |
+| `server/lib/db.js` | Mở SQLite, bật WAL/foreign key/busy timeout |
+| `server/lib/mapper.js` | Chuyển database row sang hình dạng API |
+| `server/lib/upload.js` | Kiểm tra loại/kích thước tệp upload |
+| `server/db/schema.sql` | Schema duy nhất, bao gồm 37 bảng nghiệp vụ và hệ thống |
+| `server/db/migrate.js` | Bổ sung tương thích cho database cũ |
+| `server/db/seed.js` | Tạo quyền, vai trò, tài khoản và dữ liệu cấu hình |
+
+## 4. Frontend
+
+- `js/api.js`: wrapper fetch, cookie/CSRF, Bearer token và xử lý lỗi.
+- `js/main.js`: tương tác PUBLIC chung.
+- `js/public-pages.js`: tải JSON PUBLIC và kết xuất danh mục/chi tiết.
+- `js/cms.js`: thao tác CMS.
+- `js/workspace.js`: thao tác Workspace.
+- `css/main.css`, `css/responsive.css`: PUBLIC và responsive.
+- `css/cms.css`, `css/workspace.css`, `css/login.css`: giao diện nghiệp vụ.
+
+Trang HTML không build ra bundle. Tệp được trình duyệt tải trực tiếp, gọi API cùng origin hoặc đọc snapshot tĩnh tùy môi trường.
+
+## 5. Route và xử lý request
+
+1. `server/index.js` chuẩn hóa method/path.
+2. Route `/api/*` được khớp từ danh sách đăng ký tường minh.
+3. Route ghi dữ liệu yêu cầu session; cookie yêu cầu CSRF.
+4. Handler kiểm tra phân hệ, quyền và phạm vi dữ liệu.
+5. SQLite xử lý bằng prepared statements.
+6. `http.js` trả JSON có `success`, `data` hoặc `error`.
+7. Route tĩnh giải mã và chuẩn hóa path, chặn thư mục/tệp nhạy cảm.
+
+Route bắt lỗi. Tệp server, `.env`, Git metadata, database, credential và thư mục công cụ không được phục vụ công khai.
+
+## 6. Xác thực
+
+Phiên đăng nhập lưu:
+
+- hash SHA-256 của session token trong SQLite;
+- CSRF token riêng;
+- user-agent và IP;
+- thời gian tạo/cập nhật/hết hạn;
+- trạng thái thu hồi.
+
+Cookie `hcm_portal_session` dùng `HttpOnly`, `SameSite=Lax`, và `Secure` khi cấu hình. Bearer token có thể được API client dùng cho môi trường phù hợp; Bearer không phụ thuộc CSRF cookie.
+
+Mật khẩu được băm bằng `scrypt`, có salt riêng. Sai mật khẩu và tài khoản khóa tạm được ghi trong `login_attempts`/bản ghi người dùng.
+
+## 7. Phân quyền
+
+RBAC gồm:
+
+- `users.role_id`;
+- `roles.system_key`;
+- `roles.data_scope`: `own`, `unit` hoặc `all`;
+- `role_permissions`;
+- permission code trong từng handler.
+
+Backend luôn kiểm tra lại:
+
+- tài khoản có hệ thống đúng không;
+- session còn hiệu lực không;
+- permission hiện có không;
+- người dùng có thuộc đơn vị/phạm vi bản ghi không;
+- trạng thái nghiệp vụ cho phép hành động không.
+
+## 8. Sáu nhóm nội dung PUBLIC
+
+| Nhóm | Cấu trúc dữ liệu | Trang |
 |---|---|---|
-| PUBLIC | Cung cấp nội dung công khai, nhận yêu cầu, tra cứu mã | Bài đã xuất bản, danh mục công khai, hồ sơ tiếp nhận |
-| CMS | Quản lý nội dung và quy trình xuất bản; xử lý tiếp nhận | Sáu nhóm nội dung (xem dưới), phiên bản, chuyên mục, tài nguyên, đề xuất |
-| Workspace | Điều phối nhiệm vụ, báo cáo, lịch, tài liệu và tài khoản nghiệp vụ | Nhiệm vụ, báo cáo, đơn vị, người dùng, vai trò |
-| Shared | Thông tin người dùng/đơn vị, thông báo, thiết lập và thống kê tổng hợp | Dữ liệu dùng chung giữa CMS và Workspace |
+| Tin tức | `articles` thuộc `categories.group_key=news` | `news.html`, trang chủ |
+| Tuyên truyền - Giáo dục | `articles` thuộc `categories.group_key=education` | `education.html`, trang chủ |
+| Sự kiện | `public_events` | `events.html` |
+| Pháp luật | `legal_documents` | `laws.html` |
+| Cơ quan - đơn vị | `public_agencies` | `agencies.html` |
+| Cơ sở hỗ trợ | `support_facilities` | `support.html` |
 
-Hai luồng liên thông quan trọng:
+Bài thuộc nhóm hay không được quyết định bằng `category_id -> categories.group_key`, không bằng từ khóa trong nội dung.
+
+## 9. Luồng liên thông
+
+### Phản ánh PUBLIC
 
 ```text
-PUBLIC gửi yêu cầu
-  → submissions
-  → CMS phân loại/phản hồi
-  → CMS tạo task Workspace (liên kết submission.task_id)
-  → Workspace cập nhật kết quả
-  → CMS quyết định phản hồi/công khai
-  → PUBLIC tra cứu bằng mã tiếp nhận
-
-Workspace tạo proposal
-  → CMS xem xét
-  → tạo/cập nhật article có origin=workspace
-  → CMS xuất bản
-  → PUBLIC chỉ đọc article đã xuất bản
+submissions
+  -> submission_events
+  -> CMS tiếp nhận
+  -> tasks
+  -> task_items/task_comments/task_history
+  -> kết quả và phản hồi
 ```
 
-Việc tạo yêu cầu phối hợp cũng có thể nối CMS và Workspace; lịch sử được lưu trong bảng nghiệp vụ và `activity_logs`.
+`submissions.task_id` liên kết sang task được CMS phân công. Tiếp nhận công khai phải xóa dữ liệu nhạy cảm khỏi trả lời công khai.
 
-## Sáu nhóm nội dung
+### Đề xuất nội dung
 
-CMS là một hệ thống thống nhất (cùng tài khoản, phân quyền, quy trình duyệt), nhưng mỗi nhóm
-nội dung có mô hình dữ liệu và form nhập riêng:
+```text
+Workspace proposals
+  -> CMS review
+  -> articles origin=workspace
+  -> article revisions
+  -> published article
+  -> PUBLIC
+```
 
-| Nhóm | Nơi quản lý | Bảng | Trang công khai |
-|---|---|---|---|
-| Tin tức | `content-list.html` (lọc `group=news`) | `articles` + `categories` | `news.html`, trang chủ |
-| Tuyên truyền - Giáo dục | `content-list.html` (lọc `group=education`) | `articles` + `categories` | `education.html`, trang chủ |
-| Sự kiện | `public-catalog.html` → tab Sự kiện | `public_events` | `events.html` |
-| Pháp luật | `public-catalog.html` → tab Pháp luật | `legal_documents` | `laws.html` |
-| Cơ quan - Đơn vị | `public-catalog.html` → tab Cơ quan | `public_agencies` | `agencies.html` |
-| Cơ sở y tế - Tư vấn | `public-catalog.html` → tab Cơ sở y tế | `support_facilities` | `support.html` |
+## 10. Đóng gói static PUBLIC
 
-Nhóm của một bài viết được xác định bằng `categories.group_key` của chuyên mục được gán
-(`articles.category_id`) — không dò từ khóa trong tiêu đề hay nội dung.
+Script `server/scripts/export-static-public.js` đọc database và tạo `public-data/public.json` cộng media được tham chiếu. Dữ liệu chỉ gồm nội dung công khai đã xuất bản/được công bố.
 
-Mỗi trang công khai chỉ đọc đúng nguồn dữ liệu của mình qua `/api/public/*`; bộ lọc trên các
-trang danh mục được dựng từ chính dữ liệu CMS (danh mục chuyên mục, loại hình, cấp quản lý,
-lĩnh vực pháp luật), không khai báo tĩnh trong HTML.
+PUBLIC trên GitHub Pages sẽ đọc snapshot thay vì gọi Node.js API. Các nút gửi form hoặc đăng nhập không hoạt động trên host tĩnh.
 
-### Hệ thống đang chạy
+## 11. Vòng đời dữ liệu
 
-- `server/db/schema.sql` khai báo đầy đủ trường cho cả sáu nhóm; `server/lib/db.js`
-  (`ensureContentTypeColumns`) và `server/db/migrate.js` bổ sung cột cho database cũ.
-- `js/public-pages.js` kết xuất dữ liệu công khai; `js/main.js` chỉ giữ tương tác giao diện.
-- `server/db/content-types.js` chỉ dọn dữ liệu demo cũ đã được đánh dấu; không tạo dữ liệu.
+Database khởi tạo hai giai đoạn:
 
-## Thành phần mã nguồn
+1. `db:migrate` hoặc server khởi động áp dụng schema/migration.
+2. `db:seed` bổ sung hệ thống ban đầu hoặc server bảo đảm seed tối thiểu.
 
-### Frontend
+Seed không còn là nguồn dữ liệu demo bài viết/cơ quan/sự kiện. Nội dung vận hành phải nhập qua CMS/Workspace.
 
-- `index.html`, `pages/public/`, `pages/cms/`, `pages/workspace/`: 38 trang HTML gồm trang chủ.
-- `css/style.css`: token thiết kế, kiểu dùng chung.
-- `css/main.css`, `css/responsive.css`: giao diện công khai và responsive.
-- `css/cms.css`, `css/workspace.css`: bố cục riêng từng hệ thống.
-- `css/login.css`: kiểu dùng chung cho hai trang đăng nhập.
-- `js/api.js`: giao tiếp API, cookie/CSRF và lỗi mạng.
-- `js/main.js`, `js/public-pages.js`: tương tác PUBLIC.
-- `js/cms.js`, `js/workspace.js`: điều khiển các giao diện nghiệp vụ.
+## 12. Ranh giới triển khai
 
-### Backend
+Kiến trúc hiện phù hợp một instance:
 
-- `server/index.js`: nạp `.env`, khởi tạo database, đăng ký route, áp dụng header bảo mật và phục vụ tệp tĩnh.
-- `server/routes/`: handler cho auth, PUBLIC, CMS, Workspace và shared.
-- `server/lib/http.js`: JSON, cookie, đọc body và phục vụ file.
-- `server/lib/auth.js`: phiên, đăng nhập, CSRF, quyền và nhật ký.
-- `server/lib/security.js`: băm mật khẩu, token, giới hạn tần suất, kiểm tra đầu vào.
-- `server/lib/db.js`: kết nối SQLite, bật WAL/foreign keys và khởi tạo schema.
-- `server/lib/mapper.js`: chuyển đổi bản ghi database sang đối tượng API.
-- `server/db/schema.sql`, `migrate.js`, `seed.js`: schema, migration và dữ liệu hệ thống ban đầu.
+- SQLite dùng chung trên một ổ đĩa;
+- rate limit lưu trong bộ nhớ;
+- phiên lưu trong SQLite;
+- upload lưu trên local disk;
+- static export được tạo thủ công.
 
-## Xử lý request
-
-1. Server chuẩn hóa URL và thêm header bảo mật.
-2. Với `/api/*`, tìm route theo method/path, đọc JSON body có giới hạn và gọi handler.
-3. Với CMS/Workspace, server chặn phiên thuộc sai hệ thống; handler tiếp tục kiểm tra phiên, CSRF và quyền cần thiết.
-4. Với URL khác, server chặn đường dẫn nội bộ, kiểm tra đường dẫn tĩnh và trả file với MIME/cache phù hợp.
-5. Lỗi API được chuyển thành JSON; lỗi 5xx không trả stack trace cho client.
-
-Route được đăng ký tường minh trong `server/index.js`. Tệp trong `server/`, `.env`, `.git` và `node_modules` không được phục vụ như tài nguyên tĩnh.
-
-## Xác thực và phân quyền
-
-- Mật khẩu lưu dưới dạng hash `scrypt`; không lưu mật khẩu rõ trong database.
-- Token phiên ngẫu nhiên được hash SHA-256 trong bảng `sessions`; cookie chính là `HttpOnly`, `SameSite=Lax`, bật `Secure` khi `COOKIE_SECURE=true`.
-- Token phiên có thể thu hồi khi đăng xuất, đổi mật khẩu hoặc tài khoản bị vô hiệu hóa.
-- Quyền gắn với vai trò trong `role_permissions`, phân hệ trong tài khoản và phạm vi dữ liệu trong vai trò.
-- Giao diện có thể ẩn nút theo quyền, nhưng máy chủ mới là nơi quyết định cho phép hay từ chối request.
-- Với cookie, request ghi cần `X-CSRF-Token`; request dùng Bearer token không dựa vào cookie.
-
-Chi tiết và các giới hạn bảo mật được ghi trong [`SECURITY.md`](SECURITY.md).
-
-## Lưu trữ và khởi tạo dữ liệu
-
-`server/lib/db.js` mở `DatabaseSync`, bật `journal_mode=WAL`, foreign keys và `busy_timeout`, rồi áp dụng `schema.sql` nếu cần. Khi server chạy, hệ thống bảo đảm dữ liệu khởi tạo tối thiểu nếu chưa có người dùng.
-
-Để lấy thông tin tài khoản khởi tạo, chạy CLI `npm run db:seed` trước lần chạy server đầu tiên. Lệnh seed CLI tạo tệp bàn giao `server/data/credentials.local.txt` khi có tài khoản mới; cơ chế tự seed của server không xuất tệp bàn giao này.
-
-Seed mặc định chỉ tạo tài khoản và cấu hình hệ thống. Không còn lệnh nạp dữ liệu demo vào database ứng dụng. Bộ kiểm thử sáu nhóm dùng fixture trong database tạm và tự xóa database đó khi hoàn tất. `npm run demo:purge -- --yes` chỉ dành để dọn dữ liệu demo cũ còn sót lại.
-
-## Nguyên tắc thiết kế và giới hạn
-
-- Frontend tĩnh giúp triển khai đơn giản; browser gọi API cùng origin.
-- SQLite và bộ giới hạn tần suất trong bộ nhớ phù hợp một instance. Không chạy nhiều server ghi vào cùng database như một hệ thống phân tán.
-- Dữ liệu hiển thị trên client có thể được cache trong bộ nhớ của module; client cần nạp lại dữ liệu sau thao tác ghi.
-- Font/biểu tượng bên ngoài lấy từ CDN.
-- Không có 2FA; xem các hạn chế khác trong `SECURITY.md` trước production.
-
-## Thay đổi kiến trúc
-
-Khi thêm chức năng:
-
-1. Khai báo route trong `server/index.js` và handler trong nhóm `server/routes/` thích hợp.
-2. Kiểm tra xác thực, phân hệ, quyền, CSRF và phạm vi bản ghi ở máy chủ.
-3. Thêm cột/bảng bằng schema/migration; cập nhật mapper nếu đối tượng API thay đổi.
-4. Cập nhật client API/cache và trạng thái loading, rỗng, lỗi.
-5. Bổ sung kiểm thử API hoặc luồng liên thông phù hợp; cập nhật `API.md`, `DATABASE.md` hoặc `USER-GUIDE.md`.
-
-Không đổi tên hoặc thay đổi hình dạng API mà không cập nhật tất cả client và tài liệu liên quan.
+Mở rộng ngang cần thay thế hoặc bổ sung đồng bộ session/rate limit, object storage và cơ sở dữ liệu phù hợp.
