@@ -85,14 +85,15 @@ Các route đọc công khai không yêu cầu đăng nhập. API chỉ trả n�
 | `GET` | `/api/public/articles` | Danh sách bài đã xuất bản; hỗ trợ `page`, `limit`, `categoryId`/`category`, `search`/`q`, `group`, `featured=true` |
 | `GET` | `/api/public/articles/:id` | Chi tiết bài viết theo ID hoặc slug |
 | `GET` | `/api/public/categories` | Chuyên mục đang hoạt động |
+| `GET` | `/api/public/system-categories?type=...` | Danh mục nghiệp vụ đang hoạt động |
 | `GET` | `/api/public/legal-documents` | Văn bản đã công khai; hỗ trợ `id`, `type`, `field`, `issuer`, `year`, `effectStatus`, `search` |
 | `GET` | `/api/public/events` | Sự kiện đã công khai; hỗ trợ `id` (hoặc slug), `type`, `status`, `search` |
 | `GET` | `/api/public/agencies` | Cơ quan công khai; hỗ trợ `id` để lấy chi tiết; phản hồi danh sách kèm `taxonomy` (loại hình, cấp quản lý) |
 | `GET` | `/api/public/statistics` | Kỳ và chỉ số thống kê |
-| `GET` | `/api/public/support-facilities` | Cơ sở y tế, điểm tư vấn đã công khai; hỗ trợ `id`, `type`, `district`, `service`, `audience`, `search` |
+| `GET` | `/api/public/support-facilities` | Cơ sở y tế, điểm tư vấn đã công khai; hỗ trợ `id`, `type`, `service`, `audience`, `search` |
 | `GET` | `/api/public/banners` | Banner đang hoạt động |
 | `GET` | `/api/public/notifications` | Thông báo công khai |
-| `POST` | `/api/public/submissions` | Gửi phản ánh/yêu cầu |
+| `POST` | `/api/public/submissions` | Gửi phản ánh/yêu cầu; form liên hệ nhận `topic` là mã đang hoạt động trong `contact_topic` |
 | `GET` | `/api/public/submissions/lookup?code=...&contact=...` | Tra cứu bằng mã và thông tin liên hệ nếu hồ sơ có thông tin liên hệ |
 
 ### Sáu nhóm nội dung công khai
@@ -146,6 +147,9 @@ Tất cả route CMS yêu cầu phiên thuộc phân hệ CMS; thao tác yêu c�
 | `GET`, `POST` | `/api/cms/categories` | Liệt kê, tạo/cập nhật chuyên mục |
 | `PUT`, `DELETE` | `/api/cms/categories/:id` | Cập nhật hoặc xóa chuyên mục |
 | `POST` | `/api/cms/categories/:id/reorder` | Sắp xếp chuyên mục |
+| `GET`, `POST` | `/api/cms/system-categories` | Đọc hoặc tạo danh mục nghiệp vụ |
+| `PUT`, `DELETE` | `/api/cms/system-categories/:id` | Cập nhật hoặc xóa danh mục nghiệp vụ |
+| `PATCH` | `/api/cms/system-categories/:id/status` | Bật/tắt danh mục nghiệp vụ |
 | `GET`, `POST` | `/api/cms/media` | Liệt kê, thêm tài nguyên |
 | `DELETE` | `/api/cms/media/:id` | Xóa tài nguyên |
 | `GET` | `/api/cms/catalog/:kind` | Đọc danh mục quản lý |
@@ -207,6 +211,7 @@ Yêu cầu phiên hợp lệ của một trong hai hệ thống.
 |---|---|---|
 | `GET` | `/api/shared/users` | Danh bạ tài khoản đang hoạt động |
 | `GET` | `/api/shared/organizations` | Danh sách đơn vị |
+| `GET` | `/api/shared/system-categories?type=...` | Loại hình tổ chức và cấp quản lý dùng trong Workspace |
 | `GET` | `/api/shared/notifications` | Thông báo phù hợp với phiên hiện tại và `unreadCount` |
 | `POST` | `/api/shared/notifications/read` | Đánh dấu thông báo dùng chung là đã đọc |
 | `GET` | `/api/shared/settings` | Cấu hình hệ thống |

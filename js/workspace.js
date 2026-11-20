@@ -155,13 +155,6 @@
             coordination: 'Hoạt động phối hợp',
             other: 'Lịch công tác khác'
         },
-        orgType: {
-            state: 'Cơ quan nhà nước',
-            unit: 'Đơn vị nghiệp vụ',
-            ward: 'Ủy ban nhân dân cấp cơ sở',
-            association: 'Tổ chức, hội, đoàn thể',
-            partner: 'Đơn vị phối hợp'
-        },
         orgStatus: { active: 'Đang hoạt động', paused: 'Tạm dừng', archived: 'Đã lưu trữ' },
         userStatus: { active: 'Đang hoạt động', locked: 'Đã khóa', pending: 'Chờ kích hoạt' },
         noticeType: {
@@ -410,6 +403,8 @@ const Store = (function () {
     const cache = {
         tasks: [],
         organizations: [],
+        organizationTypes: [],
+        managementLevels: [],
         users: [],
         roles: [],
         permissions: [],
@@ -433,6 +428,8 @@ const Store = (function () {
         const jobs = [
             ['tasks', '/api/workspace/tasks'],
             ['organizations', '/api/shared/organizations'],
+            ['organizationTypes', '/api/shared/system-categories?type=organization_type'],
+            ['managementLevels', '/api/shared/system-categories?type=management_level'],
             ['users', '/api/workspace/users'],
             ['roles', '/api/workspace/roles'],
             ['permissions', '/api/workspace/permissions'],
@@ -535,6 +532,10 @@ const Store = (function () {
     const all = () => cache;
     const tasks = () => cache.tasks.slice();
     const organizations = () => cache.organizations.slice();
+    const organizationTypes = () => cache.organizationTypes.slice();
+    const managementLevels = () => cache.managementLevels.slice();
+    const organizationTypeName = (code) => (cache.organizationTypes.find((category) => category.code === code) || {}).name || code || '';
+    const managementLevelName = (code) => (cache.managementLevels.find((category) => category.code === code) || {}).name || code || '';
     const users = () => cache.users.slice();
     const roles = () => cache.roles.slice();
     const permissions = () => cache.permissions.slice();
@@ -856,7 +857,8 @@ const Store = (function () {
 
     return {
         load, loadSession, getSession, currentUser, login, logout, can, scopeOf, inScope,
-        all, tasks, organizations, users, roles, permissions, events, documents, reports,
+        all, tasks, organizations, organizationTypes, managementLevels, organizationTypeName, managementLevelName,
+        users, roles, permissions, events, documents, reports,
         notifications, logs, proposals, collaborations, integrations, stats, taskStats,
         taskById, orgById, userById, docById, reportById, eventById, roleById, roleOf,
         orgName, userName, taskItems, taskComments, taskHistory, docVersions,
@@ -2109,7 +2111,7 @@ const Store = (function () {
                 orgTable.innerHTML = Store.organizations().filter((o) => o.status !== 'archived').slice(0, 5).map((o) =>
                     '<tr><td data-label="Đơn vị"><a class="ws-link" href="organization-detail.html?id=' + o.id + '">' +
                     util.escape(o.name) + '</a></td>' +
-                    '<td data-label="Loại hình">' + util.escape(LABELS.orgType[o.type] || o.type) + '</td>' +
+                    '<td data-label="Loại hình">' + util.escape(Store.organizationTypeName(o.type)) + '</td>' +
                     '<td data-label="Nhiệm vụ">' + tasks.filter((t) => t.ownerOrgId === o.id).length + '</td>' +
                     '<td data-label="Trạng thái">' + ui.statusBadge(o.status, 'org') + '</td></tr>').join('');
             }
@@ -3068,8 +3070,9 @@ const Store = (function () {
 
             const typeSelect = document.getElementById('ws-org-type');
             if (typeSelect) {
-                typeSelect.innerHTML = '<option value="">Mọi loại hình</option>' + Object.keys(LABELS.orgType)
-                    .map((k) => '<option value="' + k + '">' + util.escape(LABELS.orgType[k]) + '</option>').join('');
+                typeSelect.innerHTML = '<option value="">Mọi loại hình</option>' + Store.organizationTypes()
+                    .filter((category) => category.status === 'active')
+                    .map((category) => '<option value="' + util.escape(category.code) + '">' + util.escape(category.name) + '</option>').join('');
                 typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 1; render(); });
             }
             const statusSelect = document.getElementById('ws-org-status');
@@ -3159,7 +3162,8 @@ const Store = (function () {
                     return '<tr><td data-label="Mã"><span class="ws-code ws-code--sm">' + util.escape(o.code) + '</span></td>' +
                         '<td data-label="Tên đơn vị"><a class="ws-table__title" href="organization-detail.html?id=' + o.id + '">' + util.escape(o.name) + '</a>' +
                         '<span class="ws-table__sub">' + util.escape(parent ? 'Trực thuộc ' + parent.name : 'Đơn vị độc lập') + '</span></td>' +
-                        '<td data-label="Loại hình">' + util.escape(LABELS.orgType[o.type] || o.type) + '</td>' +
+                        '<td data-label="Loại hình">' + util.escape(Store.organizationTypeName(o.type)) +
+                        '<span class="ws-table__sub">' + util.escape(Store.managementLevelName(o.managementLevel)) + '</span></td>' +
                         '<td data-label="Người đại diện">' + util.escape(o.head || '—') + '</td>' +
                         '<td data-label="Liên hệ"><span class="ws-table__stack">' + util.escape(o.phone || '—') +
                         '<span class="ws-table__sub">' + util.escape(o.email || '') + '</span></span></td>' +
@@ -3198,6 +3202,14 @@ const Store = (function () {
             const parents = [{ value: '', label: '— Không trực thuộc —' }].concat(
                 Store.organizations().filter((o) => !org || o.id !== org.id).map((o) => ({ value: o.id, label: o.name }))
             );
+            const organizationTypes = Store.organizationTypes().filter((category) => category.status === 'active');
+            if (data.type && !organizationTypes.some((category) => category.code === data.type)) {
+                organizationTypes.push({ code: data.type, name: Store.organizationTypeName(data.type) });
+            }
+            const managementLevels = Store.managementLevels().filter((category) => category.status === 'active');
+            if (data.managementLevel && !managementLevels.some((category) => category.code === data.managementLevel)) {
+                managementLevels.push({ code: data.managementLevel, name: Store.managementLevelName(data.managementLevel) });
+            }
             ui.openModal({
                 title: isEdit ? 'Chỉnh sửa đơn vị' : 'Thêm đơn vị mới',
                 subtitle: 'Thông tin đơn vị được dùng chung cho CMS và Workspace.',
@@ -3206,7 +3218,8 @@ const Store = (function () {
                 content: '<form class="ws-form" id="ws-org-form" novalidate>' +
                     ui.field({ id: 'of-code', label: 'Mã đơn vị', required: true, value: data.code || '', placeholder: 'Ví dụ: PC04-CATP' }) +
                     ui.field({ id: 'of-name', label: 'Tên cơ quan / tổ chức', required: true, wide: true, value: data.name || '' }) +
-                    ui.field({ id: 'of-type', label: 'Loại hình', type: 'select', required: true, options: Object.keys(LABELS.orgType).map((k) => ({ value: k, label: LABELS.orgType[k] })), value: data.type || 'state' }) +
+                    ui.field({ id: 'of-type', label: 'Loại hình', type: 'select', required: true, options: organizationTypes.map((category) => ({ value: category.code, label: category.name })), value: data.type || '' }) +
+                    ui.field({ id: 'of-management-level', label: 'Cấp quản lý', type: 'select', options: [{ value: '', label: '— Chọn cấp quản lý —' }].concat(managementLevels.map((category) => ({ value: category.code, label: category.name }))), value: data.managementLevel || '' }) +
                     ui.field({ id: 'of-parent', label: 'Cơ quan chủ quản', type: 'select', options: parents, value: data.parentId || '' }) +
                     ui.field({ id: 'of-head', label: 'Người đại diện', value: data.head || '' }) +
                     ui.field({ id: 'of-phone', label: 'Số điện thoại', value: data.phone || '', attrs: 'data-type="phone"' }) +
@@ -3220,7 +3233,7 @@ const Store = (function () {
                     if (!ui.validateForm(form)) return false;
                     const values = ui.formData(form);
                     const payload = {
-                        code: values['of-code'], name: values['of-name'], type: values['of-type'], parentId: values['of-parent'],
+                        code: values['of-code'], name: values['of-name'], type: values['of-type'], managementLevel: values['of-management-level'], parentId: values['of-parent'],
                         head: values['of-head'], phone: values['of-phone'], email: values['of-email'],
                         status: values['of-status'], address: values['of-address'], note: values['of-note']
                     };
@@ -3275,7 +3288,7 @@ const Store = (function () {
             if (head) {
                 head.innerHTML = '<div class="ws-page-head__text"><div class="ws-page-head__badges">' +
                     '<span class="ws-code">' + util.escape(org.code) + '</span>' + ui.statusBadge(org.status, 'org') +
-                    '<span class="ws-badge ws-badge--info">' + util.escape(LABELS.orgType[org.type] || org.type) + '</span></div>' +
+                    '<span class="ws-badge ws-badge--info">' + util.escape(Store.organizationTypeName(org.type)) + '</span></div>' +
                     '<h1 class="ws-page-head__title">' + util.escape(org.name) + '</h1>' +
                     '<p class="ws-page-head__desc">' + util.escape(org.note || '') + '</p></div>' +
                     '<div class="ws-page-head__actions"><a class="ws-btn" href="organizations.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>' +
@@ -3316,7 +3329,8 @@ const Store = (function () {
                 overview.innerHTML = '<div class="ws-detail-grid"><div class="ws-detail-grid__main">' +
                     '<h3 class="ws-subhead">Thông tin đơn vị</h3><dl class="ws-detail-list">' +
                     '<dt>Mã đơn vị</dt><dd>' + util.escape(org.code) + '</dd>' +
-                    '<dt>Loại hình</dt><dd>' + util.escape(LABELS.orgType[org.type] || org.type) + '</dd>' +
+                    '<dt>Loại hình</dt><dd>' + util.escape(Store.organizationTypeName(org.type)) + '</dd>' +
+                    '<dt>Cấp quản lý</dt><dd>' + util.escape(Store.managementLevelName(org.managementLevel) || '—') + '</dd>' +
                     '<dt>Cơ quan chủ quản</dt><dd>' + util.escape(parent ? parent.name : '—') + '</dd>' +
                     '<dt>Người đại diện</dt><dd>' + util.escape(org.head || '—') + '</dd>' +
                     '<dt>Địa chỉ</dt><dd>' + util.escape(org.address || '—') + '</dd>' +

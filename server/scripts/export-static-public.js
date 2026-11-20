@@ -43,14 +43,16 @@ function mapArticle(row) {
 }
 
 /* Hình dạng dưới đây phải khớp /api/public/* để bản xuất tĩnh dùng được khi mất mạng */
-function mapLegal(row) {
+function mapLegal(row, labels) {
   return {
     id: row.id,
     code: row.code,
     title: row.title,
     docNumber: row.doc_number,
     docType: row.doc_type,
+    docTypeName: labels.get(`doc_type:${row.doc_type}`) || row.doc_type || '',
     legalField: row.legal_field || '',
+    legalFieldName: labels.get(`legal_field:${row.legal_field}`) || row.legal_field || '',
     issuedAt: row.issued_at,
     effectiveAt: row.effective_at,
     expiryAt: row.expiry_at || null,
@@ -84,14 +86,16 @@ function mapEvent(row) {
   };
 }
 
-function mapAgency(row) {
+function mapAgency(row, labels) {
   return {
     id: row.id,
     slug: row.slug || '',
     name: row.name,
     shortName: row.short_name,
     roleType: row.role_type,
+    roleTypeName: labels.get(`agency_type:${row.role_type}`) || row.role_type || '',
     managementLevel: row.management_level || '',
+    managementLevelName: labels.get(`management_level:${row.management_level}`) || row.management_level || '',
     logo: row.logo_url || '',
     address: row.address,
     phone: row.phone,
@@ -107,14 +111,15 @@ function mapAgency(row) {
 }
 
 /** Cơ sở y tế, điểm tư vấn – chỉ bản ghi đã công khai */
-function mapSupport(row) {
+function mapSupport(row, labels) {
   let services = [];
   if (row.services) {
     try { const a = JSON.parse(row.services); if (Array.isArray(a)) services = a; } catch (_) { services = []; }
   }
   return {
     id: row.id, code: row.code || '', name: row.name, type: row.type,
-    district: row.district || '', ward: row.ward || '', city: row.city || 'Thành phố Hồ Chí Minh',
+    typeName: labels.get(`facility_type:${row.type}`) || row.type || '',
+    ward: row.ward || '', city: row.city || 'Thành phố Hồ Chí Minh',
     address: row.address, phone: row.phone, email: row.email || '', website: row.website || '',
     hours: row.hours, contactPerson: row.contact_person || '',
     latitude: row.latitude != null ? Number(row.latitude) : null,
@@ -128,6 +133,12 @@ function mapSupport(row) {
 }
 
 function collectPublicData() {
+  const allCategoryRows = db.prepare(`SELECT category_type AS categoryType, code, name
+      FROM system_categories`).all();
+  const categoryRows = db.prepare(`SELECT category_type AS categoryType, code, name, description,
+      sort_order AS sortOrder FROM system_categories WHERE status = 'active'
+      ORDER BY category_type, sort_order, name`).all();
+  const labels = new Map(allCategoryRows.map((row) => [`${row.categoryType}:${row.code}`, row.name]));
   const articles = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug,
       c.group_key AS category_group
     FROM articles a
@@ -142,14 +153,14 @@ function collectPublicData() {
     ORDER BY c.sort_order, c.name`).all().map((row) => mapper.category(row));
 
   const legalDocuments = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC')
-    .all().filter((r) => r.is_public !== 0 && r.status !== 'inactive').map(mapLegal);
+    .all().filter((r) => r.is_public !== 0 && r.status !== 'inactive').map((row) => mapLegal(row, labels));
   const events = db.prepare(`SELECT * FROM public_events
     ORDER BY start_at DESC`).all()
     .filter((r) => (r.publish_status || 'published') === 'published' && r.status !== 'inactive')
     .map(mapEvent);
   const agencies = db.prepare(`SELECT * FROM public_agencies
     WHERE status <> 'inactive'
-    ORDER BY sort_order`).all().map(mapAgency);
+    ORDER BY sort_order`).all().map((row) => mapAgency(row, labels));
 
   const periods = db.prepare('SELECT * FROM statistics_periods ORDER BY created_at DESC').all();
   const metricRows = db.prepare('SELECT * FROM statistics_items ORDER BY period_id, sort_order').all();
@@ -172,7 +183,7 @@ function collectPublicData() {
   const supportFacilities = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
     LEFT JOIN organizations o ON o.id = s.org_id
     WHERE s.status <> 'inactive'
-    ORDER BY s.name`).all().filter((row) => (row.publish_status || 'published') === 'published').map(mapSupport);
+    ORDER BY s.name`).all().filter((row) => (row.publish_status || 'published') === 'published').map((row) => mapSupport(row, labels));
 
 
   const banners = db.prepare(`SELECT * FROM banners
@@ -196,6 +207,7 @@ function collectPublicData() {
     articles,
     categories,
     legalDocuments,
+    systemCategories: categoryRows,
     events,
     agencies,
     statistics,

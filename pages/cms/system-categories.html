@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>QUẢN LÝ DANH MỤC | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/main.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/cms.css">
+    <script src="../../js/main.js" defer></script>
+    <script src="../../js/api.js" defer></script>
+    <script src="../../js/cms.js" defer></script>
+    <script src="../../js/system-categories.js" defer></script>
+</head>
+<body class="cms-body">
+    <div class="cms-app">
+        <aside class="cms-sidebar" id="cms-sidebar" aria-label="Điều hướng quản trị"></aside>
+        <div class="cms-shell">
+            <header class="cms-header">
+                <button type="button" class="cms-header__toggle" id="cms-menu-toggle" aria-label="Mở menu điều hướng" aria-expanded="false">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="cms-header__left">
+                    <nav aria-label="Đường dẫn"><ol class="cms-breadcrumb" id="cms-breadcrumb"></ol></nav>
+                    <p class="cms-header__title" id="cms-page-title">Quản lý danh mục</p>
+                </div>
+                <div class="cms-header__right">
+                    <span id="cms-notifications"></span>
+                    <span id="cms-user-host"></span>
+                </div>
+            </header>
+            <main class="cms-main">
+                <div class="cms-main__inner">
+                    <div class="cms-page-head">
+                        <div class="cms-page-head__text">
+                            <h1 class="cms-page-head__title">Quản lý danh mục</h1>
+                            <p class="cms-page-head__desc">Các lựa chọn nghiệp vụ được lưu trong cơ sở dữ liệu và dùng chung giữa CMS, Workspace và Cổng thông tin.</p>
+                        </div>
+                        <div class="cms-page-head__actions">
+                            <a class="cms-btn" href="categories.html"><i class="fa-solid fa-folder-tree" aria-hidden="true"></i> Chuyên mục bài viết</a>
+                            <a class="cms-btn" href="../workspace/organizations.html"><i class="fa-solid fa-building" aria-hidden="true"></i> Đơn vị tham gia</a>
+                        </div>
+                    </div>
+
+                    <section class="cms-card">
+                        <div class="cms-card__head">
+                            <div>
+                                <h2 class="cms-card__title">Danh mục nghiệp vụ</h2>
+                                <p class="cms-u-text-muted cms-u-mt-xs">Chỉ danh mục được tạo trong hệ thống mới xuất hiện trong các biểu mẫu.</p>
+                            </div>
+                            <button type="button" class="cms-btn cms-btn--primary" id="system-category-create">
+                                <i class="fa-solid fa-plus" aria-hidden="true"></i> Thêm danh mục
+                            </button>
+                        </div>
+                        <div class="cms-card__body">
+                            <div class="system-category-filters">
+                                <label class="cms-field">
+                                    <span class="cms-label">Nhóm danh mục</span>
+                                    <select class="cms-select" id="system-category-type"></select>
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Tìm kiếm</span>
+                                    <input class="cms-input" id="system-category-search" type="search" placeholder="Tên, mã hoặc mô tả">
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Trạng thái</span>
+                                    <select class="cms-select" id="system-category-status">
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="active">Đang sử dụng</option>
+                                        <option value="inactive">Ngừng sử dụng</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div id="system-category-summary" class="cms-u-text-muted cms-u-mb-md" aria-live="polite"></div>
+                            <div id="system-category-table"><div class="cms-state">Đang tải danh mục…</div></div>
+                        </div>
+                    </section>
+
+                    <dialog id="system-category-dialog" class="system-category-dialog">
+                        <form id="system-category-form" method="dialog">
+                            <div class="cms-card__head">
+                                <h2 class="cms-card__title" id="system-category-dialog-title">Thêm danh mục</h2>
+                                <button type="button" class="cms-btn cms-btn--ghost" id="system-category-close" aria-label="Đóng">
+                                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <div class="system-category-dialog__body">
+                                <label class="cms-field">
+                                    <span class="cms-label">Nhóm danh mục</span>
+                                    <select class="cms-select" id="system-category-form-type" required></select>
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Mã danh mục</span>
+                                    <input class="cms-input" id="system-category-form-code" maxlength="100" placeholder="Tự tạo từ tên nếu để trống">
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Tên danh mục <span class="cms-label__req">*</span></span>
+                                    <input class="cms-input" id="system-category-form-name" maxlength="200" required>
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Thứ tự hiển thị</span>
+                                    <input class="cms-input" id="system-category-form-order" type="number" step="1" value="0">
+                                </label>
+                                <label class="cms-field">
+                                    <span class="cms-label">Mô tả</span>
+                                    <textarea class="cms-textarea" id="system-category-form-description" rows="3" maxlength="1000"></textarea>
+                                </label>
+                                <label class="cms-field system-category-dialog__status">
+                                    <span class="cms-label">Trạng thái</span>
+                                    <select class="cms-select" id="system-category-form-status">
+                                        <option value="active">Đang sử dụng</option>
+                                        <option value="inactive">Ngừng sử dụng</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="system-category-dialog__actions">
+                                <button type="button" class="cms-btn" id="system-category-cancel">Hủy</button>
+                                <button type="submit" class="cms-btn cms-btn--primary">Lưu danh mục</button>
+                            </div>
+                        </form>
+                    </dialog>
+                    <footer class="cms-main__footer">
+                        <div class="cms-main__footer-inner">
+                            <p>© <span class="cms-year">2026</span> Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh.</p>
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

@@ -131,7 +131,7 @@ Chi tiết và các giới hạn bảo mật được ghi trong [`SECURITY.md`](
 
 Để lấy thông tin tài khoản khởi tạo, chạy CLI `npm run db:seed` trước lần chạy server đầu tiên. Lệnh seed CLI tạo tệp bàn giao `server/data/credentials.local.txt` khi có tài khoản mới; cơ chế tự seed của server không xuất tệp bàn giao này.
 
-Seed mặc định chỉ tạo phần hệ thống. Nội dung nghiệp vụ mẫu không tự xuất hiện trên PUBLIC; có thể nạp dữ liệu mẫu bằng cờ `--with-demo` trong môi trường thử nghiệm.
+Seed mặc định chỉ tạo tài khoản và cấu hình hệ thống. Nội dung nghiệp vụ mẫu không tự xuất hiện trên PUBLIC; dữ liệu mẫu cho sáu nhóm nội dung chỉ được nạp riêng bằng `npm run demo:seed` và có thể gỡ bằng `npm run demo:purge -- --yes`.
 
 ## Nguyên tắc thiết kế và giới hạn
 

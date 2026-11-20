@@ -10,34 +10,36 @@
    ========================================================================== */
 
 .ws-body {
-  --ws-sidebar-width: 268px;
-  --ws-sidebar-collapsed: 76px;
-  --ws-header-height: 66px;
-  --ws-content-max: 1480px;
-  --ws-gutter: 1.75rem;
-  --ws-radius-card: 12px;
-  --ws-radius-control: 8px;
+  --ws-sidebar-width: var(--admin-sidebar-width);
+  --ws-sidebar-collapsed: var(--admin-sidebar-collapsed);
+  --ws-header-height: var(--admin-header-height);
+  --ws-content-max: var(--admin-content-max);
+  --ws-gutter: var(--admin-gutter);
+  --ws-radius-card: var(--admin-card-radius);
+  --ws-radius-control: var(--admin-control-radius);
 
-  --ws-canvas: #f4f7fb;
+  --ws-canvas: var(--admin-canvas);
   --ws-surface: var(--bg-surface);
   --ws-border: var(--border-color);
   --ws-border-soft: #eef2f7;
 
-  --ws-sidebar-bg: #0c2b4e;
-  --ws-sidebar-bg-deep: #071e38;
-  --ws-sidebar-text: rgba(255, 255, 255, 0.76);
-  --ws-sidebar-text-strong: #ffffff;
-  --ws-sidebar-heading: rgba(255, 255, 255, 0.42);
-  --ws-sidebar-divider: rgba(255, 255, 255, 0.09);
-  --ws-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --ws-sidebar-active: rgba(56, 189, 248, 0.16);
+  --ws-sidebar-bg: var(--admin-sidebar-bg);
+  --ws-sidebar-bg-deep: var(--admin-sidebar-bg-deep);
+  --ws-sidebar-text: var(--admin-sidebar-text);
+  --ws-sidebar-text-strong: var(--text-light);
+  --ws-sidebar-heading: var(--admin-sidebar-heading);
+  --ws-sidebar-divider: var(--admin-sidebar-divider);
+  --ws-sidebar-hover: var(--admin-sidebar-hover);
+  --ws-sidebar-active: var(--admin-sidebar-active);
 
-  --ws-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 26px -20px rgba(15, 23, 42, 0.22);
-  --ws-shadow-raised: 0 22px 48px -28px rgba(15, 23, 42, 0.4);
+  --ws-shadow-card: var(--admin-shadow-card);
+  --ws-shadow-raised: var(--admin-shadow-raised);
   --ws-focus: 0 0 0 3px var(--ring-primary);
 
   --ws-text-strong: var(--text-heading);
   --ws-text-soft: var(--text-muted);
+  --ws-text-muted: var(--text-muted);
+  --ws-primary: var(--color-primary);
 }
 
 /* ==========================================================================
@@ -50,7 +52,7 @@
   background-color: var(--ws-canvas);
   color: var(--text-body);
   font-size: var(--fs-base);
-  line-height: 1.55;
+  line-height: var(--admin-line-height);
   overflow-x: hidden;
 }
 
@@ -70,7 +72,7 @@
 
 .ws-main {
   flex: 1 1 auto;
-  padding: 1.4rem var(--ws-gutter) 2.25rem;
+  padding: 1.5rem var(--ws-gutter) 2.5rem;
 }
 
 .ws-main__inner {
@@ -294,7 +296,7 @@
   font-weight: 700;
   line-height: 1.6;
   text-align: center;
-  color: #0b2545;
+  color: var(--admin-sidebar-bg);
   background-color: var(--color-primary-light);
   border-radius: var(--radius-full);
 }
@@ -455,10 +457,10 @@
   z-index: 15;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: var(--admin-header-gap);
   min-height: var(--ws-header-height);
-  padding: 0.5rem var(--ws-gutter);
-  background-color: rgba(255, 255, 255, 0.96);
+  padding: var(--admin-header-padding-block) var(--ws-gutter);
+  background-color: var(--glass-surface);
   border-bottom: 1px solid var(--ws-border);
   backdrop-filter: saturate(180%) blur(8px);
 }
@@ -1899,10 +1901,11 @@
 .ws-input,
 .ws-textarea {
   width: 100%;
-  padding: 0.5rem 0.7rem;
-  font-size: var(--fs-sm);
-  color: var(--text-body);
-  background-color: #fff;
+  height: var(--admin-control-height);
+  padding: 0 var(--admin-control-padding-inline);
+  font-size: var(--fs-base);
+  color: var(--text-heading);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--ws-radius-control);
   outline: none;
@@ -1910,7 +1913,6 @@
 }
 
 .ws-select {
-  height: 36px;
   padding-right: 1.8rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M6 8 0 2 1.4.6 6 5.2 10.6.6 12 2z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1940,10 +1942,16 @@
   font-size: var(--fs-xs);
 }
 
+.ws-select:hover,
+.ws-input:hover,
+.ws-textarea:hover {
+  border-color: var(--color-primary-light);
+}
+
 .ws-select:focus,
 .ws-input:focus,
 .ws-textarea:focus {
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
   box-shadow: var(--ws-focus);
 }
 
@@ -1955,7 +1963,9 @@
 }
 
 .ws-textarea {
-  min-height: 90px;
+  height: auto;
+  min-height: 96px;
+  padding: 0.6rem var(--admin-control-padding-inline);
   line-height: 1.6;
   resize: vertical;
 }
@@ -3075,7 +3085,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: #0b2545;
+  color: var(--admin-sidebar-bg);
   background: linear-gradient(135deg, var(--color-primary-light), #7dd3fc);
   border-radius: 50%;
 }
@@ -4430,16 +4440,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 36px;
-  padding: 0.4rem 0.85rem;
-  font-size: var(--fs-sm);
+  gap: 0.45rem;
+  min-height: var(--admin-button-height);
+  padding: 0 var(--admin-button-padding-inline);
+  font-size: var(--fs-base);
   font-weight: 600;
   line-height: 1.2;
-  color: var(--text-slate);
+  color: var(--text-body);
   text-decoration: none;
   white-space: nowrap;
-  background-color: #fff;
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--ws-radius-control);
   transition: var(--transition);
@@ -4454,6 +4464,11 @@
 .ws-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.ws-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ws-focus);
 }
 
 .ws-btn--primary {
@@ -4776,10 +4791,6 @@
 
 /* --- Laptop 14" (≤ 1440px) --- */
 @media (max-width: 1440px) {
-  .ws-body {
-    --ws-gutter: 1.4rem;
-  }
-
   .ws-table {
     min-width: 820px;
     table-layout: fixed;
@@ -4832,10 +4843,6 @@
 
 /* --- Tablet (≤ 1024px): sidebar thu gọn thành drawer --- */
 @media (max-width: 1024px) {
-  .ws-body {
-    --ws-gutter: 1.1rem;
-  }
-
   .ws-sidebar {
     position: fixed;
     top: 0;
@@ -4862,11 +4869,7 @@
   }
 
   .ws-header {
-    padding-inline: 1rem;
-  }
-
-  .ws-main {
-    padding: 1.15rem var(--ws-gutter) 2rem;
+    padding-inline: var(--ws-gutter);
   }
 
   .ws-stats {
@@ -4942,6 +4945,10 @@
 
 /* --- Mobile (≤ 768px) --- */
 @media (max-width: 768px) {
+  .ws-main {
+    padding-top: 1rem;
+  }
+
   .ws-table-wrap {
     overflow-x: hidden;
   }
@@ -5352,8 +5359,8 @@
 .ws-spinner {
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(15, 118, 110, 0.22);
-    border-top-color: var(--ws-primary, #0f766e);
+    border: 2px solid var(--ring-primary-strong);
+    border-top-color: var(--color-primary);
     border-radius: 50%;
     animation: ws-spin 0.7s linear infinite;
     flex: 0 0 auto;

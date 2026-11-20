@@ -867,7 +867,48 @@
         if (!host) return;
         setLoading(host, 'Đang tải văn bản pháp luật…');
         try {
-            const docs = asList(await api.get('/api/public/legal-documents'), 'văn bản pháp luật');
+            const [docs, typeCategories, fieldCategories] = await Promise.all([
+                api.get('/api/public/legal-documents'),
+                api.get('/api/public/system-categories?type=doc_type'),
+                api.get('/api/public/system-categories?type=legal_field'),
+            ]);
+            asList(docs, 'văn bản pháp luật');
+            asList(typeCategories, 'loại văn bản');
+            asList(fieldCategories, 'lĩnh vực pháp luật');
+            const typeLabels = new Map(typeCategories.map((category) => [category.code, category.name]));
+            const fieldLabels = new Map(fieldCategories.map((category) => [category.code, category.name]));
+            const counts = docs.reduce((result, doc) => {
+                if (doc.docType) result[doc.docType] = (result[doc.docType] || 0) + 1;
+                return result;
+            }, {});
+            const fieldCounts = docs.reduce((result, doc) => {
+                if (doc.legalField) result[doc.legalField] = (result[doc.legalField] || 0) + 1;
+                return result;
+            }, {});
+            const labelWithCount = (label, count) => docs.length ? `${label} (${count})` : label;
+            const fieldSelect = document.getElementById('lw-topic-select');
+            if (fieldSelect) {
+                fieldSelect.textContent = '';
+                const allFields = document.createElement('option');
+                allFields.value = 'all';
+                allFields.textContent = 'Tất cả lĩnh vực quy định';
+                fieldSelect.appendChild(allFields);
+                fieldCategories.forEach((category) => {
+                    const option = document.createElement('option');
+                    option.value = category.code;
+                    option.textContent = labelWithCount(category.name, fieldCounts[category.code] || 0);
+                    fieldSelect.appendChild(option);
+                });
+            }
+            const tabsHost = document.getElementById('lw-type-tabs');
+            if (tabsHost) {
+                tabsHost.innerHTML = `<button type="button" class="lw-tab-btn is-active" aria-selected="true" data-doctype="all">
+                    ${esc(labelWithCount('Tất cả văn bản', docs.length))}
+                </button>` + typeCategories.map((category) => `
+                    <button type="button" class="lw-tab-btn" aria-selected="false" data-doctype="${esc(category.code)}">
+                        ${esc(labelWithCount(category.name, counts[category.code] || 0))}
+                    </button>`).join('');
+            }
             if (!docs.length) {
                 setEmpty(host, 'Chưa có văn bản pháp luật nào được công bố.');
                 toggleEmptyState('lw-empty-state', false);
@@ -875,49 +916,16 @@
                 return;
             }
 
-            const TYPE_LABEL = {
-                'luat': 'Luật', 'bo-luat': 'Bộ luật', 'nghi-dinh': 'Nghị định',
-                'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị', 'van-ban-tphcm': 'Văn bản TP.HCM',
-            };
-            /* Nhãn tab: giữ nhóm “Luật / Bộ luật” gộp hai loại như tab mặc định của trang */
-            const TAB_LABEL = {
-                'luat': 'Luật / Bộ luật',
-                'nghi-dinh': 'Nghị định',
-                'thong-tu': 'Thông tư',
-                'van-ban-tphcm': 'Văn bản TP.HCM',
-                'chi-thi': 'Chỉ thị',
-            };
-
-            /* Dựng lại toàn bộ tab loại văn bản từ dữ liệu thật (không để cố định trong HTML) */
-            const tabsHost = document.getElementById('lw-type-tabs');
-            if (tabsHost) {
-                const counts = {};
-                docs.forEach((d) => {
-                    const key = d.docType === 'bo-luat' ? 'luat' : d.docType;
-                    if (!key) return;
-                    counts[key] = (counts[key] || 0) + 1;
-                });
-                const order = ['luat', 'nghi-dinh', 'thong-tu', 'van-ban-tphcm', 'chi-thi'];
-                const extra = Object.keys(counts).filter((k) => order.indexOf(k) === -1);
-                tabsHost.innerHTML = `<button type="button" class="lw-tab-btn is-active" data-doctype="all">
-                        Tất cả văn bản (${docs.length})
-                    </button>` + [...order, ...extra]
-                    .filter((key) => counts[key])
-                    .map((key) => `<button type="button" class="lw-tab-btn" data-doctype="${esc(key)}">
-                        ${esc(TAB_LABEL[key] || key)} (${counts[key]})
-                    </button>`).join('');
-            }
-
             /* Danh sách do API cung cấp; báo main.js lập lại chỉ mục bộ lọc/tìm kiếm. */
             host.innerHTML = docs.map((d) => `
-                <article class="lw-doc-card" data-doctype="${esc(d.docType)}" data-topic="all">
+                <article class="lw-doc-card" data-doctype="${esc(d.docType)}" data-topic="${esc(d.legalField || 'all')}">
                     <div class="lw-doc-card__top">
                         <div class="lw-doc-card__badges">
                             <span class="lw-doc-code">
                                 <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                                 ${esc(d.docNumber || d.code)}
                             </span>
-                            <span class="lw-doc-type">${esc(TYPE_LABEL[d.docType] || d.docType)}</span>
+                            <span class="lw-doc-type">${esc(d.docTypeName || typeLabels.get(d.docType) || d.docType || '')}${d.legalField ? ` · ${esc(d.legalFieldName || fieldLabels.get(d.legalField) || d.legalField)}` : ''}</span>
                         </div>
                         ${lawStatusBadge(d)}
                     </div>
@@ -939,12 +947,55 @@
 
             /* Cập nhật số lượng trên tab "Tất cả văn bản" */
             const tab = document.querySelector('.lw-tab-btn[data-doctype="all"]');
-            if (tab) tab.textContent = `Tất cả văn bản (${docs.length})`;
+            if (tab) tab.textContent = labelWithCount('Tất cả văn bản', docs.length);
             const countEl = document.getElementById('lw-result-count');
             if (countEl) countEl.textContent = `Hiển thị ${docs.length} văn bản quy phạm pháp luật`;
             refreshStaticPage(host);
         } catch (err) {
             setError(host, err.message);
+        }
+    }
+
+    async function initContactTopics() {
+        const select = document.getElementById('ct-topic');
+        if (!select) return;
+        const status = document.getElementById('ct-topic-status');
+        const submitButton = document.getElementById('ct-submit-btn');
+        const setStatus = (message) => {
+            if (!status) return;
+            status.textContent = message;
+            status.hidden = !message;
+        };
+        try {
+            const rows = asList(await api.get('/api/public/system-categories?type=contact_topic'), 'nhóm nội dung liên hệ');
+            select.textContent = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = rows.length ? 'Chọn nhóm nội dung liên hệ' : 'Chưa có nhóm nội dung liên hệ';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            select.appendChild(placeholder);
+            rows.forEach((row) => {
+                const option = document.createElement('option');
+                option.value = row.code;
+                option.textContent = row.name;
+                select.appendChild(option);
+            });
+            select.disabled = rows.length === 0;
+            if (submitButton) submitButton.disabled = rows.length === 0;
+            setStatus(rows.length ? '' : 'Hiện chưa có lựa chọn liên hệ đang sử dụng. Vui lòng liên hệ quản trị viên.');
+        } catch (error) {
+            select.textContent = '';
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Không thể tải nhóm nội dung liên hệ';
+            option.disabled = true;
+            option.selected = true;
+            select.appendChild(option);
+            select.disabled = true;
+            if (submitButton) submitButton.disabled = true;
+            setStatus('Không thể tải nhóm nội dung liên hệ. Vui lòng tải lại trang hoặc thử lại sau.');
+            console.error('[public] Không tải được nhóm nội dung liên hệ:', error);
         }
     }
 
@@ -1080,7 +1131,7 @@
             setText('agd-summary', o.description || '');
             setText('agd-address', o.address || '—');
             setText('agd-hotline', o.phone || '—');
-            setText('agd-scope', 'Toàn Thành phố Hồ Chí Minh');
+            setText('agd-scope', o.managementLevelName || 'Chưa phân loại');
             setText('agd-hours', 'Trong giờ hành chính (thứ Hai – thứ Sáu)');
 
             /* Thông tin liên hệ dạng liên kết hành động */
@@ -1326,17 +1377,6 @@
 
     /* -------------------------- Cơ quan - đơn vị ---------------------------- */
 
-    /* Nhãn hiển thị cho loại hình cơ quan (giá trị khóa do CMS quản lý) */
-    const AGENCY_ROLE_LABELS = {
-        coordination: 'Chỉ đạo & Chuyên trách', enforcement: 'Lực lượng nòng cốt',
-        health: 'Y tế & Điều trị', education: 'Giáo dục - Tuyên truyền',
-        association: 'Mặt trận & Đoàn thể', local: 'Chính quyền cơ sở',
-        rehab: 'Cơ sở cai nghiện', treatment: 'Cơ sở điều trị',
-    };
-    const AGENCY_LEVEL_LABELS = {
-        'thanh-pho': 'Cấp Thành phố', 'so-nganh': 'Cấp sở, ngành',
-        'quan-huyen': 'Cấp quận, huyện', 'phuong-xa': 'Cấp phường, xã',
-    };
     const AGENCY_ICONS = {
         coordination: 'fa-shield-halved', enforcement: 'fa-building-shield',
         health: 'fa-hospital', education: 'fa-graduation-cap',
@@ -1357,22 +1397,54 @@
         if (!host) return;
         setLoading(host, 'Đang tải danh bạ cơ quan, đơn vị…');
         try {
-            const list = asList(await api.get('/api/public/agencies'), 'cơ quan, đơn vị');
+            const [listResult, roleResult, levelResult] = await Promise.all([
+                api.get('/api/public/agencies'),
+                api.get('/api/public/system-categories?type=agency_type'),
+                api.get('/api/public/system-categories?type=management_level'),
+            ]);
+            const list = asList(listResult, 'cơ quan, đơn vị');
+            const roleCategories = asList(roleResult, 'loại hình cơ quan');
+            const levelCategories = asList(levelResult, 'cấp quản lý');
+            const roleLabels = new Map(roleCategories.map((category) => [category.code, category.name]));
+            const levelLabels = new Map(levelCategories.map((category) => [category.code, category.name]));
             const tabsHost = document.getElementById('ag-group-tabs');
             const areaSelect = document.getElementById('ag-area-select');
             const legend = document.getElementById('ag-legend');
+            const allRoles = roleCategories.map((category) => category.code);
+            const allLevels = levelCategories.map((category) => category.code);
+            const roleOf = (o) => o.roleType || '';
+            const levelOf = (o) => o.managementLevel || '';
+            const countBy = (keyFn) => list.reduce((acc, o) => {
+                const key = keyFn(o);
+                if (key) acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+            const roleCounts = countBy(roleOf);
+            const levelCounts = countBy(levelOf);
+            const labelWithCount = (label, count) => list.length ? `${label} (${count})` : label;
+            const roleOrder = allRoles.concat(Object.keys(roleCounts).filter((key) => !roleLabels.has(key)));
+            const levelOrder = allLevels.concat(Object.keys(levelCounts).filter((key) => !levelLabels.has(key)));
+
+            if (tabsHost) {
+                tabsHost.innerHTML = `<button type="button" class="ag-tab-btn is-active" aria-selected="true" data-group="all">
+                    ${esc(labelWithCount('Tất cả đơn vị', list.length))}
+                </button>` + roleOrder.map((key) => `
+                    <button type="button" class="ag-tab-btn" aria-selected="false" data-group="${esc(key)}">
+                        ${esc(labelWithCount(roleLabels.get(key) || key, roleCounts[key] || 0))}
+                    </button>`).join('');
+            }
+            if (areaSelect) {
+                areaSelect.innerHTML = '<option value="all">Tất cả cấp quản lý</option>' + levelOrder.map((key) =>
+                    `<option value="${esc(key)}">${esc(labelWithCount(levelLabels.get(key) || key, levelCounts[key] || 0))}</option>`).join('');
+                areaSelect.value = 'all';
+            }
 
             if (!list.length) {
                 setEmpty(host, 'Chưa có cơ quan, đơn vị nào được công bố.');
-                if (tabsHost) tabsHost.innerHTML = '<button type="button" class="ag-tab-btn is-active" data-group="all">Tất cả đơn vị</button>';
-                if (areaSelect) areaSelect.innerHTML = '<option value="all">Tất cả cấp quản lý</option>';
                 toggleEmptyState('ag-empty-state', false);
                 refreshStaticPage(host);
                 return;
             }
-
-            const roleOf = (o) => o.roleType || '';
-            const levelOf = (o) => o.managementLevel || '';
 
             host.innerHTML = list.map((o) => `
                 <article class="ag-card" data-group="${esc(roleOf(o))}" data-level="${esc(levelOf(o))}"
@@ -1382,7 +1454,7 @@
                             <div class="ag-card__icon">
                                 <i class="fa-solid ${AGENCY_ICONS[roleOf(o)] || 'fa-building-shield'}" aria-hidden="true"></i>
                             </div>
-                            <span class="ag-card__badge">${esc(AGENCY_ROLE_LABELS[roleOf(o)] || 'Đơn vị')}</span>
+                            <span class="ag-card__badge">${esc(o.roleTypeName || roleLabels.get(roleOf(o)) || roleOf(o))}</span>
                         </div>
                         <h2 class="ag-card__title">
                             <a href="agency-detail.html?id=${encodeURIComponent(o.id)}">${esc(o.name)}</a>
@@ -1395,7 +1467,7 @@
                         </ul>
                     </div>
                     <div class="ag-card__footer">
-                        <span class="ag-card__scope">${esc(AGENCY_LEVEL_LABELS[levelOf(o)] || 'Phạm vi: Toàn Thành phố')}</span>
+                        <span class="ag-card__scope">${esc(o.managementLevelName || levelLabels.get(levelOf(o)) || levelOf(o) || 'Chưa phân loại')}</span>
                         <a href="agency-detail.html?id=${encodeURIComponent(o.id)}" class="ag-card__link">
                             Xem hồ sơ đơn vị <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                         </a>
@@ -1403,37 +1475,10 @@
                 </article>`).join('');
             host.removeAttribute('aria-busy');
 
-            /* --- Bộ lọc theo loại hình: chỉ hiện loại hình thực có dữ liệu --- */
-            const countBy = (keyFn) => list.reduce((acc, o) => {
-                const k = keyFn(o);
-                if (k) acc[k] = (acc[k] || 0) + 1;
-                return acc;
-            }, {});
-            const roleCounts = countBy(roleOf);
-            const roleOrder = Object.keys(AGENCY_ROLE_LABELS).filter((k) => roleCounts[k])
-                .concat(Object.keys(roleCounts).filter((k) => !(k in AGENCY_ROLE_LABELS)));
-            if (tabsHost) {
-                tabsHost.innerHTML = `<button type="button" class="ag-tab-btn is-active" data-group="all">
-                        Tất cả đơn vị (${list.length})
-                    </button>` + roleOrder.map((key) => `
-                    <button type="button" class="ag-tab-btn" data-group="${esc(key)}">
-                        ${esc(AGENCY_ROLE_LABELS[key] || key)} (${roleCounts[key]})
-                    </button>`).join('');
-            }
-
-            /* --- Bộ lọc theo cấp quản lý, cũng từ dữ liệu thật --- */
-            const levelCounts = countBy(levelOf);
-            if (areaSelect) {
-                const levelOrder = Object.keys(AGENCY_LEVEL_LABELS).filter((k) => levelCounts[k])
-                    .concat(Object.keys(levelCounts).filter((k) => !(k in AGENCY_LEVEL_LABELS)));
-                areaSelect.innerHTML = '<option value="all">Tất cả cấp quản lý</option>' + levelOrder.map((key) =>
-                    `<option value="${esc(key)}">${esc(AGENCY_LEVEL_LABELS[key] || key)} (${levelCounts[key]})</option>`).join('');
-                areaSelect.value = 'all';
-            }
-
+            /* Bộ lọc hiển thị danh mục CMS và số bản ghi tương ứng. */
             if (legend) {
                 legend.innerHTML = roleOrder.slice(0, 4).map((key) =>
-                    `<span><i class="ag-dot ag-dot--gov"></i> ${esc(AGENCY_ROLE_LABELS[key] || key)}</span>`).join('');
+                    `<span><i class="ag-dot ag-dot--gov"></i> ${esc(roleLabels.get(key) || key)}</span>`).join('');
             }
 
             /* --- Lọc kết hợp: loại hình + cấp quản lý + tìm kiếm --- */
@@ -1516,18 +1561,9 @@
 
     /* --------------------------- Hỗ trợ cai nghiện -------------------------- */
 
-    const SUPPORT_TYPE_LABELS = {
-        methadone: 'Cơ sở điều trị Methadone',
-        'tu-van': 'Điểm tư vấn, hỗ trợ',
-        'co-so': 'Cơ sở điều trị, cai nghiện',
-        'co-so-tp': 'Cơ sở cai nghiện công lập',
-        'cong-dong': 'Tổ tư vấn cộng đồng',
-        'duong-day-nong': 'Đường dây nóng',
-    };
-
     /**
      * Trang Hỗ trợ – mô hình danh bạ/định vị dịch vụ.
-     * Toàn bộ cơ sở, loại hình và địa bàn lấy từ CMS; không có dữ liệu địa điểm
+     * Toàn bộ cơ sở và loại hình lấy từ CMS; không có dữ liệu địa điểm
      * nào được khai báo tĩnh trong HTML hay JavaScript.
      */
     async function initSupport() {
@@ -1535,11 +1571,20 @@
         if (!host) return;
         const input = document.getElementById('sup-search-input');
         const typeSelect = document.getElementById('sup-type-select');
-        const districtSelect = document.getElementById('sup-district-select');
         const searchBtn = document.getElementById('sup-search-btn');
         setLoading(host, 'Đang tải danh sách cơ sở y tế và điểm tư vấn…');
         try {
-            const list = asList(await api.get('/api/public/support-facilities'), 'cơ sở hỗ trợ');
+            const [listResult, typeResult] = await Promise.all([
+                api.get('/api/public/support-facilities'),
+                api.get('/api/public/system-categories?type=facility_type'),
+            ]);
+            const list = asList(listResult, 'cơ sở hỗ trợ');
+            const facilityTypes = asList(typeResult, 'loại hình cơ sở');
+            const typeLabels = new Map(facilityTypes.map((category) => [category.code, category.name]));
+            if (typeSelect) {
+                typeSelect.innerHTML = '<option value="all">Tất cả loại hình dịch vụ</option>' + facilityTypes.map((category) =>
+                    `<option value="${esc(category.code)}">${esc(category.name)}</option>`).join('');
+            }
             if (!list.length) {
                 setEmpty(host, 'Chưa có cơ sở y tế hoặc điểm tư vấn nào được công bố.');
                 return;
@@ -1552,18 +1597,6 @@
             const footerEl = document.getElementById('sup-methadone-footer');
             if (footerEl) footerEl.textContent = methadoneCount ? `CÓ TẠI ${methadoneCount} CƠ SỞ Y TẾ` : 'THEO DANH MỤC CƠ SỞ Y TẾ';
 
-            /* Danh mục lọc dựng từ dữ liệu thực có */
-            const types = [...new Set(list.map((f) => f.type).filter(Boolean))];
-            if (typeSelect) {
-                typeSelect.innerHTML = '<option value="all">Tất cả loại hình dịch vụ</option>' + types.map((t) =>
-                    `<option value="${esc(t)}">${esc(SUPPORT_TYPE_LABELS[t] || t)}</option>`).join('');
-            }
-            const districts = [...new Set(list.map((f) => f.district).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
-            if (districtSelect) {
-                districtSelect.innerHTML = '<option value="all">Tất cả địa bàn</option>' + districts.map((d) =>
-                    `<option value="${esc(d)}">${esc(d)}</option>`).join('');
-            }
-
             const card = (f) => {
                 const hasCoords = Number.isFinite(f.latitude) && Number.isFinite(f.longitude);
                 const directions = hasCoords
@@ -1573,12 +1606,12 @@
                 return `
                 <li class="sup-center-item">
                     <h3 class="sup-center-item__name">${esc(f.name)}</h3>
-                    ${f.type ? `<span class="sup-center-item__type">${esc(SUPPORT_TYPE_LABELS[f.type] || f.type)}</span>` : ''}
+                    ${f.type ? `<span class="sup-center-item__type">${esc(f.typeName || typeLabels.get(f.type) || f.type)}</span>` : ''}
                     ${f.managingOrg ? `<p class="sup-center-item__org"><i class="fa-solid fa-sitemap" aria-hidden="true"></i> ${esc(f.managingOrg)}</p>` : ''}
                     <p class="sup-center-item__desc">${esc(f.description || '')}</p>
                     ${f.services && f.services.length ? `<p class="sup-center-item__desc"><strong>Dịch vụ:</strong> ${esc(f.services.join(', '))}</p>` : ''}
                     <div class="sup-center-item__meta">
-                        <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(f.address || f.district || f.ward || '')}</span>
+                        <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(f.address || f.ward || f.city || '')}</span>
                         <span><i class="fa-solid fa-phone" aria-hidden="true"></i> ${phone}</span>
                         <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${esc(f.hours || '')}</span>
                     </div>
@@ -1592,11 +1625,9 @@
             const apply = () => {
                 const q = normalizeText(input ? input.value : '');
                 const type = typeSelect ? typeSelect.value : 'all';
-                const district = districtSelect ? districtSelect.value : 'all';
                 const rows = list.filter((f) => {
-                    const text = normalizeText(`${f.name} ${f.district || ''} ${f.ward || ''} ${f.address || ''} ${f.description || ''} ${(f.services || []).join(' ')}`);
+                    const text = normalizeText(`${f.name} ${f.ward || ''} ${f.address || ''} ${f.city || ''} ${f.description || ''} ${(f.services || []).join(' ')}`);
                     return (type === 'all' || f.type === type)
-                        && (district === 'all' || f.district === district)
                         && (!q || text.includes(q));
                 });
                 host.innerHTML = rows.length ? rows.map(card).join('')
@@ -1605,7 +1636,7 @@
 
             apply();
             if (input && !input.dataset.bound) { input.dataset.bound = '1'; input.addEventListener('input', apply); }
-            [typeSelect, districtSelect].forEach((sel) => {
+            [typeSelect].forEach((sel) => {
                 if (sel && !sel.dataset.bound) { sel.dataset.bound = '1'; sel.addEventListener('change', apply); }
             });
             if (searchBtn && !searchBtn.dataset.bound) {
@@ -1674,6 +1705,7 @@
         if (page === 'agencies.html') initAgencies();
         if (page === 'agency-detail.html') initAgencyDetail();
         if (page === 'support.html') initSupport();
+        if (page === 'contact.html') initContactTopics();
     };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
@@ -1681,7 +1713,7 @@
 
     window.PublicPages = {
         initNewsList, initNewsDetail, initEducation, initEducationDetail, initHomeEducation,
-        initStatistics, initEvents, initEventDetail, initAgencies, initAgencyDetail, initSupport,
+        initStatistics, initEvents, initEventDetail, initAgencies, initAgencyDetail, initSupport, initContactTopics,
         initFaqAccordion,
     };
 })();

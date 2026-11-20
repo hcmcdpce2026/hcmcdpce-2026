@@ -959,6 +959,7 @@ const Store = (function () {
         'content-editor.html': { title: 'Biên tập nội dung', icon: 'fa-pen-to-square', group: 'content', crumb: 'Biên tập nội dung', desc: 'Soạn thảo, kiểm soát thuộc tính và xuất bản bài viết.' },
         'categories.html': { title: 'Quản lý chuyên mục', icon: 'fa-folder-tree', group: 'content', crumb: 'Chuyên mục', desc: 'Tổ chức cấu trúc chuyên mục cha – con hiển thị trên Cổng thông tin.' },
         'public-catalog.html': { title: 'Nội dung công khai', icon: 'fa-building-columns', group: 'content', crumb: 'Nội dung công khai', desc: 'Quản lý văn bản, cơ quan, sự kiện, cơ sở hỗ trợ và số liệu công khai.' },
+        'system-categories.html': { title: 'Quản lý danh mục', icon: 'fa-list-check', group: 'config', crumb: 'Quản lý danh mục', desc: 'Quản lý các lựa chọn nghiệp vụ dùng chung trong CMS, Workspace và Cổng thông tin.' },
         'publishing-workflow.html': { title: 'Quy trình xuất bản', icon: 'fa-code-branch', group: 'workflow', crumb: 'Quy trình xuất bản', desc: 'Theo dõi, kiểm duyệt và phát hành nội dung theo từng bước nghiệp vụ.' },
         'media-library.html': { title: 'Thư viện tài nguyên', icon: 'fa-photo-film', group: 'media', crumb: 'Thư viện tài nguyên', desc: 'Quản lý hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin.' },
         'activity-log.html': { title: 'Nhật ký hoạt động', icon: 'fa-clock-rotate-left', group: 'system', crumb: 'Nhật ký hoạt động', desc: 'Tra cứu lịch sử thao tác của người dùng trong khu vực quản trị.' },
@@ -971,6 +972,7 @@ const Store = (function () {
         { id: 'content', label: 'Quản lý nội dung' },
         { id: 'workflow', label: 'Kiểm duyệt & xuất bản' },
         { id: 'media', label: 'Tài nguyên' },
+        { id: 'config', label: 'Cấu hình hệ thống' },
         { id: 'system', label: 'Hệ thống' }
     ];
 
@@ -1014,6 +1016,7 @@ const Store = (function () {
                 { group: 'content', file: 'content-editor.html', label: 'Tạo bài viết mới' },
                 { group: 'content', file: 'categories.html', label: 'Chuyên mục' },
                 { group: 'content', file: 'public-catalog.html', label: 'Nội dung công khai' },
+                { group: 'config', file: 'system-categories.html', label: 'Quản lý danh mục' },
                 { group: 'workflow', file: 'publishing-workflow.html', label: 'Quy trình xuất bản', badge: badgeFor('pending') },
                 { group: 'workflow', file: 'submissions.html', label: 'Tiếp nhận yêu cầu', badge: stats.submissions && stats.submissions.new ? `<span class="cms-nav-link__badge">${stats.submissions.new}</span>` : '' },
                 { group: 'media', file: 'media-library.html', label: 'Thư viện tài nguyên' },
@@ -3210,13 +3213,22 @@ const Store = (function () {
 
         /* ---------- Form tạo / sửa ---------- */
 
-        const openForm = (category) => {
+        const openForm = async (category) => {
             if (!canManage()) {
                 ui.toast('Vai trò hiện tại không có quyền quản lý chuyên mục.', 'error');
                 return;
             }
             const isEdit = !!category;
-            const data = category || { name: '', slug: '', parentId: '', description: '', status: 'active', order: '' };
+            const data = category || { name: '', slug: '', parentId: '', group: '', description: '', status: 'active', order: '' };
+            let groups;
+            try {
+                groups = await window.PortalAPI.get('/api/cms/system-categories?type=category_group');
+            } catch (err) {
+                ui.toast(err.message || 'Không tải được nhóm chuyên mục.', 'error');
+                return;
+            }
+            groups = (Array.isArray(groups) ? groups : [])
+                .filter((group) => group.status === 'active' || group.code === data.group);
 
             const parentOptions = allSorted()
                 .filter((c) => !isEdit || (c.id !== data.id && c.parentId !== data.id))
@@ -3238,6 +3250,13 @@ const Store = (function () {
                     '<div class="cms-field"><label class="cms-label" for="cat-parent">Chuyên mục cha</label>' +
                     '<select class="cms-select" id="cat-parent"><option value="">— Không có (chuyên mục cấp 1) —</option>' +
                     parentOptions + '</select></div>' +
+                    '<div class="cms-field"><label class="cms-label" for="cat-group">Nhóm chuyên mục <span class="cms-label__req">*</span></label>' +
+                    '<select class="cms-select" id="cat-group" required><option value="">— ' +
+                    (groups.length ? 'Chọn nhóm —' : 'Chưa có nhóm chuyên mục —') + '</option>' +
+                    groups.map((group) => '<option value="' + util.escape(group.code) + '"' +
+                        (group.code === data.group ? ' selected' : '') +
+                        (group.status !== 'active' ? ' disabled' : '') + '>' + util.escape(group.name) + '</option>').join('') +
+                    '</select></div>' +
                     '<div class="cms-field"><label class="cms-label" for="cat-order">Thứ tự hiển thị</label>' +
                     '<input type="number" class="cms-input" id="cat-order" min="1" max="99" value="' + (data.order || '') + '" placeholder="Tự động"></div>' +
                     '<div class="cms-field cms-field--full"><label class="cms-label" for="cat-desc">Mô tả</label>' +
@@ -3293,6 +3312,7 @@ const Store = (function () {
                     name: name,
                     slug: slug,
                     parentId: dlg.query('#cat-parent').value || null,
+                    group: dlg.query('#cat-group').value,
                     description: dlg.query('#cat-desc').value.trim(),
                     status: dlg.query('#cat-status').checked ? 'active' : 'inactive',
                     order: Number(dlg.query('#cat-order').value) || (isEdit ? data.order : Store.categories().length + 1)
@@ -3923,6 +3943,7 @@ const Store = (function () {
     const PublicCatalog = (function () {
         let kind = 'legal-documents';
         let rows = [];
+        const categoryCache = new Map();
 
         const TITLES = {
             'legal-documents': 'Văn bản pháp luật',
@@ -3932,34 +3953,11 @@ const Store = (function () {
             statistics: 'Số liệu thống kê',
         };
 
-        /* Danh sách lựa chọn cố định — tránh gõ tay sai, thống nhất với trang công khai */
-        const DOC_TYPES = {
-            'luat': 'Luật', 'bo-luat': 'Bộ luật', 'nghi-dinh': 'Nghị định',
-            'thong-tu': 'Thông tư', 'chi-thi': 'Chỉ thị', 'van-ban-tphcm': 'Văn bản TP.HCM',
-        };
-        const AGENCY_ROLES = {
-            coordination: 'Chỉ đạo & Chuyên trách',
-            enforcement: 'Thực thi pháp luật',
-            health: 'Y tế & Điều trị',
-            education: 'Giáo dục - Tuyên truyền',
-            association: 'Mặt trận & Đoàn thể',
-            local: 'Chính quyền cơ sở',
-            rehab: 'Cơ sở cai nghiện',
-        };
         const EVENT_STATUS = { upcoming: 'Sắp diễn ra', ongoing: 'Đang diễn ra', past: 'Đã kết thúc' };
         const PUBLISH_STATUS = { draft: 'Chưa công khai', published: 'Đã công khai', hidden: 'Tạm ẩn' };
         const EFFECT_STATUS = {
             in_effect: 'Còn hiệu lực', expired: 'Hết hiệu lực',
             replaced: 'Bị thay thế', amended: 'Được sửa đổi, bổ sung',
-        };
-        const LEGAL_FIELDS = {
-            'phong-chong-ma-tuy': 'Phòng, chống ma túy',
-            'hinh-su': 'Hình sự', 'hanh-chinh': 'Hành chính',
-            'y-te': 'Y tế', 'giao-duc': 'Giáo dục', 'khac': 'Lĩnh vực khác',
-        };
-        const MANAGEMENT_LEVELS = {
-            'thanh-pho': 'Cấp Thành phố', 'so-nganh': 'Cấp sở, ngành',
-            'quan-huyen': 'Cấp quận, huyện', 'phuong-xa': 'Cấp phường, xã',
         };
         /* Nhãn trạng thái dùng chung cho bảng danh sách (tránh hiển thị khóa kỹ thuật) */
         const STATUS_LABEL = Object.assign({
@@ -3967,22 +3965,20 @@ const Store = (function () {
             reported: 'Đã báo cáo', verified: 'Đã phê duyệt',
             pending: 'Chờ kiểm duyệt', rejected: 'Không công khai', hidden: 'Tạm ẩn',
         }, EVENT_STATUS, EFFECT_STATUS);
-        /**
-         * Loại hình cơ sở y tế và điểm tư vấn. Danh mục định hướng theo yêu cầu
-         * nghiệp vụ; đơn vị vận hành rà soát căn cứ pháp lý trước khi đưa vào dùng.
-         */
-        const FACILITY_TYPES = {
-            'kham-chua-benh': 'Cơ sở khám bệnh, chữa bệnh có dịch vụ điều trị nghiện',
-            methadone: 'Cơ sở điều trị nghiện bằng thuốc thay thế',
-            'co-so': 'Cơ sở cai nghiện ma túy',
-            'tu-van': 'Điểm tư vấn, hỗ trợ người sử dụng ma túy',
-            'tam-ly': 'Cơ sở tư vấn tâm lý, sức khỏe tâm thần',
-            'phuc-hoi': 'Cơ sở hỗ trợ điều trị, phục hồi chức năng',
-            'sau-cai': 'Cơ sở hỗ trợ người sau cai nghiện',
-            'tai-hoa-nhap': 'Điểm hỗ trợ tái hòa nhập cộng đồng',
-            'gia-dinh': 'Hỗ trợ gia đình và người thân',
-            'cong-dong': 'Tổ tư vấn cộng đồng',
-            'duong-day-nong': 'Đường dây nóng',
+        const getCategoryOptions = async (type, currentValue) => {
+            let categories = categoryCache.get(type);
+            if (!categories) {
+                categories = await window.PortalAPI.get(`/api/cms/system-categories?type=${encodeURIComponent(type)}`);
+                if (!Array.isArray(categories)) categories = [];
+                categoryCache.set(type, categories);
+            }
+            return categories
+                .filter((category) => category.status === 'active' || category.code === currentValue)
+                .map((category) => ({
+                    value: category.code,
+                    label: category.name,
+                    disabled: category.status !== 'active',
+                }));
         };
 
         /** Chọn tệp qua hộp thoại, tải lên thư viện tài nguyên, trả về URL công khai */
@@ -4005,14 +4001,14 @@ const Store = (function () {
             input.click();
         });
 
-        const fields = (item) => {
+        const fields = (item, categories) => {
             const v = item || {};
             if (kind === 'legal-documents') {
                 return [
                     ['code', 'Số hiệu / mã văn bản', v.code || v.docNumber || '', 'text', true],
                     ['title', 'Tên văn bản', v.title || '', 'text', true],
-                    ['docType', 'Loại văn bản', v.docType || v.doc_type || 'luat', { select: DOC_TYPES }, false],
-                    ['legalField', 'Lĩnh vực pháp luật', v.legalField || v.legal_field || '', { select: LEGAL_FIELDS }, false],
+                    ['docType', 'Loại văn bản', v.docType || v.doc_type || '', { select: categories.docTypes }, true],
+                    ['legalField', 'Lĩnh vực pháp luật', v.legalField || v.legal_field || '', { select: categories.legalFields }, false],
                     ['issuer', 'Cơ quan ban hành', v.issuer || '', 'text', false],
                     ['issuedAt', 'Ngày ban hành', (v.issuedAt || v.issued_at || '').slice(0, 10), 'date', false],
                     ['effectiveAt', 'Ngày có hiệu lực', (v.effectiveAt || v.effective_at || '').slice(0, 10), 'date', false],
@@ -4030,8 +4026,8 @@ const Store = (function () {
                     ['name', 'Tên cơ quan - đơn vị', v.name || '', 'text', true],
                     ['shortName', 'Tên viết tắt', v.shortName || v.short_name || '', 'text', false],
                     ['slug', 'Đường dẫn (slug)', v.slug || '', 'text', false],
-                    ['roleType', 'Loại hình cơ quan', v.roleType || v.role_type || 'coordination', { select: AGENCY_ROLES }, false],
-                    ['managementLevel', 'Cấp quản lý', v.managementLevel || v.management_level || '', { select: MANAGEMENT_LEVELS }, false],
+                    ['roleType', 'Loại hình cơ quan', v.roleType || v.role_type || '', { select: categories.agencyTypes }, true],
+                    ['managementLevel', 'Cấp quản lý', v.managementLevel || v.management_level || '', { select: categories.managementLevels }, false],
                     ['orgId', 'Liên kết đơn vị trong hệ thống', v.orgId || v.org_id || '', { orgSelect: true }, false],
                     ['address', 'Địa chỉ trụ sở', v.address || '', 'text', false],
                     ['phone', 'Điện thoại', v.phone || '', 'text', false],
@@ -4069,10 +4065,8 @@ const Store = (function () {
                 return [
                     ['name', 'Tên cơ sở / điểm tư vấn', v.name || '', 'text', true],
                     ['code', 'Mã định danh', v.code || '', 'text', false],
-                    ['type', 'Loại hình cơ sở', v.type || 'tu-van', { select: FACILITY_TYPES }, false],
+                    ['type', 'Loại hình cơ sở', v.type || '', { select: categories.facilityTypes }, true],
                     ['orgId', 'Đơn vị quản lý trực tiếp', v.orgId || v.org_id || '', { orgSelect: true }, false],
-                    ['managingOrg', 'Tên đơn vị quản lý (nếu chưa có trong danh mục)', v.managingOrg || v.managing_org || '', 'text', false],
-                    ['district', 'Quận / huyện', v.district || '', 'text', false],
                     ['ward', 'Phường / xã', v.ward || '', 'text', false],
                     ['address', 'Địa chỉ cụ thể', v.address || '', 'text', false],
                     ['latitude', 'Vĩ độ (latitude)', v.latitude != null ? String(v.latitude) : '', 'text', false],
@@ -4107,27 +4101,17 @@ const Store = (function () {
             ];
         };
 
-        /**
-         * Nạp danh sách đơn vị cho ô chọn đơn vị quản lý.
-         * Lỗi tải danh sách không chặn việc lưu hồ sơ: khi đó trường chữ tự do
-         * "Tên đơn vị quản lý" vẫn dùng được.
-         */
+        /** Nạp danh sách đơn vị quản lý từ nguồn dùng chung của Workspace. */
         const loadOrganizationOptions = async (select, currentValue) => {
             const help = select.closest('.cms-field')?.querySelector('[data-org-help]');
-            try {
-                const orgs = await window.PortalAPI.get('/api/shared/organizations');
-                const list = Array.isArray(orgs) ? orgs.slice().sort((a, b) => util.compare(a.name, b.name)) : [];
-                select.innerHTML = '<option value="">— Chưa gắn đơn vị trong hệ thống —</option>' + list.map((o) =>
-                    `<option value="${util.escape(o.id)}">${util.escape(o.name)}</option>`).join('');
-                if (currentValue) select.value = currentValue;
-                if (help) {
-                    help.textContent = list.length
-                        ? 'Gắn hồ sơ với một đơn vị trong hệ thống để tra cứu quan hệ quản lý.'
-                        : 'Hệ thống chưa có đơn vị nào — dùng ô tên đơn vị bên dưới nếu cần.';
-                }
-            } catch (err) {
-                if (help) help.textContent = 'Không tải được danh sách đơn vị; dùng ô tên đơn vị bên dưới.';
-            }
+            const orgs = await window.PortalAPI.get('/api/shared/organizations');
+            const list = Array.isArray(orgs) ? orgs.slice().sort((a, b) => util.compare(a.name, b.name)) : [];
+            select.innerHTML = '<option value="">— Chọn đơn vị quản lý —</option>' + list.map((o) =>
+                `<option value="${util.escape(o.id)}">${util.escape(o.name)}</option>`).join('');
+            if (currentValue) select.value = currentValue;
+            if (help) help.textContent = list.length
+                ? 'Danh sách đơn vị được quản lý trong Workspace.'
+                : 'Chưa có đơn vị. Hãy tạo đơn vị trong Workspace trước khi liên kết.';
         };
 
         /** Chuyển ISO sang giá trị cho <input type="datetime-local"> */
@@ -4163,8 +4147,13 @@ const Store = (function () {
 
             /* Danh sách lựa chọn: tránh gõ tay sai chính tả/khóa */
             if (type && typeof type === 'object' && type.select) {
-                const options = Object.entries(type.select).map(([val, text]) =>
-                    `<option value="${util.escape(val)}"${val === value ? ' selected' : ''}>${util.escape(text)}</option>`).join('');
+                const choices = Array.isArray(type.select)
+                    ? type.select
+                    : Object.entries(type.select).map(([val, text]) => ({ value: val, label: text }));
+                const options = (Array.isArray(type.select)
+                    ? [`<option value="">${choices.length ? '— Chọn danh mục —' : '— Chưa có danh mục —'}</option>`]
+                    : []).concat(choices.map((choice) =>
+                    `<option value="${util.escape(choice.value)}"${choice.value === value ? ' selected' : ''}${choice.disabled ? ' disabled' : ''}>${util.escape(choice.label)}</option>`)).join('');
                 return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
                     <select class="cms-select" id="${id}"${req}>${options}</select></div>`;
             }
@@ -4211,11 +4200,32 @@ const Store = (function () {
                 <input type="${inputType}" class="cms-input" id="${id}" value="${util.escape(value)}"${req}></div>`;
         };
 
-        const openForm = (item) => {
+        const openForm = async (item) => {
+            const values = {
+                docTypes: [], legalFields: [], agencyTypes: [], managementLevels: [], facilityTypes: [],
+            };
+            try {
+                if (kind === 'legal-documents') {
+                    [values.docTypes, values.legalFields] = await Promise.all([
+                        getCategoryOptions('doc_type', item && (item.docType || item.doc_type)),
+                        getCategoryOptions('legal_field', item && (item.legalField || item.legal_field)),
+                    ]);
+                } else if (kind === 'agencies') {
+                    [values.agencyTypes, values.managementLevels] = await Promise.all([
+                        getCategoryOptions('agency_type', item && (item.roleType || item.role_type)),
+                        getCategoryOptions('management_level', item && (item.managementLevel || item.management_level)),
+                    ]);
+                } else if (kind === 'support-facilities') {
+                    values.facilityTypes = await getCategoryOptions('facility_type', item && item.type);
+                }
+            } catch (err) {
+                ui.toast(err.message || 'Không tải được danh mục lựa chọn.', 'error');
+                return;
+            }
             const dlg = ui.modal({
                 title: item ? 'Chỉnh sửa ' + TITLES[kind] : 'Thêm ' + TITLES[kind],
                 size: 'lg',
-                content: '<form id="public-catalog-form">' + fields(item).map(fieldHtml).join('') +
+                content: '<form id="public-catalog-form">' + fields(item, values).map(fieldHtml).join('') +
                     (kind === 'statistics' ? '<div class="cms-field cms-u-mb-md"><label class="cms-label" for="catalog-items">Chỉ số (mỗi dòng: tên|giá trị|đơn vị)</label><textarea class="cms-textarea" id="catalog-items" rows="5"></textarea></div>' : '') +
                     '</form>',
             });
@@ -4224,7 +4234,14 @@ const Store = (function () {
             /* Ô chọn đơn vị quản lý: danh sách thật từ `organizations` */
             const orgSelect = form.querySelector('[data-org-select]');
             if (orgSelect) {
-                loadOrganizationOptions(orgSelect, (item && (item.orgId || item.org_id)) || '');
+                try {
+                    await loadOrganizationOptions(orgSelect, (item && (item.orgId || item.org_id)) || '');
+                } catch (err) {
+                    orgSelect.disabled = true;
+                    const help = orgSelect.closest('.cms-field')?.querySelector('[data-org-help]');
+                    if (help) help.textContent = 'Không tải được danh sách đơn vị quản lý.';
+                    ui.toast(err.message || 'Không tải được danh sách đơn vị quản lý.', 'error');
+                }
             }
 
             /* Upload ảnh / tệp ngay trong form (không phải dán đường dẫn thủ công) */
@@ -4267,7 +4284,7 @@ const Store = (function () {
             dlg.footer.innerHTML = '<button type="button" class="cms-btn" data-modal-close>Hủy</button><button type="button" class="cms-btn cms-btn--primary" id="catalog-save">Lưu</button>';
             dlg.footer.querySelector('#catalog-save').addEventListener('click', async () => {
                 const payload = { id: item ? item.id : null };
-                fields(item).forEach(([key]) => {
+                fields(item, values).forEach(([key]) => {
                     const el = dlg.query('#catalog-' + key);
                     if (el) payload[key] = el.value.trim();
                 });
@@ -5135,6 +5152,7 @@ const Store = (function () {
                 if (!needle) return true;
                 return util.normalize(s.subject).indexOf(needle) !== -1
                     || util.normalize(s.ticketCode).indexOf(needle) !== -1
+                    || util.normalize(s.topicName).indexOf(needle) !== -1
                     || util.normalize(s.content).indexOf(needle) !== -1;
             });
         };
@@ -5170,7 +5188,7 @@ const Store = (function () {
                     <td data-label="Nội dung">
                         <div class="cms-table__title-text">
                             <button type="button" class="cms-table__link" data-sub-open="${util.escape(s.id)}">${util.escape(util.truncate(s.subject || s.content, 70))}</button>
-                            <span class="cms-table__slug">${util.escape(FORMS[s.formType] || s.formType)}${s.isAnonymous ? ' · Ẩn danh' : ''}</span>
+                            <span class="cms-table__slug">${util.escape(s.topicName || FORMS[s.formType] || s.formType)}${s.isAnonymous ? ' · Ẩn danh' : ''}</span>
                         </div>
                     </td>
                     <td data-label="Người gửi">${ui.userCell(s.isAnonymous ? 'Công dân ẩn danh' : (s.name || '—'))}</td>
@@ -5200,6 +5218,7 @@ const Store = (function () {
                             <div><span>Trạng thái</span><strong>${badge(item.status)}</strong></div>
                         </div>
                         <h3 class="cms-sub-detail__subject">${util.escape(item.subject || 'Không có tiêu đề')}</h3>
+                        ${item.topicName ? `<p class="cms-sub-detail__topic">Nhóm nội dung: ${util.escape(item.topicName)}</p>` : ''}
                         <p class="cms-sub-detail__content">${util.escape(item.content)}</p>
                         <div class="cms-field">
                             <label class="cms-label" for="sub-org">Đơn vị xử lý</label>

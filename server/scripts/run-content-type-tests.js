@@ -58,7 +58,14 @@ async function waitForServer(timeoutMs = 30000) {
   try {
     log(`Database tạm: ${dbFile}`);
     if (runNode(['server/db/migrate.js']) !== 0) throw new Error('migrate thất bại');
-    if (runNode(['server/db/seed.js']) !== 0) throw new Error('seed thất bại');
+    const realCreds = path.join(ROOT, 'server', 'data', 'credentials.local.txt');
+    const credsBackup = fs.existsSync(realCreds) ? fs.readFileSync(realCreds) : null;
+    try {
+      if (runNode(['server/db/seed.js']) !== 0) throw new Error('seed thất bại');
+    } finally {
+      if (credsBackup) fs.writeFileSync(realCreds, credsBackup);
+      else if (fs.existsSync(realCreds)) fs.unlinkSync(realCreds);
+    }
     if (runNode(['server/db/content-types.js', '--demo']) !== 0) throw new Error('nạp dữ liệu mẫu thất bại');
 
     log(`Khởi động máy chủ kiểm thử trên ${BASE} ...`);

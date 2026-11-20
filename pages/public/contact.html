@@ -235,13 +235,10 @@
                                 <label for="ct-topic" class="ct-label">
                                     Nhóm nội dung liên hệ <span class="ct-required">*</span>
                                 </label>
-                                <select id="ct-topic" name="topic" class="ct-select" required>
-                                    <option value="tu-van-cai-nghien">Tư vấn quy trình cai nghiện tự nguyện &amp; điều trị Methadone</option>
-                                    <option value="hoi-dap-phap-luat">Hỏi đáp quy định pháp luật về phòng, chống ma túy</option>
-                                    <option value="phan-anh-cong-dong">Phản ánh, kiến nghị bảo đảm an toàn khu dân cư</option>
-                                    <option value="phoi-hop-tuyen-truyen">Đề xuất phối hợp tuyên truyền tại trường học / cơ quan</option>
-                                    <option value="gop-y-cong-thong-tin">Góp ý nội dung Chuyên trang điện tử</option>
+                                <select id="ct-topic" name="topic" class="ct-select" required disabled>
+                                    <option value="">Đang tải nhóm nội dung liên hệ…</option>
                                 </select>
+                                <p id="ct-topic-status" class="ct-topic-status" role="status" aria-live="polite" hidden></p>
                             </div>
 
                             <div class="ct-field ct-field--full">
@@ -337,7 +334,7 @@
                                         <i class="fa-solid fa-lock" aria-hidden="true"></i>
                                         Thông tin cá nhân của người gửi được bảo mật tuyệt đối.
                                     </span>
-                                    <button type="submit" class="ct-submit-btn" id="ct-submit-btn">
+                                    <button type="submit" class="ct-submit-btn" id="ct-submit-btn" disabled>
                                         <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
                                         <span>Gửi thông tin</span>
                                     </button>
@@ -426,7 +423,7 @@
                     <div class="ct-info-card">
                         <h2 class="ct-info-card__title">Câu hỏi thường gặp khi liên hệ</h2>
                         <div class="ct-faq-list">
-                            <details class="ct-faq-item" open>
+                            <details class="ct-faq-item">
                                 <summary>
                                     <span>1. Người đăng ký cai nghiện tự nguyện có bị xử phạt không?</span>
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>

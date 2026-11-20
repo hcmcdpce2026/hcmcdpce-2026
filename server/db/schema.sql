@@ -23,8 +23,9 @@ CREATE TABLE IF NOT EXISTS organizations (
     code            TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
     short_name      TEXT,
-    type            TEXT NOT NULL DEFAULT 'unit',
+    type            TEXT NOT NULL,
     parent_id       TEXT REFERENCES organizations(id) ON DELETE SET NULL,
+    management_level TEXT,
     address         TEXT,
     phone           TEXT,
     email           TEXT,
@@ -132,7 +133,7 @@ CREATE TABLE IF NOT EXISTS categories (
     slug            TEXT NOT NULL UNIQUE,
     parent_id       TEXT REFERENCES categories(id) ON DELETE SET NULL,
     description     TEXT,
-    group_key       TEXT NOT NULL DEFAULT 'news',
+    group_key       TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'active',
     sort_order      INTEGER NOT NULL DEFAULT 0,
     data_source     TEXT NOT NULL DEFAULT 'seed',
@@ -142,6 +143,28 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at      TEXT NOT NULL,
     created_by      TEXT
 );
+
+CREATE TABLE IF NOT EXISTS system_categories (
+    id              TEXT PRIMARY KEY,
+    category_type   TEXT NOT NULL CHECK (category_type IN (
+        'category_group', 'doc_type', 'legal_field', 'agency_type',
+        'management_level', 'facility_type', 'organization_type', 'contact_topic'
+    )),
+    code            TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    description     TEXT,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    created_by      TEXT,
+    updated_by      TEXT,
+    UNIQUE (category_type, code)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_system_categories_type_name
+    ON system_categories(category_type, name COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_system_categories_status_order
+    ON system_categories(category_type, status, sort_order, name);
 
 CREATE TABLE IF NOT EXISTS articles (
     id              TEXT PRIMARY KEY,
@@ -270,6 +293,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     status          TEXT NOT NULL DEFAULT 'new',     -- new | assigned | in_progress | answered | closed | rejected
     priority        TEXT NOT NULL DEFAULT 'normal',
     subject         TEXT,
+    topic_code      TEXT,
     full_name       TEXT,
     email           TEXT,
     phone           TEXT,
@@ -524,7 +548,7 @@ CREATE TABLE IF NOT EXISTS legal_documents (
     title           TEXT NOT NULL,
     slug            TEXT,
     doc_number      TEXT,
-    doc_type        TEXT NOT NULL DEFAULT 'luat',
+    doc_type        TEXT NOT NULL,
     legal_field     TEXT,
     issued_at       TEXT,
     effective_at    TEXT,
@@ -551,7 +575,7 @@ CREATE TABLE IF NOT EXISTS public_agencies (
     slug        TEXT,
     short_name  TEXT,
     logo_url    TEXT,
-    role_type   TEXT NOT NULL DEFAULT 'coordination',
+    role_type   TEXT NOT NULL,
     management_level TEXT,                               -- thanh-pho | so-nganh | quan-huyen | phuong-xa
     address     TEXT,
     phone       TEXT,
@@ -624,7 +648,6 @@ CREATE TABLE IF NOT EXISTS support_facilities (
     type        TEXT,
     managing_org TEXT,                                   -- đơn vị quản lý trực tiếp (chuỗi tự do)
     org_id      TEXT REFERENCES organizations(id) ON DELETE SET NULL,
-    district    TEXT,
     ward        TEXT,
     city        TEXT,
     address     TEXT,

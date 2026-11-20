@@ -293,9 +293,28 @@ async function saveOrganization(req, res, ctx) {
   const name = sec.cleanText(body.name, 400);
   if (!name) return http.badRequest(res, 'Tên đơn vị là bắt buộc.');
   const id = ctx.params.id || body.id;
+  const existing = id ? db.prepare('SELECT * FROM organizations WHERE id = ?').get(id) : null;
+  if (id && !existing) return http.notFound(res, 'Đơn vị không tồn tại.');
+  const type = sec.cleanText(body.type, 60) || (existing && existing.type) || '';
+  if (!type) return http.badRequest(res, 'Loại hình đơn vị là bắt buộc.');
+  const activeType = db.prepare(`SELECT code FROM system_categories
+    WHERE category_type = 'organization_type' AND code = ? AND status = 'active'`).get(type);
+  if (!activeType && (!existing || existing.type !== type)) {
+    return http.badRequest(res, 'Loại hình đơn vị không hợp lệ hoặc đã ngừng sử dụng.');
+  }
+  const managementLevel = Object.prototype.hasOwnProperty.call(body, 'managementLevel')
+    ? (sec.cleanText(body.managementLevel, 60) || null)
+    : ((existing && existing.management_level) || null);
+  if (managementLevel) {
+    const activeLevel = db.prepare(`SELECT code FROM system_categories
+      WHERE category_type = 'management_level' AND code = ? AND status = 'active'`).get(managementLevel);
+    if (!activeLevel && (!existing || existing.management_level !== managementLevel)) {
+      return http.badRequest(res, 'Cấp quản lý không hợp lệ hoặc đã ngừng sử dụng.');
+    }
+  }
   const ts = nowIso();
   const payload = {
-    name, short_name: sec.cleanText(body.shortName, 150) || null, type: body.type || 'unit',
+    name, short_name: sec.cleanText(body.shortName, 150) || null, type, management_level: managementLevel,
     parent_id: body.parentId || null, address: sec.cleanText(body.address, 300) || null,
     phone: sec.cleanText(body.phone, 50) || null, email: sec.cleanText(body.email, 150) || null,
     website: sec.cleanText(body.website, 200) || null, head_name: sec.cleanText(body.head, 150) || null,
@@ -303,8 +322,6 @@ async function saveOrganization(req, res, ctx) {
     status: ['active', 'paused', 'archived'].includes(body.status) ? body.status : 'active',
   };
   if (id) {
-    const row = db.prepare('SELECT * FROM organizations WHERE id = ?').get(id);
-    if (!row) return http.notFound(res, 'Đơn vị không tồn tại.');
     if (body.parentId === id) return http.badRequest(res, 'Đơn vị không thể trực thuộc chính nó.');
     db.prepare(`UPDATE organizations SET ${Object.keys(payload).map((k) => `${k} = ?`).join(', ')}, updated_at = ? WHERE id = ?`)
       .run(...Object.values(payload), ts, id);
@@ -313,10 +330,10 @@ async function saveOrganization(req, res, ctx) {
   }
   const newId = sec.makeId('org');
   const code = sec.cleanText(body.code, 50) || `DV-${newId.slice(-6).toUpperCase()}`;
-  db.prepare(`INSERT INTO organizations (id, code, name, short_name, type, parent_id, address, phone, email, website,
+  db.prepare(`INSERT INTO organizations (id, code, name, short_name, type, management_level, parent_id, address, phone, email, website,
       head_name, description, status, sort_order, data_source, is_seed_data, environment, created_at, updated_at, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,99,'operational',0,?,?,?,?)`).run(
-    newId, code, payload.name, payload.short_name, payload.type, payload.parent_id, payload.address,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,99,'operational',0,?,?,?,?)`).run(
+    newId, code, payload.name, payload.short_name, payload.type, payload.management_level, payload.parent_id, payload.address,
     payload.phone, payload.email, payload.website, payload.head_name, payload.description, payload.status,
     process.env.APP_ENV || 'development', ts, ts, s.user.id,
   );

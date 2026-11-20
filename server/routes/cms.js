@@ -298,20 +298,33 @@ async function saveCategory(req, res, ctx) {
     const row = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!row) return http.notFound(res, 'Chuyên mục không tồn tại.');
     if (body.parentId === id) return http.badRequest(res, 'Chuyên mục không thể là cha của chính nó.');
+    const group = body.group === undefined ? row.group_key : sec.cleanText(body.group, 80);
+    const categoryGroup = db.prepare(`SELECT status FROM system_categories
+      WHERE category_type = 'category_group' AND code = ?`).get(group);
+    if (!categoryGroup || (categoryGroup.status !== 'active' && group !== row.group_key)) {
+      return http.badRequest(res, 'Nhóm chuyên mục phải thuộc danh mục đang sử dụng.');
+    }
     db.prepare(`UPDATE categories SET name = ?, slug = ?, parent_id = ?, description = ?, group_key = ?, status = ?, sort_order = ?, updated_at = ? WHERE id = ?`)
       .run(name, uniqueSlug(db, 'categories', body.slug || name, id), body.parentId || null,
-        sec.cleanText(body.description, 500), body.group || row.group_key,
+        sec.cleanText(body.description, 500), group,
         body.status === 'inactive' ? 'inactive' : 'active',
         Number.isFinite(Number(body.order)) ? Number(body.order) : row.sort_order, ts, id);
     auth.logActivity({ systemKey: 'cms', user: s.user, action: 'category.update', targetType: 'Chuyên mục', targetId: id, targetName: name, detail: 'Cập nhật chuyên mục', req });
     return http.ok(res, m.category(db.prepare('SELECT * FROM categories WHERE id = ?').get(id)));
   }
 
+  const group = sec.cleanText(body.group, 80);
+  const categoryGroup = group && db.prepare(`SELECT status FROM system_categories
+    WHERE category_type = 'category_group' AND code = ?`).get(group);
+  if (!categoryGroup || categoryGroup.status !== 'active') {
+    return http.badRequest(res, 'Hãy tạo và chọn nhóm chuyên mục đang sử dụng trước.');
+  }
+
   const newId = sec.makeId('cat');
   db.prepare(`INSERT INTO categories (id, name, slug, parent_id, description, group_key, status, sort_order,
       data_source, is_seed_data, environment, created_at, updated_at, created_by) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
     .run(newId, name, uniqueSlug(db, 'categories', body.slug || name), body.parentId || null,
-      sec.cleanText(body.description, 500), body.group || 'news',
+      sec.cleanText(body.description, 500), group,
       body.status === 'inactive' ? 'inactive' : 'active',
       Number.isFinite(Number(body.order)) ? Number(body.order) : 99,
       'operational', process.env.APP_ENV || 'development', ts, ts, s.user.id);
@@ -517,8 +530,10 @@ async function listSubmissions(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'cms', permission: 'submission.view' });
   if (!s) return;
   const db = getDb();
-  const rows = db.prepare(`SELECT s.*, o.name AS assigned_org_name FROM submissions s
-      LEFT JOIN organizations o ON o.id = s.assigned_org_id ORDER BY s.created_at DESC`).all();
+  const rows = db.prepare(`SELECT s.*, o.name AS assigned_org_name, topic.name AS topic_name FROM submissions s
+      LEFT JOIN organizations o ON o.id = s.assigned_org_id
+      LEFT JOIN system_categories topic ON topic.category_type = 'contact_topic' AND topic.code = s.topic_code
+      ORDER BY s.created_at DESC`).all();
   let items = rows.map(m.submission);
   const q = ctx.query;
   if (q.status && q.status !== 'all') items = items.filter((x) => x.status === q.status);
@@ -531,8 +546,10 @@ async function getSubmission(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'cms', permission: 'submission.view' });
   if (!s) return;
   const db = getDb();
-  const row = db.prepare(`SELECT s.*, o.name AS assigned_org_name FROM submissions s
-      LEFT JOIN organizations o ON o.id = s.assigned_org_id WHERE s.id = ? OR s.ticket_code = ?`).get(ctx.params.id, ctx.params.id);
+  const row = db.prepare(`SELECT s.*, o.name AS assigned_org_name, topic.name AS topic_name FROM submissions s
+      LEFT JOIN organizations o ON o.id = s.assigned_org_id
+      LEFT JOIN system_categories topic ON topic.category_type = 'contact_topic' AND topic.code = s.topic_code
+      WHERE s.id = ? OR s.ticket_code = ?`).get(ctx.params.id, ctx.params.id);
   if (!row) return http.notFound(res, 'Yêu cầu không tồn tại.');
   const events = db.prepare('SELECT * FROM submission_events WHERE submission_id = ? ORDER BY id').all(row.id);
   return http.ok(res, m.submission(row, {
@@ -896,9 +913,7 @@ function catalogRow(table, body, existing) {
       code: pick(['code'], text),
       name: pick(['name'], text),
       type: pick(['type'], text),
-      managing_org: pick(['managingOrg', 'managing_org'], text),
       org_id: pick(['orgId', 'org_id'], (v) => v || null),
-      district: pick(['district'], text),
       ward: pick(['ward'], text),
       city: pick(['city'], text),
       address: pick(['address'], text),
@@ -982,6 +997,30 @@ async function saveCatalog(req, res, ctx) {
   }
   const effectiveId = existing ? existing.id : id;
   const row = catalogRow(table, body, existing);
+
+  const categoryFields = {
+    legal_documents: [['doc_type', 'doc_type'], ['legal_field', 'legal_field']],
+    public_agencies: [['role_type', 'agency_type'], ['management_level', 'management_level']],
+    support_facilities: [['type', 'facility_type']],
+  }[table] || [];
+  for (const [column, categoryType] of categoryFields) {
+    const value = row[column];
+    if (['legal_documents.doc_type', 'public_agencies.role_type', 'support_facilities.type'].includes(`${table}.${column}`)
+      && (value === undefined || value === null || value === '')) {
+      return http.badRequest(res, `Trường ${column} là bắt buộc và cần chọn từ danh mục.`);
+    }
+    if (value === undefined || value === null || value === '') continue;
+    const category = db.prepare('SELECT status FROM system_categories WHERE category_type = ? AND code = ?')
+      .get(categoryType, value);
+    const existingValue = existing && existing[column];
+    if (!category || (category.status !== 'active' && existingValue !== value)) {
+      return http.badRequest(res, `Giá trị ${column} phải thuộc danh mục đang sử dụng.`);
+    }
+  }
+  if (row.org_id !== undefined && row.org_id !== null) {
+    const organization = db.prepare('SELECT 1 FROM organizations WHERE id = ?').get(row.org_id);
+    if (!organization) return http.badRequest(res, 'Đơn vị quản lý không tồn tại.');
+  }
 
   /* Thống kê: kỳ báo cáo + các chỉ số con */
   if (table === 'statistics_periods') {
@@ -1092,6 +1131,125 @@ async function deleteCatalog(req, res, ctx) {
   return http.ok(res, { id });
 }
 
+const SYSTEM_CATEGORY_TYPES = new Set([
+  'category_group', 'doc_type', 'legal_field', 'agency_type',
+  'management_level', 'facility_type', 'organization_type', 'contact_topic',
+]);
+
+const SYSTEM_CATEGORY_REFERENCES = {
+  category_group: [['categories', 'group_key']],
+  doc_type: [['legal_documents', 'doc_type']],
+  legal_field: [['legal_documents', 'legal_field']],
+  agency_type: [['public_agencies', 'role_type']],
+  management_level: [['public_agencies', 'management_level'], ['organizations', 'management_level']],
+  facility_type: [['support_facilities', 'type']],
+  organization_type: [['organizations', 'type']],
+  contact_topic: [['submissions', 'topic_code']],
+};
+
+async function listSystemCategories(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms' });
+  if (!s) return;
+  if (!auth.hasPermission(s.user, 'catalog.view') && !auth.hasPermission(s.user, 'category.manage')) {
+    return http.forbidden(res, 'Bạn không có quyền xem danh mục nghiệp vụ.');
+  }
+  const type = ctx.query.type || '';
+  if (type && !SYSTEM_CATEGORY_TYPES.has(type)) return http.badRequest(res, 'Nhóm danh mục không hợp lệ.');
+  const db = getDb();
+  const rows = type
+    ? db.prepare('SELECT * FROM system_categories WHERE category_type = ? ORDER BY sort_order, name').all(type)
+    : db.prepare('SELECT * FROM system_categories ORDER BY category_type, sort_order, name').all();
+  return http.ok(res, rows);
+}
+
+async function saveSystemCategory(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'catalog.manage' });
+  if (!s) return;
+  const body = await http.readJson(req);
+  const db = getDb();
+  const id = ctx.params.id || body.id || null;
+  const existing = id ? db.prepare('SELECT * FROM system_categories WHERE id = ?').get(id) : null;
+  if (id && !existing) return http.notFound(res, 'Danh mục không tồn tại.');
+
+  const type = existing ? existing.category_type : String(body.categoryType || body.category_type || '');
+  if (!SYSTEM_CATEGORY_TYPES.has(type)) return http.badRequest(res, 'Nhóm danh mục không hợp lệ.');
+  if (existing && (body.categoryType || body.category_type) && (body.categoryType || body.category_type) !== type) {
+    return http.badRequest(res, 'Không thể chuyển danh mục sang nhóm khác.');
+  }
+
+  const name = sec.cleanText(body.name, 200);
+  const rawCode = sec.cleanText(body.code, 100) || name;
+  const code = existing && rawCode === existing.code ? existing.code : slugify(rawCode);
+  if (!name) return http.badRequest(res, 'Tên danh mục là bắt buộc.');
+  if (!code) return http.badRequest(res, 'Mã danh mục không hợp lệ.');
+  const duplicate = db.prepare(`SELECT id FROM system_categories
+    WHERE category_type = ? AND (code = ? OR name = ? COLLATE NOCASE) AND id <> ?`)
+    .get(type, code, name, id || '');
+  if (duplicate) return http.conflict(res, 'Mã hoặc tên danh mục đã tồn tại trong nhóm này.');
+
+  const refs = SYSTEM_CATEGORY_REFERENCES[type];
+  const used = existing && refs.reduce((total, [table, column]) =>
+    total + db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE ${column} = ?`).get(existing.code).count, 0);
+  if (used && existing.code !== code) return http.conflict(res, 'Không thể đổi mã danh mục đang được dữ liệu sử dụng.');
+
+  const status = body.status === 'inactive' ? 'inactive' : 'active';
+  const sortOrder = Number.isFinite(Number(body.sortOrder ?? body.order))
+    ? Math.trunc(Number(body.sortOrder ?? body.order)) : (existing ? existing.sort_order : 0);
+  const description = sec.cleanText(body.description, 1000) || null;
+  const ts = nowIso();
+  if (existing) {
+    db.prepare(`UPDATE system_categories SET code = ?, name = ?, description = ?, sort_order = ?,
+      status = ?, updated_at = ?, updated_by = ? WHERE id = ?`)
+      .run(code, name, description, sortOrder, status, ts, s.user.id, id);
+    auth.logActivity({ systemKey: 'cms', user: s.user, action: 'system_category.update', targetType: type,
+      targetId: id, targetName: name, detail: 'Cập nhật danh mục hệ thống', req });
+    return http.ok(res, db.prepare('SELECT * FROM system_categories WHERE id = ?').get(id));
+  }
+
+  const newId = sec.makeId('syscat');
+  db.prepare(`INSERT INTO system_categories
+    (id, category_type, code, name, description, sort_order, status, created_at, updated_at, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(newId, type, code, name, description, sortOrder, status, ts, ts, s.user.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'system_category.create', targetType: type,
+    targetId: newId, targetName: name, detail: 'Tạo danh mục hệ thống', req });
+  return http.created(res, db.prepare('SELECT * FROM system_categories WHERE id = ?').get(newId));
+}
+
+async function setSystemCategoryStatus(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'catalog.manage' });
+  if (!s) return;
+  const body = await http.readJson(req);
+  if (!['active', 'inactive'].includes(body.status)) return http.badRequest(res, 'Trạng thái danh mục không hợp lệ.');
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM system_categories WHERE id = ?').get(ctx.params.id);
+  if (!row) return http.notFound(res, 'Danh mục không tồn tại.');
+  db.prepare('UPDATE system_categories SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?')
+    .run(body.status, nowIso(), s.user.id, row.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'system_category.status', targetType: row.category_type,
+    targetId: row.id, targetName: row.name, detail: `Chuyển trạng thái: ${body.status}`, req });
+  return http.ok(res, db.prepare('SELECT * FROM system_categories WHERE id = ?').get(row.id));
+}
+
+async function deleteSystemCategory(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'catalog.manage' });
+  if (!s) return;
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM system_categories WHERE id = ?').get(ctx.params.id);
+  if (!row) return http.notFound(res, 'Danh mục không tồn tại.');
+  const used = SYSTEM_CATEGORY_REFERENCES[row.category_type].reduce((total, [table, column]) =>
+    total + db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE ${column} = ?`).get(row.code).count, 0);
+  if (used) return http.conflict(res, `Danh mục đang được ${used} bản ghi sử dụng. Hãy ngừng sử dụng thay vì xóa.`);
+  db.prepare('DELETE FROM system_categories WHERE id = ?').run(row.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'system_category.delete', targetType: row.category_type,
+    targetId: row.id, targetName: row.name, detail: 'Xóa danh mục hệ thống', req });
+  return http.ok(res, { id: row.id });
+}
+
 module.exports.listCatalog = listCatalog;
 module.exports.saveCatalog = saveCatalog;
 module.exports.deleteCatalog = deleteCatalog;
+module.exports.listSystemCategories = listSystemCategories;
+module.exports.saveSystemCategory = saveSystemCategory;
+module.exports.setSystemCategoryStatus = setSystemCategoryStatus;
+module.exports.deleteSystemCategory = deleteSystemCategory;

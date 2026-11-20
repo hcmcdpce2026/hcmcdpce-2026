@@ -111,6 +111,8 @@ async function run() {
   check('Danh mục công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
   r = await anon.request('GET', '/api/public/legal-documents');
   check('Văn bản pháp luật trả về mảng', r.status === 200 && Array.isArray(r.body.data));
+  r = await anon.request('GET', '/api/public/system-categories?type=legal_field');
+  check('Lĩnh vực lọc pháp luật lấy từ danh mục CMS', r.status === 200 && r.body.data.length === 4);
   r = await anon.request('GET', '/api/public/statistics');
   check('Số liệu thống kê trả về mảng (rỗng khi chưa công bố)',
     r.status === 200 && Array.isArray(r.body.data) && r.body.data.every((p) => p.sourceType !== undefined));
@@ -179,6 +181,60 @@ async function run() {
   const wsAdmin = new Session('ws.nguyenvandat');
   r = await wsAdmin.login('ws.nguyenvandat', creds['ws.nguyenvandat'], 'workspace');
   check('Workspace admin đăng nhập', r.status === 200);
+  const categorySuffix = Date.now().toString(36);
+  const orgTypeCode = `test-org-${categorySuffix}`;
+  const managementLevelCode = `test-level-${categorySuffix}`;
+  const contactTopicCode = `test-topic-${categorySuffix}`;
+  r = await cmsAdmin.request('GET', '/api/cms/system-categories?type=contact_topic');
+  check('CMS đọc được nhóm nội dung liên hệ', r.status === 200 && r.body.data.length === 5);
+  r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
+    categoryType: 'contact_topic', code: contactTopicCode, name: `Nhóm liên hệ kiểm thử ${categorySuffix}`,
+  });
+  const contactTopic = r.body.data;
+  check('CMS tạo được lựa chọn liên hệ', r.status === 201 && contactTopic.code === contactTopicCode);
+  r = await anon.request('GET', '/api/public/system-categories?type=contact_topic');
+  check('PUBLIC nhận lựa chọn liên hệ mới từ CMS', r.status === 200 && r.body.data.some((item) => item.code === contactTopicCode));
+  r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${contactTopic.id}`);
+  check('CMS xóa được lựa chọn liên hệ chưa dùng', r.status === 200);
+  r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
+    categoryType: 'organization_type', code: orgTypeCode, name: `Loại đơn vị kiểm thử ${categorySuffix}`,
+  });
+  const orgType = r.body.data;
+  check('CMS tạo loại đơn vị động', r.status === 201 && !!orgType && orgType.code === orgTypeCode);
+  r = await cmsAdmin.request('GET', '/api/shared/system-categories?type=organization_type');
+  check('CMS đọc danh mục đơn vị dùng chung', r.status === 200 && r.body.data.some((item) => item.code === orgTypeCode));
+  r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
+    categoryType: 'management_level', code: managementLevelCode, name: `Cấp quản lý kiểm thử ${categorySuffix}`,
+  });
+  const managementLevel = r.body.data;
+  check('CMS tạo cấp quản lý động', r.status === 201 && !!managementLevel);
+  r = await wsAdmin.request('GET', '/api/shared/system-categories?type=management_level');
+  check('Workspace đọc danh mục cấp quản lý dùng chung', r.status === 200 && r.body.data.some((item) => item.code === managementLevelCode));
+  r = await anon.request('GET', '/api/public/system-categories?type=organization_type');
+  check('PUBLIC đọc loại đơn vị đang hoạt động', r.status === 200 && r.body.data.some((item) => item.code === orgTypeCode));
+  r = await wsAdmin.request('POST', '/api/workspace/organizations', {
+    code: `TEST-${categorySuffix}`, name: `Đơn vị kiểm thử ${categorySuffix}`,
+    type: orgTypeCode, managementLevel: managementLevelCode, address: 'Địa chỉ kiểm thử',
+  });
+  const testOrg = r.body.data;
+  check('Workspace tạo đơn vị theo danh mục động', r.status === 201 && !!testOrg && testOrg.managementLevel === managementLevelCode);
+  r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${orgType.id}`);
+  check('Không xóa loại đơn vị đang được sử dụng', r.status === 409);
+  r = await cmsAdmin.request('PATCH', `/api/cms/system-categories/${orgType.id}/status`, { status: 'inactive' });
+  check('Có thể ngừng dùng loại đơn vị đang được liên kết', r.status === 200);
+  r = await anon.request('GET', '/api/public/system-categories?type=organization_type');
+  check('PUBLIC ẩn loại đơn vị đã ngừng dùng', r.status === 200 && !r.body.data.some((item) => item.code === orgTypeCode));
+  r = await wsAdmin.request('POST', '/api/workspace/organizations', {
+    code: `TEST-INACTIVE-${categorySuffix}`, name: `Đơn vị không hợp lệ ${categorySuffix}`,
+    type: orgTypeCode, address: 'Địa chỉ kiểm thử',
+  });
+  check('Workspace từ chối loại đơn vị đã ngừng dùng', r.status === 400);
+  r = await wsAdmin.request('DELETE', `/api/workspace/organizations/${testOrg.id}`);
+  check('Xóa đơn vị fixture sau kiểm thử', r.status === 200);
+  r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${orgType.id}`);
+  check('Xóa loại đơn vị sau khi hết liên kết', r.status === 200);
+  r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${managementLevel.id}`);
+  check('Xóa cấp quản lý sau khi hết liên kết', r.status === 200);
   r = await cmsEditor.request('GET', '/api/workspace/tasks');
   check('Tài khoản CMS không vào được Workspace', [401, 403].includes(r.status), `status=${r.status}`);
 
@@ -196,6 +252,32 @@ async function run() {
   check('Từ chối email sai định dạng', r.status === 400);
 
   const stamp = Date.now();
+  r = await anon.request('GET', '/api/public/system-categories?type=contact_topic');
+  check('PUBLIC tải nhóm liên hệ do CMS quản lý', r.status === 200 && r.body.data.length === 5);
+  r = await anon.request('POST', '/api/public/submissions', {
+    formType: 'contact', name: 'Kiểm thử', email: `topic${stamp}@example.com`,
+    content: `Yêu cầu liên hệ kiểm thử nhóm nội dung ${stamp}.`, consent: true,
+  });
+  check('Yêu cầu liên hệ bắt buộc chọn nhóm nội dung', r.status === 400);
+  const topicPayload = {
+    formType: 'contact',
+    topic: 'tu-van-cai-nghien',
+    subject: `Liên hệ kiểm thử ${stamp}`,
+    name: 'Công dân kiểm thử',
+    email: `topic${stamp}@example.com`,
+    content: `Yêu cầu liên hệ kiểm thử nhóm nội dung ${stamp}.`,
+    consent: true,
+  };
+  r = await anon.request('POST', '/api/public/submissions', topicPayload);
+  const topicTicket = r.body.data && r.body.data.ticketCode;
+  check('Lưu liên hệ với nhóm CMS đang hoạt động', r.status === 201 && !!topicTicket);
+  r = await anon.request('POST', '/api/public/submissions', { ...topicPayload, topic: 'not-a-topic' });
+  check('Từ chối nhóm liên hệ không hợp lệ', r.status === 400);
+  r = await cmsAdmin.request('GET', '/api/cms/submissions');
+  const topicItem = r.body.data.find((s) => s.ticketCode === topicTicket);
+  check('CMS hiển thị nhóm liên hệ đã chọn', !!topicItem && topicItem.topicCode === 'tu-van-cai-nghien'
+    && topicItem.topicName === 'Tư vấn quy trình cai nghiện tự nguyện & điều trị Methadone');
+
   const payload = {
     formType: 'report',
     subject: `Kiểm thử phản ánh ${stamp}`,

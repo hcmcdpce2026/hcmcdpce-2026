@@ -75,6 +75,18 @@ async function waitForServer(timeoutMs = 30000) {
       if (credsBackup) fs.writeFileSync(realCreds, credsBackup);
       else if (fs.existsSync(realCreds)) fs.unlinkSync(realCreds);
     }
+    const fixture = `
+      const { getDb } = require('./server/lib/db');
+      const db = getDb();
+      const ts = new Date().toISOString();
+      db.prepare(\`INSERT OR IGNORE INTO system_categories
+        (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
+        VALUES ('test-org-type', 'organization_type', 'test-unit', 'Đơn vị kiểm thử', 1, 'active', ?, ?, 'test')\`).run(ts, ts);
+      db.prepare(\`INSERT OR IGNORE INTO organizations
+        (id, code, name, type, status, sort_order, data_source, is_seed_data, environment, created_at, updated_at, created_by)
+        VALUES ('org-02', 'TEST-ORG', 'Đơn vị kiểm thử', 'test-unit', 'active', 1, 'test', 1, 'development', ?, ?, 'test')\`).run(ts, ts);
+    `;
+    if (runNode(['-e', fixture]) !== 0) throw new Error('khởi tạo fixture tổ chức thất bại');
 
     log(`Khởi động máy chủ kiểm thử trên ${BASE} ...`);
     server = spawn(process.execPath, ['server/index.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });

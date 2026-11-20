@@ -82,17 +82,17 @@ const DEMO_EVENTS = [
 const DEMO_SUPPORT = [
   {
     id: 'demo-sf-1', code: 'DEMO-001', name: '[Mẫu] Cơ sở kiểm thử – Điều trị thay thế', type: 'methadone',
-    district: 'Quận thử nghiệm', ward: 'Phường thử nghiệm', lat: 10.7769, lng: 106.7009,
+    ward: 'Phường thử nghiệm', lat: 10.7769, lng: 106.7009,
     services: ['Điều trị nghiện các chất dạng thuốc phiện bằng thuốc thay thế'],
   },
   {
     id: 'demo-sf-2', code: 'DEMO-002', name: '[Mẫu] Cơ sở kiểm thử – Điểm tư vấn', type: 'tu-van',
-    district: 'Quận thử nghiệm', ward: 'Phường thử nghiệm 2', lat: 10.78, lng: 106.71,
+    ward: 'Phường thử nghiệm 2', lat: 10.78, lng: 106.71,
     services: ['Tư vấn tâm lý', 'Hỗ trợ tái hòa nhập cộng đồng'],
   },
   {
     id: 'demo-sf-3', code: 'DEMO-003', name: '[Mẫu] Cơ sở kiểm thử – Chưa xác minh', type: 'co-so',
-    district: 'Huyện thử nghiệm', ward: '', lat: null, lng: null,
+    ward: '', lat: null, lng: null,
     services: ['Cai nghiện ma túy'], publish: 'pending',
   },
 ];
@@ -205,8 +205,8 @@ function seedDemoData(db) {
     DEMO_SUPPORT.forEach((s) => {
       insertRow(db, 'support_facilities', {
         id: s.id, code: s.code, name: s.name, type: s.type,
-        managing_org: '[Mẫu] Đơn vị quản lý (kiểm thử)', district: s.district, ward: s.ward,
-        city: 'Thành phố Hồ Chí Minh', address: `[Mẫu] Địa chỉ kiểm thử – ${s.district}`,
+        managing_org: '[Mẫu] Đơn vị quản lý (kiểm thử)', ward: s.ward,
+        city: 'Thành phố Hồ Chí Minh', address: '[Mẫu] Địa chỉ kiểm thử',
         latitude: s.lat, longitude: s.lng, hours: 'Trong giờ hành chính (mẫu)',
         services: JSON.stringify(s.services), audience: 'Người có nhu cầu hỗ trợ (mẫu)',
         scope: 'Phạm vi hỗ trợ mẫu.', source: 'Nguồn dữ liệu mẫu – không phải thông tin xác minh.',

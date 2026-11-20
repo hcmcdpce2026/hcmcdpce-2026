@@ -116,6 +116,8 @@ async function req(path, options) {
     sfRows.some((f) => f.latitude != null && f.longitude != null));
   check('Cơ sở có danh sách dịch vụ',
     sfRows.every((f) => Array.isArray(f.services)));
+  check('Cơ sở không còn trường quận/huyện',
+    sfRows.every((f) => !Object.prototype.hasOwnProperty.call(f, 'district')));
   check('Cơ sở không trùng dữ liệu cơ quan',
     !sfRows.some((f) => agRows.some((a) => a.name === f.name)));
   check('Lọc theo loại hình cơ sở hoạt động',

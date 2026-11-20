@@ -25,6 +25,11 @@ const nowIso = () => new Date().toISOString();
 const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
+function categoryLabels(db) {
+  const rows = db.prepare('SELECT category_type, code, name FROM system_categories').all();
+  return new Map(rows.map((row) => [`${row.category_type}:${row.code}`, row.name]));
+}
+
 async function health(req, res) {
   return http.ok(res, {
     status: 'ok',
@@ -99,6 +104,17 @@ async function listCategories(req, res, ctx) {
   return http.ok(res, rows.map(m.category));
 }
 
+async function listSystemCategories(req, res, ctx) {
+  const db = getDb();
+  const type = ctx.query.type || '';
+  const rows = type
+    ? db.prepare(`SELECT category_type AS categoryType, code, name, description, sort_order AS sortOrder
+        FROM system_categories WHERE category_type = ? AND status = 'active' ORDER BY sort_order, name`).all(type)
+    : db.prepare(`SELECT category_type AS categoryType, code, name, description, sort_order AS sortOrder
+        FROM system_categories WHERE status = 'active' ORDER BY category_type, sort_order, name`).all();
+  return http.ok(res, rows);
+}
+
 /**
  * Văn bản pháp luật: chỉ công khai bản ghi đã được bật công khai và chưa bị ẩn.
  * Các cột mới (lĩnh vực, tình trạng hiệu lực, ngày hết hiệu lực) có thể chưa tồn tại
@@ -108,11 +124,13 @@ function legalPublicWhere(r) {
   return r.is_public !== 0 && r.status !== 'inactive';
 }
 
-function legal(r) {
+function legal(r, labels) {
   return {
     id: r.id, code: r.code, title: r.title, docNumber: r.doc_number, docType: r.doc_type,
+    docTypeName: labels.get(`doc_type:${r.doc_type}`) || r.doc_type || '',
     issuedAt: r.issued_at, effectiveAt: r.effective_at, expiryAt: r.expiry_at || null,
     legalField: r.legal_field || '', issuer: r.issuer, summary: r.summary,
+    legalFieldName: labels.get(`legal_field:${r.legal_field}`) || r.legal_field || '',
     content: r.content, fileUrl: r.file_url, status: r.status || 'active',
     effectStatus: r.effect_status || 'in_effect', sourceType: r.data_source,
   };
@@ -120,13 +138,15 @@ function legal(r) {
 
 async function listLegal(req, res, ctx) {
   const db = getDb();
+  const labels = categoryLabels(db);
   const q = ctx.query;
   if (q.id) {
     const row = db.prepare('SELECT * FROM legal_documents WHERE (id = ? OR code = ?) AND is_public = 1').get(q.id, q.id);
     if (!row || !legalPublicWhere(row)) return http.notFound(res, 'Văn bản không tồn tại hoặc chưa được công bố.');
-    return http.ok(res, legal(row));
+    return http.ok(res, legal(row, labels));
   }
-  let rows = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC').all().filter(legalPublicWhere).map(legal);
+  let rows = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC').all()
+    .filter(legalPublicWhere).map((row) => legal(row, labels));
   if (q.type) rows = rows.filter((l) => l.docType === q.type);
   if (q.field) rows = rows.filter((l) => l.legalField === q.field);
   if (q.issuer) rows = rows.filter((l) => l.issuer === q.issuer);
@@ -177,10 +197,13 @@ const AGENCY_LINKS = `SELECT p.*, o.name AS org_name, o.code AS org_code
 
 async function listAgencies(req, res, ctx) {
   const db = getDb();
+  const labels = categoryLabels(db);
   const id = ctx.query.id;
   const mapAgency = (r) => ({
     id: r.id, slug: r.slug || '', name: r.name, shortName: r.short_name, roleType: r.role_type,
+    roleTypeName: labels.get(`agency_type:${r.role_type}`) || r.role_type || '',
     managementLevel: r.management_level || '', parentOrg: r.org_id ? (r.org_name || '') : '',
+    managementLevelName: labels.get(`management_level:${r.management_level}`) || r.management_level || '',
     logo: r.logo_url || '', address: r.address,
     phone: r.phone, email: r.email, website: r.website, description: r.description,
     functions: r.functions_text || '', headName: r.head_name || '',
@@ -224,13 +247,14 @@ async function listStatistics(req, res, ctx) {
 }
 
 /** Trạng thái công khai của cơ sở hỗ trợ: đã công khai + chưa ngừng hoạt động. */
-function supportMap(r) {
+function supportMap(r, labels) {
   const services = (() => {
     if (!r.services) return [];
     try { const a = JSON.parse(r.services); return Array.isArray(a) ? a : []; } catch (_) { return []; }
   })();
   return {
-    id: r.id, code: r.code || '', name: r.name, type: r.type, district: r.district || '',
+    id: r.id, code: r.code || '', name: r.name, type: r.type,
+    typeName: labels.get(`facility_type:${r.type}`) || r.type || '',
     ward: r.ward || '', city: r.city || 'Thành phố Hồ Chí Minh', address: r.address,
     phone: r.phone, email: r.email || '', website: r.website || '', hours: r.hours,
     contactPerson: r.contact_person || '',
@@ -251,24 +275,24 @@ function supportIsPublic(r) {
 
 async function listSupport(req, res, ctx) {
   const db = getDb();
+  const labels = categoryLabels(db);
   const q = ctx.query || {};
   if (q.id) {
     const row = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
         LEFT JOIN organizations o ON o.id = s.org_id WHERE s.id = ?`).get(q.id);
     if (!row || !supportIsPublic(row)) return http.notFound(res, 'Cơ sở không tồn tại hoặc chưa được công bố.');
-    return http.ok(res, supportMap(row));
+    return http.ok(res, supportMap(row, labels));
   }
   let rows = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
       LEFT JOIN organizations o ON o.id = s.org_id
       WHERE s.status <> 'inactive' ORDER BY s.name`).all()
-    .filter(supportIsPublic).map(supportMap);
+    .filter(supportIsPublic).map((row) => supportMap(row, labels));
   if (q.type) rows = rows.filter((f) => f.type === q.type);
-  if (q.district) rows = rows.filter((f) => f.district === q.district);
   if (q.service) rows = rows.filter((f) => f.services.some((s) => String(s).includes(q.service)));
   if (q.audience) rows = rows.filter((f) => String(f.audience || '').includes(q.audience));
   if (q.search) {
     rows = rows.filter((f) => norm(f.name).includes(norm(q.search)) || norm(f.address).includes(norm(q.search))
-      || norm(f.description).includes(norm(q.search)) || norm(f.district).includes(norm(q.search)));
+      || norm(f.description).includes(norm(q.search)) || norm(f.ward).includes(norm(q.search)));
   }
   return http.ok(res, rows);
 }
@@ -299,6 +323,7 @@ async function createSubmission(req, res, ctx) {
   const content = sec.cleanText(body.content || body.message, 8000);
   const subject = sec.cleanText(body.subject, 300) || 'Liên hệ chung';
   const formType = ['contact', 'report', 'support', 'feedback'].includes(body.formType) ? body.formType : 'contact';
+  const topicCode = sec.cleanText(body.topic, 100);
   const isAnonymous = !!body.isAnonymous;
   const fullName = sec.cleanText(body.name || body.fullName, 200);
   const email = sec.cleanText(body.email, 200);
@@ -315,6 +340,14 @@ async function createSubmission(req, res, ctx) {
   if (body.consent === false) return http.badRequest(res, 'Bạn cần đồng ý với chính sách xử lý dữ liệu cá nhân.');
 
   const db = getDb();
+  if (formType === 'contact' && !topicCode) {
+    return http.badRequest(res, 'Vui lòng chọn nhóm nội dung liên hệ.', { field: 'topic' });
+  }
+  if (topicCode) {
+    const topic = db.prepare(`SELECT 1 FROM system_categories
+      WHERE category_type = 'contact_topic' AND code = ? AND status = 'active'`).get(topicCode);
+    if (!topic) return http.badRequest(res, 'Nhóm nội dung liên hệ không hợp lệ hoặc đã ngừng sử dụng.', { field: 'topic' });
+  }
   const today = new Date().toISOString().slice(0, 10);
   const dedupe = crypto.createHash('sha256').update(`${content.slice(0, 500)}|${email}|${today}`).digest('hex');
   const dup = db.prepare('SELECT ticket_code FROM submissions WHERE dedupe_hash = ? AND created_at >= ?').get(dedupe, today);
@@ -328,14 +361,14 @@ async function createSubmission(req, res, ctx) {
   const id = sec.makeId('sub');
   const ts = nowIso();
 
-  db.prepare(`INSERT INTO submissions (id, ticket_code, form_type, status, priority, subject, full_name, email, phone,
+  db.prepare(`INSERT INTO submissions (id, ticket_code, form_type, status, priority, subject, topic_code, full_name, email, phone,
       is_anonymous, content, ip, user_agent, dedupe_hash,
       data_source, is_seed_data, environment, created_at, updated_at, created_by)
-     VALUES (?,?,?,'new',?,?,?,?,?,?,?,?,?,?,'operational',0,?,?,?,?)`).run(
-    id, ticket, formType, formType === 'report' ? 'high' : 'normal', subject, isAnonymous ? null : fullName,
+     VALUES (?,?,?,'new',?,?,?,?,?,?,?,?,?,?,?,'operational',0,?,?,?,?)`).run(
+    id, ticket, formType, formType === 'report' ? 'high' : 'normal', subject, topicCode || null, isAnonymous ? null : fullName,
     email || null, phone || null, isAnonymous ? 1 : 0, content, ip,
     String(req.headers['user-agent'] || '').slice(0, 250), dedupe,
-    process.env.APP_ENV || 'development', ts, ts,
+    process.env.APP_ENV || 'development', ts, ts, null,
   );
   db.prepare(`INSERT INTO submission_events (submission_id, action, to_status, note, user_id, user_name, created_at)
       VALUES (?,?,?,'Tiếp nhận yêu cầu trực tuyến',NULL,'Công dân',?)`).run(id, 'created', 'new', ts);
@@ -385,6 +418,6 @@ async function lookupSubmission(req, res, ctx) {
 }
 
 module.exports = {
-  health, listArticles, getArticle, listCategories, listLegal, listEvents, listAgencies,
+  health, listArticles, getArticle, listCategories, listSystemCategories, listLegal, listEvents, listAgencies,
   listStatistics, listSupport, listBanners, listNotifications, createSubmission, lookupSubmission,
 };

@@ -1372,6 +1372,7 @@ const initLawsPage = () => {
         if (!cards.length) {
             if (emptyState) emptyState.classList.remove('is-visible');
             if (resultCountEl) resultCountEl.textContent = '';
+            updateTabsUI();
             return;
         }
         const cardRecords = cardRecordsOf(cards);
@@ -1436,8 +1437,8 @@ const initLawsPage = () => {
 
     // 2. Lọc theo danh mục lĩnh vực quy định (Dropdown select)
     if (topicSelect && !alreadyBound) {
-        topicSelect.addEventListener('change', (e) => {
-            state.topic = e.target.value;
+        topicSelect.addEventListener('change', (event) => {
+            state.topic = event.target.value || 'all';
             renderDocs();
         });
     }
@@ -1654,8 +1655,8 @@ const initAgenciesPage = () => {
 
     // 2. Lọc theo dropdown phạm vi/địa bàn
     if (areaSelect) {
-        areaSelect.addEventListener('change', (e) => {
-            state.area = e.target.value;
+        areaSelect.addEventListener('change', (event) => {
+            state.area = event.target.value || 'all';
             renderAgencies();
         });
     }
@@ -1809,6 +1810,11 @@ document.addEventListener('DOMContentLoaded', () => {
             contactForm.reportValidity();
             return;
         }
+        const topicSelect = document.getElementById('ct-topic');
+        if (contactForm.dataset.formType === 'contact' && topicSelect && (topicSelect.disabled || !topicSelect.value)) {
+            showError('Vui lòng chọn nhóm nội dung liên hệ đang sử dụng.');
+            return;
+        }
         if (submitting) return;
 
         const isAnonymous = !!(anonymousCheckbox && anonymousCheckbox.checked);
@@ -1834,6 +1840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await window.PortalAPI.post('/api/public/submissions', {
                 formType: contactForm.dataset.formType || 'contact',
+                topic: (topicSelect || {}).value || '',
                 subject: (subjectInput && subjectInput.value.trim()) || '',
                 name: isAnonymous ? '' : ((fullNameInput && fullNameInput.value.trim()) || ''),
                 email: (emailInput && emailInput.value.trim()) || '',
@@ -1936,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /**
- * support.js - Xử lý tính năng tra cứu cơ sở y tế, lọc theo quận/huyện và loại hình dịch vụ
+ * support.js - Xử lý tính năng tra cứu cơ sở y tế và lọc loại hình dịch vụ
  * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
 
@@ -1958,14 +1965,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         centerItems.forEach(item => {
             const itemType = item.getAttribute('data-type');
-            const itemDistrict = item.getAttribute('data-district');
             const itemText = item.textContent.toLowerCase();
 
             // Kiểm tra điều kiện loại hình dịch vụ
             const matchType = (selectedType === 'all' || itemType === selectedType);
 
-            // Kiểm tra điều kiện từ khóa (quận/huyện hoặc tên cơ sở)
-            const matchQuery = (query === '' || itemDistrict.includes(query) || itemText.includes(query));
+            const matchQuery = (query === '' || itemText.includes(query));
 
             if (matchType && matchQuery) {
                 item.classList.remove('is-hidden');

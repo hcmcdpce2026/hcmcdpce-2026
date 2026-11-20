@@ -142,6 +142,11 @@
         if (articleDetail) return staticArticleDetail(articles, decodeURIComponent(articleDetail[1]));
         if (pathname === '/api/public/categories') return categories;
 
+        if (pathname === '/api/public/system-categories') {
+            const type = query.get('type');
+            return (snapshot.systemCategories || []).filter((category) => !type || category.categoryType === type);
+        }
+
         if (pathname === '/api/public/legal-documents') {
             const id = query.get('id');
             if (id) {
@@ -187,12 +192,15 @@
         if (pathname === '/api/public/support-facilities') {
             let rows = snapshot.supportFacilities || [];
             if (query.get('type')) rows = rows.filter((f) => f.type === query.get('type'));
-            if (query.get('district')) rows = rows.filter((f) => f.district === query.get('district'));
             if (query.get('search')) {
                 const search = normalizeSearch(query.get('search'));
-                rows = rows.filter((f) => normalizeSearch(`${f.name} ${f.address} ${f.district} ${f.description}`).includes(search));
+                rows = rows.filter((f) => normalizeSearch(`${f.name} ${f.address} ${f.ward} ${f.city} ${f.description}`).includes(search));
             }
-            return rows;
+            return rows.map((row) => {
+                const publicRow = Object.assign({}, row);
+                delete publicRow.district;
+                return publicRow;
+            });
         }
         if (pathname === '/api/public/banners') return snapshot.banners || [];
         if (pathname === '/api/public/notifications') return snapshot.notifications || [];

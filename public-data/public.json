@@ -4,6 +4,71 @@
   "articles": [],
   "categories": [],
   "legalDocuments": [],
+  "systemCategories": [
+    {
+      "categoryType": "contact_topic",
+      "code": "tu-van-cai-nghien",
+      "name": "Tư vấn quy trình cai nghiện tự nguyện & điều trị Methadone",
+      "description": null,
+      "sortOrder": 0
+    },
+    {
+      "categoryType": "contact_topic",
+      "code": "hoi-dap-phap-luat",
+      "name": "Hỏi đáp quy định pháp luật về phòng, chống ma túy",
+      "description": null,
+      "sortOrder": 1
+    },
+    {
+      "categoryType": "contact_topic",
+      "code": "phan-anh-cong-dong",
+      "name": "Phản ánh, kiến nghị bảo đảm an toàn khu dân cư",
+      "description": null,
+      "sortOrder": 2
+    },
+    {
+      "categoryType": "contact_topic",
+      "code": "phoi-hop-tuyen-truyen",
+      "name": "Đề xuất phối hợp tuyên truyền tại trường học / cơ quan",
+      "description": null,
+      "sortOrder": 3
+    },
+    {
+      "categoryType": "contact_topic",
+      "code": "gop-y-cong-thong-tin",
+      "name": "Góp ý nội dung Chuyên trang điện tử",
+      "description": null,
+      "sortOrder": 4
+    },
+    {
+      "categoryType": "legal_field",
+      "code": "luat-chung",
+      "name": "Quy định chung & Trách nhiệm",
+      "description": null,
+      "sortOrder": 0
+    },
+    {
+      "categoryType": "legal_field",
+      "code": "cai-nghien",
+      "name": "Cai nghiện & Quản lý sau cai",
+      "description": null,
+      "sortOrder": 1
+    },
+    {
+      "categoryType": "legal_field",
+      "code": "xu-phat",
+      "name": "Xử phạt vi phạm & Hình sự",
+      "description": null,
+      "sortOrder": 2
+    },
+    {
+      "categoryType": "legal_field",
+      "code": "dia-phuong",
+      "name": "Kế hoạch triển khai tại TP.HCM",
+      "description": null,
+      "sortOrder": 3
+    }
+  ],
   "events": [],
   "agencies": [],
   "statistics": [],

@@ -41,6 +41,18 @@ async function organizations(req, res) {
   return http.ok(res, rows.map(m.organization));
 }
 
+async function systemCategories(req, res, ctx) {
+  const s = auth.requireAuth(req, res);
+  if (!s) return;
+  const categoryType = ctx.query.type || '';
+  if (!['organization_type', 'management_level'].includes(categoryType)) {
+    return http.badRequest(res, 'Loại danh mục không hợp lệ.');
+  }
+  const rows = getDb().prepare(`SELECT code, name, category_type AS categoryType, status
+    FROM system_categories WHERE category_type = ? ORDER BY sort_order, name`).all(categoryType);
+  return http.ok(res, rows);
+}
+
 async function notifications(req, res) {
   const s = auth.requireAuth(req, res);
   if (!s) return;
@@ -111,4 +123,4 @@ async function summary(req, res) {
   });
 }
 
-module.exports = { users, organizations, notifications, markRead, settings, summary };
+module.exports = { users, organizations, systemCategories, notifications, markRead, settings, summary };

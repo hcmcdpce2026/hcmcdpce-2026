@@ -195,6 +195,14 @@
         gap: 1.35rem;
     }
 
+    .sup-lookup-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sup-lookup-filter #sup-search-input {
+        grid-column: 1 / -1;
+    }
+
     .ag-grid {
         gap: 1.25rem;
     }
@@ -598,9 +606,16 @@
     .ag-filter-row,
     .ed-search-row,
     .ev-filter-row,
-    .lw-filter-row,
+    .lw-filter-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .sup-lookup-filter {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sup-lookup-filter #sup-search-input {
+        grid-column: auto;
     }
 
     .ag-reset-btn,
@@ -1497,8 +1512,7 @@
 
     .cms-body,
     .ws-body {
-        --cms-gutter: 2rem;
-        --ws-gutter: 2rem;
+        --admin-gutter: 2rem;
     }
 }
 
@@ -1570,5 +1584,29 @@
     .cms-media-layout,
     .ws-doc-layout {
         min-width: 0;
+    }
+}
+
+@media (max-width: 1440px) {
+    .cms-body,
+    .ws-body {
+        --admin-sidebar-width: 268px;
+        --admin-gutter: 1.4rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .cms-body,
+    .ws-body {
+        --admin-gutter: 1.1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cms-body,
+    .ws-body {
+        --admin-sidebar-width: min(290px, 84vw);
+        --admin-header-height: 60px;
+        --admin-gutter: 1rem;
     }
 }

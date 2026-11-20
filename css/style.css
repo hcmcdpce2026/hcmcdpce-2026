@@ -17,6 +17,7 @@
     --color-indigo: #4f46e5;
     --color-indigo-soft: #e0e7ff;
     --color-danger: #dc2626;
+    --color-danger-dark: #b91c1c;
     --color-danger-soft: #fef2f2;
     --color-success: #16a34a;
     --color-success-dark: #15803d;
@@ -34,6 +35,7 @@
     --color-warning-border: #fcd34d;
     --color-warning-text: #92400e;
     --color-warning-bg: #fffbeb;
+    --color-accent-dark: var(--color-warning-text);
 
     --bg-body: #ffffff;
     --bg-page: #ffffff;
@@ -108,12 +110,38 @@
     --radius-3xl: 16px;
     --radius-full: 999px;
 
+    --admin-sidebar-width: 272px;
+    --admin-sidebar-collapsed: 76px;
+    --admin-header-height: 68px;
+    --admin-content-max: 1480px;
+    --admin-gutter: 1.75rem;
+    --admin-line-height: 1.6;
+    --admin-header-gap: 0.85rem;
+    --admin-header-padding-block: 0.5rem;
+    --admin-canvas: #f4f7fb;
+    --admin-card-radius: var(--radius-xl);
+    --admin-control-radius: var(--radius-md);
+    --admin-control-height: 40px;
+    --admin-control-padding-inline: 0.8rem;
+    --admin-button-height: 40px;
+    --admin-button-padding-inline: 0.95rem;
+    --admin-sidebar-bg: #0b2545;
+    --admin-sidebar-bg-deep: #081c36;
+    --admin-sidebar-text: rgba(255, 255, 255, 0.78);
+    --admin-sidebar-heading: rgba(255, 255, 255, 0.45);
+    --admin-sidebar-divider: rgba(255, 255, 255, 0.09);
+    --admin-sidebar-hover: rgba(255, 255, 255, 0.07);
+    --admin-sidebar-active: rgba(56, 189, 248, 0.16);
+    --admin-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -18px rgba(15, 23, 42, 0.18);
+    --admin-shadow-raised: 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+
     --container-max: 1240px;
     --container-gap: 2.5rem;
     --section-padding: 2.5rem 0 4.5rem;
 
     --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --transition: all 0.2s ease;
+    --transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
+        box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 
     /* --------------------------------------------------------------------
        TYPOGRAPHY SCALE (thang bậc chữ dùng chung toàn site)
@@ -146,8 +174,9 @@
 :root {
   /* Alias màu sắc */
   --color-primary-alias: var(--color-primary);       /* #0284c7 */
-  --color-secondary-alias: #c0392b;
+  --color-secondary-alias: var(--color-secondary);
   --color-error: var(--color-danger, #e74c3c);
+  --color-border: var(--border-color);
 
   /* Alias nền */
   --bg-primary: var(--bg-surface, #ffffff);

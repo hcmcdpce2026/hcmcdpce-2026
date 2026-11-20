@@ -57,7 +57,7 @@ API công khai trả về.
 
 | Bảng | Mục đích |
 |---|---|
-| `submissions`, `submission_events` | Yêu cầu từ PUBLIC và dòng thời gian xử lý |
+| `submissions`, `submission_events` | Yêu cầu từ PUBLIC (gồm mã nhóm liên hệ `topic_code`) và dòng thời gian xử lý |
 | `tasks`, `task_items`, `task_comments`, `task_history`, `task_documents` | Nhiệm vụ và trao đổi |
 | `documents`, `doc_versions` | Tài liệu nội bộ và phiên bản |
 | `events` | Lịch công tác nội bộ |
@@ -91,7 +91,8 @@ npm run db:seed
 ```
 
 - `db:migrate` áp dụng `schema.sql` và bổ sung tương thích schema được hỗ trợ bởi `server/db/migrate.js`; có thể chạy lặp lại.
-- `db:seed` thêm các tổ chức, quyền, vai trò, tài khoản và cấu hình hệ thống còn thiếu. Mặc định không thêm nội dung nghiệp vụ mẫu.
+- `db:seed` thêm quyền, vai trò, tài khoản và cấu hình hệ thống còn thiếu. Không tự tạo tổ chức, danh mục nghiệp vụ hoặc nội dung mẫu; các danh mục và đơn vị được quản lý trong CMS/Workspace.
+- `system_categories` lưu các lựa chọn nghiệp vụ do CMS quản lý, gồm nhóm liên hệ `contact_topic` và lĩnh vực pháp luật `legal_field`. Migration khởi tạo các lựa chọn đang có trên biểu mẫu; các nhóm nghiệp vụ khác chỉ được đưa vào từ giá trị đã có bản ghi sử dụng. Giá trị địa bàn cũ của cơ sở hỗ trợ được gộp vào địa chỉ trước khi bỏ cột `district`.
 - Chạy `db:seed` trước lần khởi động server đầu tiên để script CLI có thể tạo `server/data/credentials.local.txt` khi tạo tài khoản mới.
 - Server cũng bảo đảm schema và dữ liệu hệ thống tối thiểu khi khởi động. Tuy nhiên, cơ chế tự seed của server không ghi tệp bàn giao mật khẩu.
 
@@ -115,17 +116,11 @@ Kiểm thử tự động cho sáu nhóm chạy trên database tách biệt:
 npm run test:content-types
 ```
 
-### Dữ liệu mẫu và reset
+### Trạng thái mặc định và reset
 
 Nội dung công khai không có dữ liệu mẫu mặc định; do đó trạng thái rỗng trên PUBLIC là bình thường cho đến khi dữ liệu được nhập và xuất bản.
 
-Chỉ trên database thử nghiệm có thể xóa:
-
-```bash
-node server/db/seed.js --reset --with-demo
-```
-
-Lệnh trên xóa dữ liệu hiện có rồi nạp lại phần hệ thống và dữ liệu demo. `npm run db:reset` cũng reset toàn bộ database nhưng chỉ nạp phần hệ thống. **Không chạy các lệnh reset trên dữ liệu thật.**
+`npm run db:reset` xoá database rồi chỉ tạo lại quyền, vai trò, tài khoản và cấu hình hệ thống; lệnh này không nạp dữ liệu demo. **Chỉ chạy reset trên database thử nghiệm có thể xoá, không chạy trên dữ liệu thật.**
 
 Seed có thể tạo mật khẩu từ các biến `SEED_PASSWORD_*` trong `.env`; nếu để trống, mật khẩu được sinh tự động. Tệp bàn giao có mật khẩu rõ, phải được bảo vệ và xóa sau khi chuyển giao.
 
