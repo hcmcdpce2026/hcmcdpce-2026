@@ -2,8 +2,7 @@
  * smoke-content-types.js – Kiểm thử luồng dữ liệu cho 6 nhóm nội dung CMS.
  *
  * Xác minh rằng mỗi trang công khai chỉ đọc đúng loại dữ liệu của mình, rằng
- * trạng thái nháp/ẩn không bị lộ, và rằng dữ liệu mẫu (data_source = 'demo')
- * được nạp/gỡ đầy đủ mà không ảnh hưởng các bảng khác.
+ * trạng thái nháp/ẩn không bị lộ trên database fixture tạm của bộ kiểm thử.
  *
  * Chạy trên một database tách biệt:
  *   node server/scripts/run-content-type-tests.js
@@ -43,8 +42,8 @@ async function req(path, options) {
   check('Không lộ bài nháp trong danh sách công khai',
     newsRows.every((a) => a.status === 'published'),
     JSON.stringify(newsRows.map((a) => a.status)));
-  check('Không có bài nháp [Mẫu] bài nháp kiểm thử',
-    !newsRows.some((a) => /Bài nháp kiểm thử/.test(a.title)));
+  check('Bài nháp không xuất hiện công khai',
+    !newsRows.some((a) => a.title === 'Bản nháp tin tức kiểm thử'));
   check('Bài viết trả categoryGroup để lọc theo nhóm',
     newsRows.every((a) => a.categoryGroup === undefined || typeof a.categoryGroup === 'string'));
 

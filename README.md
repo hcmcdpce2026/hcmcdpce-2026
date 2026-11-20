@@ -182,7 +182,7 @@ Không commit `.env`, database, credentials hoặc dữ liệu người dùng. S
 | `npm.cmd run test:clean` | Báo cáo dữ liệu do kiểm thử để lại | Thêm `--yes` để xoá; mặc định chỉ báo cáo |
 | `npm.cmd run data` | Công cụ nhập/xuất/kiểm tra dữ liệu | Xem [docs/DATABASE.md](docs/DATABASE.md) |
 | `npm.cmd run db:reset` | Đặt lại database | **Thao tác phá hủy dữ liệu** |
-| `npm.cmd run demo:seed` | Nạp dữ liệu mẫu có thể nhận diện và gỡ riêng | **Chỉ dùng cho kiểm thử** |
+| `npm.cmd run demo:purge` | Báo cáo/xóa dữ liệu demo cũ còn sót lại | Thêm `-- --yes` để xóa |
 
 Không chạy các lệnh reset hoặc kiểm thử ghi dữ liệu trên môi trường production. Đọc [docs/TESTING.md](docs/TESTING.md) trước khi chạy runner; một số script có thể dừng tiến trình Node hoặc xóa database thử nghiệm.
 

@@ -2,8 +2,8 @@
  * run-content-type-tests.js – Kiểm thử 6 nhóm nội dung trên database TÁCH BIỆT.
  *
  * Dựng máy chủ tạm trên cổng riêng với tệp SQLite tạm, nạp dữ liệu hệ thống +
- * dữ liệu mẫu của 6 nhóm, chạy kiểm thử API công khai, sau đó xoá dữ liệu mẫu,
- * dừng máy chủ và xoá database tạm. Database vận hành không bị chạm tới.
+ * fixture tối thiểu cho 6 nhóm, chạy kiểm thử API công khai, rồi xoá database.
+ * Database vận hành không bị chạm tới.
  *
  * Chạy: npm run test:content-types
  */
@@ -66,7 +66,82 @@ async function waitForServer(timeoutMs = 30000) {
       if (credsBackup) fs.writeFileSync(realCreds, credsBackup);
       else if (fs.existsSync(realCreds)) fs.unlinkSync(realCreds);
     }
-    if (runNode(['server/db/content-types.js', '--demo']) !== 0) throw new Error('nạp dữ liệu mẫu thất bại');
+    const fixtures = `
+      const { getDb } = require('./server/lib/db');
+      const db = getDb();
+      const ts = new Date().toISOString();
+      const common = { data_source: 'test', is_seed_data: 1, environment: 'development', created_at: ts, updated_at: ts };
+      const insert = (table, values) => {
+        const row = Object.assign({}, common, values);
+        const columns = Object.keys(row);
+        db.prepare('INSERT INTO ' + table + ' (' + columns.join(', ') + ') VALUES (' +
+          columns.map(() => '?').join(', ') + ')').run(...columns.map((column) => row[column]));
+      };
+
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        insert('categories', { id: 'test-cat-news', name: 'News test category', slug: 'news-test-category', group_key: 'news' });
+        insert('categories', { id: 'test-cat-education', name: 'Education test category', slug: 'education-test-category', group_key: 'education' });
+
+        insert('articles', {
+          id: 'test-article-news', title: 'Tin tức kiểm thử', slug: 'test-article-news',
+          excerpt: 'Nội dung kiểm thử.', body: '<p>Nội dung kiểm thử.</p>',
+          category_id: 'test-cat-news', status: 'published', tags: '[]', published_at: ts,
+        });
+        insert('articles', {
+          id: 'test-article-news-draft', title: 'Bản nháp tin tức kiểm thử', slug: 'test-article-news-draft',
+          category_id: 'test-cat-news', status: 'draft', tags: '[]',
+        });
+        insert('articles', {
+          id: 'test-article-education', title: 'Bài tuyên truyền kiểm thử', slug: 'test-article-education',
+          excerpt: 'Nội dung kiểm thử.', body: '<p>Nội dung kiểm thử.</p>',
+          category_id: 'test-cat-education', status: 'published', tags: '[]', published_at: ts,
+        });
+
+        insert('legal_documents', {
+          id: 'test-law-current', code: 'test-law-current', title: 'Văn bản kiểm thử còn hiệu lực',
+          doc_number: 'TEST/01', doc_type: 'luat', legal_field: 'Phòng, chống ma túy',
+          issued_at: '2025-01-01', effective_at: '2025-01-01', effect_status: 'in_effect',
+        });
+        insert('legal_documents', {
+          id: 'test-law-expired', code: 'test-law-expired', title: 'Văn bản kiểm thử hết hiệu lực',
+          doc_number: 'TEST/02', doc_type: 'luat', legal_field: 'Phòng, chống ma túy',
+          issued_at: '2020-01-01', effective_at: '2020-01-01', effect_status: 'expired',
+        });
+
+        insert('public_events', {
+          id: 'test-event-upcoming', title: 'Sự kiện kiểm thử sắp diễn ra', slug: 'test-event-upcoming',
+          event_type: 'truyen-thong', start_at: new Date(Date.now() + 86400000).toISOString(),
+          end_at: new Date(Date.now() + 90000000).toISOString(), location: 'Địa điểm kiểm thử',
+          status: 'upcoming', publish_status: 'published',
+        });
+        insert('public_events', {
+          id: 'test-event-past', title: 'Sự kiện kiểm thử đã kết thúc', slug: 'test-event-past',
+          event_type: 'hoi-thao', start_at: '2020-01-01T09:00:00.000Z',
+          end_at: '2020-01-01T11:00:00.000Z', location: 'Địa điểm kiểm thử',
+          status: 'past', publish_status: 'published',
+        });
+        insert('public_events', {
+          id: 'test-event-hidden', title: 'Sự kiện Chưa công khai kiểm thử', slug: 'test-event-hidden',
+          event_type: 'truyen-thong', start_at: ts, status: 'upcoming', publish_status: 'draft',
+        });
+
+        insert('public_agencies', {
+          id: 'test-agency', name: 'Cơ quan kiểm thử', slug: 'test-agency',
+          role_type: 'coordination', management_level: 'thanh-pho', status: 'active',
+        });
+        insert('support_facilities', {
+          id: 'test-support', code: 'TEST-SUPPORT', name: 'Cơ sở kiểm thử', type: 'methadone',
+          latitude: 10.7769, longitude: 106.7009, services: JSON.stringify(['Dịch vụ kiểm thử']),
+          status: 'active', publish_status: 'published',
+        });
+        db.exec('COMMIT');
+      } catch (error) {
+        try { db.exec('ROLLBACK'); } catch (_) {}
+        throw error;
+      }
+    `;
+    if (runNode(['-e', fixtures]) !== 0) throw new Error('khởi tạo fixture kiểm thử thất bại');
 
     log(`Khởi động máy chủ kiểm thử trên ${BASE} ...`);
     server = spawn(process.execPath, ['server/index.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -79,22 +154,10 @@ async function waitForServer(timeoutMs = 30000) {
       cwd: ROOT, env: { ...env, API_BASE: BASE }, stdio: 'inherit',
     }).status;
 
-    /* Gỡ dữ liệu mẫu ngay sau khi kiểm thử để xác nhận thao tác purge hoạt động */
     server.kill();
     await new Promise((r) => setTimeout(r, 400));
 
-    log('Gỡ dữ liệu mẫu (purge) ...');
-    runNode(['server/db/content-types.js', '--purge', '--yes']);
-    const leftovers = spawnSync(process.execPath, ['-e', `
-      const { getDb } = require('./server/lib/db');
-      const d = getDb();
-      const t = ['articles','categories','legal_documents','public_agencies','public_events','support_facilities'];
-      const left = t.reduce((n, x) => n + d.prepare("SELECT COUNT(*) c FROM " + x + " WHERE data_source = 'demo'").get().c, 0);
-      console.log('Còn lại dữ liệu mẫu:', left);
-      process.exit(left === 0 ? 0 : 1);
-    `], { cwd: ROOT, env, stdio: 'inherit', encoding: 'utf8' }).status;
-
-    exitCode = (status === 0 && leftovers === 0) ? 0 : 1;
+    exitCode = status === 0 ? 0 : 1;
     log(exitCode === 0 ? 'TẤT CẢ ĐẠT' : 'CÓ MỤC KHÔNG ĐẠT');
   } catch (err) {
     console.error(`[content-types] Lỗi: ${err.message}`);

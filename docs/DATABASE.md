@@ -96,25 +96,17 @@ npm run db:seed
 - Chạy `db:seed` trước lần khởi động server đầu tiên để script CLI có thể tạo `server/data/credentials.local.txt` khi tạo tài khoản mới.
 - Server cũng bảo đảm schema và dữ liệu hệ thống tối thiểu khi khởi động. Tuy nhiên, cơ chế tự seed của server không ghi tệp bàn giao mật khẩu.
 
-### Dữ liệu mẫu cho 6 nhóm nội dung
+### Kiểm thử sáu nhóm nội dung
 
-Để kiểm thử luồng CMS → PUBLIC mà không nhập tay, có thể nạp bộ dữ liệu mẫu cho cả sáu nhóm:
-
-```bash
-npm run demo:seed     # nạp dữ liệu mẫu (data_source = 'demo')
-npm run demo:purge    # xem số bản ghi mẫu còn lại
-node server/db/content-types.js --purge --yes   # xoá dữ liệu mẫu
-```
-
-Mọi bản ghi mẫu mang `data_source = 'demo'` và tiền tố `[Mẫu]` trong tiêu đề/tên, nên nhận
-diện chính xác và xoá sạch khi hoàn thành kiểm thử. Lệnh purge chỉ xoá bản ghi `demo`,
-không đụng tới dữ liệu vận hành. **Không dùng dữ liệu mẫu trên môi trường thật.**
-
-Kiểm thử tự động cho sáu nhóm chạy trên database tách biệt:
+Kiểm thử tự động cho sáu nhóm chạy với fixture trên database tạm; runner xóa database
+tạm khi hoàn tất và không ghi dữ liệu vào database đang vận hành:
 
 ```bash
 npm run test:content-types
 ```
+
+`npm run demo:purge` chỉ báo cáo dữ liệu demo cũ đã được đánh dấu `data_source = 'demo'`;
+thêm `-- --yes` để xóa các bản ghi legacy đó. Không còn lệnh nạp dữ liệu demo vào database ứng dụng.
 
 ### Trạng thái mặc định và reset
 

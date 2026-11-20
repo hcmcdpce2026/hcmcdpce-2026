@@ -30,7 +30,6 @@
     "test:workspace": "node server/scripts/smoke-workspace-crud.js",
     "test:clean": "node server/scripts/clean-test-data.js",
     "test:content-types": "node server/scripts/run-content-type-tests.js",
-    "demo:seed": "node server/db/content-types.js --demo",
     "demo:purge": "node server/db/content-types.js --purge",
     "export:static-public": "node server/scripts/export-static-public.js",
     "check": "node scripts/check-encoding.js && node scripts/security-scan.js",

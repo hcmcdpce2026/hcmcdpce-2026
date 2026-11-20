@@ -78,7 +78,7 @@ lĩnh vực pháp luật), không khai báo tĩnh trong HTML.
 - `server/db/schema.sql` khai báo đầy đủ trường cho cả sáu nhóm; `server/lib/db.js`
   (`ensureContentTypeColumns`) và `server/db/migrate.js` bổ sung cột cho database cũ.
 - `js/public-pages.js` kết xuất dữ liệu công khai; `js/main.js` chỉ giữ tương tác giao diện.
-- `server/db/content-types.js` nạp/xoá dữ liệu mẫu cho sáu nhóm (chỉ dùng để kiểm thử).
+- `server/db/content-types.js` chỉ dọn dữ liệu demo cũ đã được đánh dấu; không tạo dữ liệu.
 
 ## Thành phần mã nguồn
 
@@ -131,7 +131,7 @@ Chi tiết và các giới hạn bảo mật được ghi trong [`SECURITY.md`](
 
 Để lấy thông tin tài khoản khởi tạo, chạy CLI `npm run db:seed` trước lần chạy server đầu tiên. Lệnh seed CLI tạo tệp bàn giao `server/data/credentials.local.txt` khi có tài khoản mới; cơ chế tự seed của server không xuất tệp bàn giao này.
 
-Seed mặc định chỉ tạo tài khoản và cấu hình hệ thống. Nội dung nghiệp vụ mẫu không tự xuất hiện trên PUBLIC; dữ liệu mẫu cho sáu nhóm nội dung chỉ được nạp riêng bằng `npm run demo:seed` và có thể gỡ bằng `npm run demo:purge -- --yes`.
+Seed mặc định chỉ tạo tài khoản và cấu hình hệ thống. Không còn lệnh nạp dữ liệu demo vào database ứng dụng. Bộ kiểm thử sáu nhóm dùng fixture trong database tạm và tự xóa database đó khi hoàn tất. `npm run demo:purge -- --yes` chỉ dành để dọn dữ liệu demo cũ còn sót lại.
 
 ## Nguyên tắc thiết kế và giới hạn
 

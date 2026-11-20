@@ -5,8 +5,8 @@
  *   --reset : xoá dữ liệu database rồi tạo lại quyền, vai trò, tài khoản và cấu hình.
  *             Chỉ dùng ở development/staging; production cần thêm --force.
  *
- * Mặc định chỉ bổ sung quyền, vai trò, tài khoản và cấu hình còn thiếu.
- * Dữ liệu demo được quản lý riêng bởi server/db/content-types.js.
+ * Mặc định chỉ bổ sung quyền, vai trò, tài khoản quản trị và cấu hình hệ thống còn thiếu.
+ * Không tạo nội dung nghiệp vụ hoặc dữ liệu demo.
  */
 'use strict';
 
@@ -317,10 +317,6 @@ module.exports = {
 /* ------------------------------- CLI ---------------------------------------- */
 if (require.main === module) {
     const args = new Set(process.argv.slice(2));
-    if (args.has('--with-demo')) {
-        console.error('[seed] --with-demo đã bị gỡ bỏ; dùng npm run demo:seed để nạp dữ liệu thử nghiệm.');
-        process.exit(1);
-    }
     const reset = args.has('--reset');
     if (reset && ENV === 'production' && !args.has('--force')) {
         console.error('[seed] Từ chối chạy --reset ở môi trường production (thêm --force nếu thực sự cần).');
