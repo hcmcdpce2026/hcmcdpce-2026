@@ -344,6 +344,11 @@ const Store = (function () {
         const c = categoryById(id);
         return c ? c.name : 'Chưa phân loại';
     };
+    /** Nhóm nội dung của chuyên mục (group_key do CMS quản lý) – dùng để tách 6 nhóm */
+    const categoryGroup = (id) => {
+        const c = categoryById(id);
+        return c ? (c.group || '') : '';
+    };
     const categoryChildren = (id) => cache.categories.filter((c) => c.parentId === id);
     const categoryArticleCount = (id) => cache.articles.filter((a) => a.categoryId === id && a.status !== 'archived').length;
     const media = () => cache.media.slice();
@@ -557,7 +562,7 @@ const Store = (function () {
     return {
         /* dữ liệu */
         get, load, reload, loadSession, setSession, clearSession, logout, getSession, currentUser, can,
-        contents, contentById, categories, categoryById, categoryName, categoryChildren, categoryArticleCount,
+        contents, contentById, categories, categoryById, categoryName, categoryGroup, categoryChildren, categoryArticleCount,
         media, mediaById, logs, notifications, users, userById, workflow,
         stats, monthlySeries,
         /* ghi */
@@ -1661,6 +1666,7 @@ const Store = (function () {
     const ContentList = (function () {
         const state = {
             q: '',
+            group: '',
             category: '',
             status: '',
             author: '',
@@ -1681,6 +1687,7 @@ const Store = (function () {
             if (params.get('q')) state.q = params.get('q');
             if (params.get('status')) state.status = params.get('status');
             if (params.get('category')) state.category = params.get('category');
+            if (params.get('group')) state.group = params.get('group');
             if (params.get('author')) state.author = params.get('author');
         };
 
@@ -1691,7 +1698,9 @@ const Store = (function () {
             const from = state.from ? util.parseDate(state.from) : null;
             const to = state.to ? util.parseDate(state.to) : null;
 
+            /* Nhóm nội dung lấy từ group_key của chuyên mục – không dò chuỗi tiêu đề */
             let list = Store.contents().filter((a) => {
+                if (state.group && Store.categoryGroup(a.categoryId) !== state.group) return false;
                 if (state.category && a.categoryId !== state.category) return false;
                 if (state.status && a.status !== state.status) return false;
                 if (state.author && a.authorId !== state.author) return false;
@@ -1718,7 +1727,7 @@ const Store = (function () {
 
         const activeFilterCount = () => {
             let n = 0;
-            ['q', 'category', 'status', 'author', 'from', 'to'].forEach((k) => { if (state[k]) n++; });
+            ['q', 'group', 'category', 'status', 'author', 'from', 'to'].forEach((k) => { if (state[k]) n++; });
             return n;
         };
 
@@ -1729,6 +1738,11 @@ const Store = (function () {
             if (!el) return;
             const chips = [];
             if (state.q) chips.push(`Từ khóa: “${util.escape(state.q)}”`);
+            if (state.group) {
+                const groupSelect = document.getElementById('filter-group');
+                const opt = groupSelect ? groupSelect.querySelector(`option[value="${state.group}"]`) : null;
+                chips.push(`Nhóm: ${util.escape(opt ? opt.textContent.trim() : state.group)}`);
+            }
             if (state.category) chips.push(`Chuyên mục: ${util.escape(Store.categoryName(state.category))}`);
             if (state.status) chips.push(`Trạng thái: ${util.escape(statusLabel(state.status))}`);
             if (state.author) {
@@ -1888,9 +1902,15 @@ const Store = (function () {
         /* ---------- Bộ lọc ---------- */
 
         const fillSelects = () => {
+            const groupSelect = document.getElementById('filter-group');
+            if (groupSelect) groupSelect.value = state.group;
+
             const cat = document.getElementById('filter-category');
             if (cat) {
-                const cats = Store.categories().sort((a, b) => util.compare(a.name, b.name));
+                /* Chọn nhóm thì chỉ liệt kê chuyên mục của nhóm đó */
+                const cats = Store.categories()
+                    .filter((c) => !state.group || c.group === state.group)
+                    .sort((a, b) => util.compare(a.name, b.name));
                 cat.innerHTML = '<option value="">Tất cả chuyên mục</option>' + cats.map((c) =>
                     `<option value="${util.escape(c.id)}">${c.parentId ? '— ' : ''}${util.escape(c.name)}</option>`).join('');
                 cat.value = state.category;
@@ -1931,6 +1951,7 @@ const Store = (function () {
 
         const resetFilters = () => {
             state.q = '';
+            state.group = '';
             state.category = '';
             state.status = '';
             state.author = '';
@@ -2138,11 +2159,17 @@ const Store = (function () {
                 });
             }
 
-            ['category', 'status', 'author', 'from', 'to'].forEach((key) => {
+            ['group', 'category', 'status', 'author', 'from', 'to'].forEach((key) => {
                 const el = document.getElementById(`filter-${key}`);
                 if (!el) return;
                 el.addEventListener('change', () => {
                     state[key] = el.value;
+                    /* Đổi nhóm thì lọc lại danh sách chuyên mục và bỏ chuyên mục cũ */
+                    if (key === 'group') {
+                        state.category = '';
+                        state.page = 1;
+                        fillSelects();
+                    }
                     applyFilters();
                 });
             });
@@ -3901,7 +3928,7 @@ const Store = (function () {
             'legal-documents': 'Văn bản pháp luật',
             agencies: 'Cơ quan - Đơn vị',
             events: 'Sự kiện',
-            'support-facilities': 'Cơ sở hỗ trợ',
+            'support-facilities': 'Cơ sở y tế và điểm tư vấn',
             statistics: 'Số liệu thống kê',
         };
 
@@ -3920,14 +3947,42 @@ const Store = (function () {
             rehab: 'Cơ sở cai nghiện',
         };
         const EVENT_STATUS = { upcoming: 'Sắp diễn ra', ongoing: 'Đang diễn ra', past: 'Đã kết thúc' };
+        const PUBLISH_STATUS = { draft: 'Chưa công khai', published: 'Đã công khai', hidden: 'Tạm ẩn' };
+        const EFFECT_STATUS = {
+            in_effect: 'Còn hiệu lực', expired: 'Hết hiệu lực',
+            replaced: 'Bị thay thế', amended: 'Được sửa đổi, bổ sung',
+        };
+        const LEGAL_FIELDS = {
+            'phong-chong-ma-tuy': 'Phòng, chống ma túy',
+            'hinh-su': 'Hình sự', 'hanh-chinh': 'Hành chính',
+            'y-te': 'Y tế', 'giao-duc': 'Giáo dục', 'khac': 'Lĩnh vực khác',
+        };
+        const MANAGEMENT_LEVELS = {
+            'thanh-pho': 'Cấp Thành phố', 'so-nganh': 'Cấp sở, ngành',
+            'quan-huyen': 'Cấp quận, huyện', 'phuong-xa': 'Cấp phường, xã',
+        };
         /* Nhãn trạng thái dùng chung cho bảng danh sách (tránh hiển thị khóa kỹ thuật) */
         const STATUS_LABEL = Object.assign({
-            active: 'Đang hoạt động', inactive: 'Tạm ẩn',
+            active: 'Đang hoạt động', inactive: 'Ngừng hoạt động',
             reported: 'Đã báo cáo', verified: 'Đã phê duyệt',
-        }, EVENT_STATUS);
+            pending: 'Chờ kiểm duyệt', rejected: 'Không công khai', hidden: 'Tạm ẩn',
+        }, EVENT_STATUS, EFFECT_STATUS);
+        /**
+         * Loại hình cơ sở y tế và điểm tư vấn. Danh mục định hướng theo yêu cầu
+         * nghiệp vụ; đơn vị vận hành rà soát căn cứ pháp lý trước khi đưa vào dùng.
+         */
         const FACILITY_TYPES = {
-            'tu-van': 'Tư vấn hỗ trợ', 'co-so': 'Cơ sở điều trị, cai nghiện',
-            'cong-dong': 'Tổ tư vấn cộng đồng', 'duong-day-nong': 'Đường dây nóng',
+            'kham-chua-benh': 'Cơ sở khám bệnh, chữa bệnh có dịch vụ điều trị nghiện',
+            methadone: 'Cơ sở điều trị nghiện bằng thuốc thay thế',
+            'co-so': 'Cơ sở cai nghiện ma túy',
+            'tu-van': 'Điểm tư vấn, hỗ trợ người sử dụng ma túy',
+            'tam-ly': 'Cơ sở tư vấn tâm lý, sức khỏe tâm thần',
+            'phuc-hoi': 'Cơ sở hỗ trợ điều trị, phục hồi chức năng',
+            'sau-cai': 'Cơ sở hỗ trợ người sau cai nghiện',
+            'tai-hoa-nhap': 'Điểm hỗ trợ tái hòa nhập cộng đồng',
+            'gia-dinh': 'Hỗ trợ gia đình và người thân',
+            'cong-dong': 'Tổ tư vấn cộng đồng',
+            'duong-day-nong': 'Đường dây nóng',
         };
 
         /** Chọn tệp qua hộp thoại, tải lên thư viện tài nguyên, trả về URL công khai */
@@ -3957,52 +4012,90 @@ const Store = (function () {
                     ['code', 'Số hiệu / mã văn bản', v.code || v.docNumber || '', 'text', true],
                     ['title', 'Tên văn bản', v.title || '', 'text', true],
                     ['docType', 'Loại văn bản', v.docType || v.doc_type || 'luat', { select: DOC_TYPES }, false],
+                    ['legalField', 'Lĩnh vực pháp luật', v.legalField || v.legal_field || '', { select: LEGAL_FIELDS }, false],
                     ['issuer', 'Cơ quan ban hành', v.issuer || '', 'text', false],
                     ['issuedAt', 'Ngày ban hành', (v.issuedAt || v.issued_at || '').slice(0, 10), 'date', false],
-                    ['effectiveAt', 'Ngày hiệu lực', (v.effectiveAt || v.effective_at || '').slice(0, 10), 'date', false],
-                    ['summary', 'Tóm tắt', v.summary || '', 'textarea', false],
-                    ['content', 'Nội dung', v.content || '', 'textarea', false],
+                    ['effectiveAt', 'Ngày có hiệu lực', (v.effectiveAt || v.effective_at || '').slice(0, 10), 'date', false],
+                    ['expiryAt', 'Ngày hết hiệu lực (nếu có)', (v.expiryAt || v.expiry_at || '').slice(0, 10), 'date', false],
+                    ['effectStatus', 'Tình trạng hiệu lực', v.effectStatus || v.effect_status || 'in_effect', { select: EFFECT_STATUS }, false],
+                    ['summary', 'Trích yếu nội dung', v.summary || '', 'textarea', false],
+                    ['content', 'Nội dung văn bản', v.content || '', 'textarea', false],
                     ['fileUrl', 'Tệp đính kèm (PDF, DOC…)', v.fileUrl || v.file_url || '', { file: '.pdf,.doc,.docx' }, false],
+                    ['status', 'Trạng thái công khai', (v.status || 'active') === 'inactive' ? 'inactive' : 'active',
+                        { select: { active: 'Đang công khai', inactive: 'Ngừng công khai' } }, false],
                 ];
             }
             if (kind === 'agencies') {
                 return [
                     ['name', 'Tên cơ quan - đơn vị', v.name || '', 'text', true],
                     ['shortName', 'Tên viết tắt', v.shortName || v.short_name || '', 'text', false],
-                    ['roleType', 'Loại cơ quan', v.roleType || v.role_type || 'coordination', { select: AGENCY_ROLES }, false],
-                    ['address', 'Địa chỉ', v.address || '', 'text', false],
+                    ['slug', 'Đường dẫn (slug)', v.slug || '', 'text', false],
+                    ['roleType', 'Loại hình cơ quan', v.roleType || v.role_type || 'coordination', { select: AGENCY_ROLES }, false],
+                    ['managementLevel', 'Cấp quản lý', v.managementLevel || v.management_level || '', { select: MANAGEMENT_LEVELS }, false],
+                    ['orgId', 'Liên kết đơn vị trong hệ thống', v.orgId || v.org_id || '', { orgSelect: true }, false],
+                    ['address', 'Địa chỉ trụ sở', v.address || '', 'text', false],
                     ['phone', 'Điện thoại', v.phone || '', 'text', false],
                     ['email', 'Email', v.email || '', 'text', false],
                     ['website', 'Website', v.website || '', 'text', false],
-                    ['description', 'Mô tả', v.description || '', 'textarea', false],
-                    ['logo', 'Logo / ảnh đại diện', v.logo || v.logoUrl || '', { image: true }, false],
-                    ['status', 'Trạng thái', v.status || 'active', { select: { active: 'Đang hoạt động', inactive: 'Tạm ẩn' } }, false],
+                    ['headName', 'Người đứng đầu / đại diện', v.headName || v.head_name || '', 'text', false],
+                    ['description', 'Giới thiệu', v.description || '', 'textarea', false],
+                    ['functions', 'Chức năng, nhiệm vụ', v.functions || v.functionsText || v.functions_text || '', 'textarea', false],
+                    ['structure', 'Cơ cấu tổ chức', v.structure || '', 'textarea', false],
+                    ['logo', 'Logo / ảnh đại diện', v.logo || v.logoUrl || v.logo_url || '', { image: true }, false],
+                    ['status', 'Trạng thái công khai', (v.status || 'active') === 'inactive' ? 'inactive' : 'active',
+                        { select: { active: 'Đang công khai', inactive: 'Ngừng công khai' } }, false],
                 ];
             }
             if (kind === 'events') {
                 return [
                     ['title', 'Tên sự kiện', v.title || '', 'text', true],
-                    ['category', 'Nhóm sự kiện', v.category || '', 'text', false],
-                    ['startAt', 'Thời gian bắt đầu', toLocalInput(v.startAt || v.start_at || ''), 'datetime', false],
-                    ['endAt', 'Thời gian kết thúc', toLocalInput(v.endAt || v.end_at || ''), 'datetime', false],
-                    ['location', 'Địa điểm', v.location || '', 'text', false],
+                    ['slug', 'Đường dẫn (slug)', v.slug || '', 'text', false],
+                    ['eventType', 'Loại sự kiện', v.eventType || v.event_type || v.category || '', 'text', false],
+                    ['startAt', 'Thời gian bắt đầu', toLocalInput(v.startAt || v.start_at || v.start || ''), 'datetime', false],
+                    ['endAt', 'Thời gian kết thúc', toLocalInput(v.endAt || v.end_at || v.end || ''), 'datetime', false],
+                    ['location', 'Địa điểm tổ chức', v.location || '', 'text', false],
                     ['organizer', 'Đơn vị tổ chức', v.organizer || '', 'text', false],
-                    ['summary', 'Tóm tắt', v.summary || '', 'textarea', false],
-                    ['content', 'Nội dung', v.content || '', 'textarea', false],
+                    ['coOrganizer', 'Đơn vị phối hợp', v.coOrganizer || v.co_organizer || '', 'text', false],
+                    ['summary', 'Mô tả', v.summary || '', 'textarea', false],
+                    ['content', 'Nội dung chi tiết', v.content || '', 'textarea', false],
                     ['imageUrl', 'Ảnh sự kiện', v.imageUrl || v.image_url || v.image || '', { image: true }, false],
-                    ['status', 'Trạng thái', v.status || 'upcoming', { select: EVENT_STATUS }, false],
+                    ['status', 'Trạng thái sự kiện', v.status || 'upcoming', { select: EVENT_STATUS }, false],
+                    ['publishStatus', 'Trạng thái xuất bản', v.publishStatus || v.publish_status || 'published',
+                        { select: PUBLISH_STATUS }, false],
                 ];
             }
             if (kind === 'support-facilities') {
+                const services = Array.isArray(v.services) ? v.services.join(', ') : (v.services || '');
                 return [
-                    ['name', 'Tên cơ sở', v.name || '', 'text', true],
-                    ['type', 'Loại cơ sở', v.type || 'tu-van', { select: FACILITY_TYPES }, false],
+                    ['name', 'Tên cơ sở / điểm tư vấn', v.name || '', 'text', true],
+                    ['code', 'Mã định danh', v.code || '', 'text', false],
+                    ['type', 'Loại hình cơ sở', v.type || 'tu-van', { select: FACILITY_TYPES }, false],
+                    ['orgId', 'Đơn vị quản lý trực tiếp', v.orgId || v.org_id || '', { orgSelect: true }, false],
+                    ['managingOrg', 'Tên đơn vị quản lý (nếu chưa có trong danh mục)', v.managingOrg || v.managing_org || '', 'text', false],
                     ['district', 'Quận / huyện', v.district || '', 'text', false],
-                    ['address', 'Địa chỉ', v.address || '', 'text', false],
-                    ['phone', 'Điện thoại', v.phone || '', 'text', false],
-                    ['hours', 'Giờ hoạt động', v.hours || '', 'text', false],
-                    ['description', 'Mô tả', v.description || '', 'textarea', false],
-                    ['status', 'Trạng thái', v.status || 'active', { select: { active: 'Đang hoạt động', inactive: 'Tạm ẩn' } }, false],
+                    ['ward', 'Phường / xã', v.ward || '', 'text', false],
+                    ['address', 'Địa chỉ cụ thể', v.address || '', 'text', false],
+                    ['latitude', 'Vĩ độ (latitude)', v.latitude != null ? String(v.latitude) : '', 'text', false],
+                    ['longitude', 'Kinh độ (longitude)', v.longitude != null ? String(v.longitude) : '', 'text', false],
+                    ['phone', 'Số điện thoại', v.phone || '', 'text', false],
+                    ['email', 'Email', v.email || '', 'text', false],
+                    ['website', 'Website', v.website || '', 'text', false],
+                    ['hours', 'Thời gian hoạt động', v.hours || '', 'text', false],
+                    ['contactPerson', 'Bộ phận tiếp nhận liên hệ', v.contactPerson || v.contact_person || '', 'text', false],
+                    ['services', 'Dịch vụ cung cấp (phân cách bằng dấu phẩy)', services, 'textarea', false],
+                    ['audience', 'Đối tượng tiếp nhận', v.audience || '', 'text', false],
+                    ['scope', 'Phạm vi hỗ trợ', v.scope || '', 'text', false],
+                    ['conditions', 'Điều kiện tiếp nhận', v.conditions || '', 'textarea', false],
+                    ['procedures', 'Thủ tục / hướng dẫn liên hệ', v.procedures || '', 'textarea', false],
+                    ['costNote', 'Thông tin chi phí (nếu được xác minh)', v.costNote || v.cost_note || '', 'text', false],
+                    ['description', 'Mô tả / giới thiệu', v.description || '', 'textarea', false],
+                    ['imageUrl', 'Hình ảnh cơ sở', v.image || v.imageUrl || v.image_url || '', { image: true }, false],
+                    ['source', 'Nguồn thông tin', v.source || '', 'text', false],
+                    ['verifiedAt', 'Ngày xác minh gần nhất', (v.verifiedAt || v.verified_at || '').slice(0, 10), 'date', false],
+                    ['status', 'Trạng thái hoạt động', (v.status || 'active') === 'inactive' ? 'inactive' : 'active',
+                        { select: { active: 'Đang hoạt động', inactive: 'Ngừng hoạt động' } }, false],
+                    ['publishStatus', 'Trạng thái kiểm duyệt / công khai', v.publishStatus || v.publish_status || 'published',
+                        { select: { pending: 'Chờ kiểm duyệt', published: 'Đã công khai', rejected: 'Không công khai' } }, false],
                 ];
             }
             return [
@@ -4012,6 +4105,29 @@ const Store = (function () {
                 ['sourceType', 'Loại số liệu', v.sourceType || v.source_type || 'reported', { select: { reported: 'Đã báo cáo', verified: 'Đã phê duyệt' } }, false],
                 ['note', 'Ghi chú', v.note || '', 'textarea', false],
             ];
+        };
+
+        /**
+         * Nạp danh sách đơn vị cho ô chọn đơn vị quản lý.
+         * Lỗi tải danh sách không chặn việc lưu hồ sơ: khi đó trường chữ tự do
+         * "Tên đơn vị quản lý" vẫn dùng được.
+         */
+        const loadOrganizationOptions = async (select, currentValue) => {
+            const help = select.closest('.cms-field')?.querySelector('[data-org-help]');
+            try {
+                const orgs = await window.PortalAPI.get('/api/shared/organizations');
+                const list = Array.isArray(orgs) ? orgs.slice().sort((a, b) => util.compare(a.name, b.name)) : [];
+                select.innerHTML = '<option value="">— Chưa gắn đơn vị trong hệ thống —</option>' + list.map((o) =>
+                    `<option value="${util.escape(o.id)}">${util.escape(o.name)}</option>`).join('');
+                if (currentValue) select.value = currentValue;
+                if (help) {
+                    help.textContent = list.length
+                        ? 'Gắn hồ sơ với một đơn vị trong hệ thống để tra cứu quan hệ quản lý.'
+                        : 'Hệ thống chưa có đơn vị nào — dùng ô tên đơn vị bên dưới nếu cần.';
+                }
+            } catch (err) {
+                if (help) help.textContent = 'Không tải được danh sách đơn vị; dùng ô tên đơn vị bên dưới.';
+            }
         };
 
         /** Chuyển ISO sang giá trị cho <input type="datetime-local"> */
@@ -4031,6 +4147,18 @@ const Store = (function () {
             if (type === 'textarea') {
                 return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
                     <textarea class="cms-textarea" id="${id}" rows="4"${req}>${util.escape(value)}</textarea></div>`;
+            }
+
+            /*
+             * Chọn đơn vị quản lý trong hệ thống (khóa ngoại tới `organizations`).
+             * Danh sách do máy chủ cung cấp; ô trống cho phép hồ sơ chưa gắn đơn vị.
+             */
+            if (type && typeof type === 'object' && type.orgSelect) {
+                return `<div class="cms-field cms-u-mb-md"><label class="cms-label" for="${id}">${labelHtml}</label>
+                    <select class="cms-select" id="${id}"${req} data-org-select>
+                        <option value="">— Chưa gắn đơn vị trong hệ thống —</option>
+                    </select>
+                    <p class="cms-help" data-org-help>Đang tải danh sách đơn vị…</p></div>`;
             }
 
             /* Danh sách lựa chọn: tránh gõ tay sai chính tả/khóa */
@@ -4092,6 +4220,12 @@ const Store = (function () {
                     '</form>',
             });
             const form = dlg.query('#public-catalog-form');
+
+            /* Ô chọn đơn vị quản lý: danh sách thật từ `organizations` */
+            const orgSelect = form.querySelector('[data-org-select]');
+            if (orgSelect) {
+                loadOrganizationOptions(orgSelect, (item && (item.orgId || item.org_id)) || '');
+            }
 
             /* Upload ảnh / tệp ngay trong form (không phải dán đường dẫn thủ công) */
             form.addEventListener('click', async (e) => {

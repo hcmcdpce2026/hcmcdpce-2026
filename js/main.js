@@ -971,8 +971,14 @@ const initEducationPage = () => {
     const gridList = document.getElementById('ed-grid-list');
     if (!gridList) return;
 
-    const cards = Array.from(gridList.querySelectorAll('.ed-card'));
-    const tabButtons = Array.from(document.querySelectorAll('.ed-tab-btn'));
+    /*
+     * Gắn sự kiện MỘT lần, nhưng KHÔNG thoát sớm: mỗi lần `portal:content-rendered`
+     * phát, hàm vẫn phải chạy lại render để đọc lưới thẻ vừa được dựng từ API.
+     * (Trước đây `return` ngay khi đã đánh dấu khiến lần render sau dữ liệu không
+     * bao giờ diễn ra.)
+     */
+    const alreadyBound = gridList.dataset.eduBound === '1';
+
     const searchInput = document.getElementById('ed-search-input');
     const resetBtn = document.getElementById('ed-reset-btn');
     const emptyState = document.getElementById('ed-empty-state');
@@ -997,8 +1003,8 @@ const initEducationPage = () => {
             .trim();
     };
 
-    // Lập chỉ mục nội dung tìm kiếm cho từng thẻ chuyên đề
-    const cardRecords = cards.map((el) => {
+    // Lập chỉ mục nội dung tìm kiếm cho từng thẻ chuyên đề (đọc lại DOM mỗi lần lọc)
+    const cardRecordsOf = (list) => list.map((el) => {
         const title = el.querySelector('.ed-card__title')?.textContent || '';
         const desc = el.querySelector('.ed-card__desc')?.textContent || '';
         const tag = el.querySelector('.ed-card__tag')?.textContent || '';
@@ -1015,7 +1021,12 @@ const initEducationPage = () => {
        Đồng bộ trạng thái giao diện các nút chuyên mục (Tabs)
        ---------------------------------------------------------------------- */
     const updateTabsUI = () => {
-        tabButtons.forEach((btn) => {
+        /*
+         * Truy vấn nút hiện tại (không dùng danh sách chụp lúc init): bộ lọc
+         * chuyên đề được public-pages.js dựng lại từ dữ liệu CMS, nên nút cũ
+         * đã bị gỡ khỏi DOM và tab đang chọn sẽ không được tô sáng.
+         */
+        document.querySelectorAll('.ed-tab-btn').forEach((btn) => {
             const isSelected = (btn.dataset.topic || 'all') === state.topic;
             btn.classList.toggle('is-active', isSelected);
             btn.setAttribute('aria-selected', String(isSelected));
@@ -1026,11 +1037,14 @@ const initEducationPage = () => {
        Hàm lọc và hiển thị danh sách chuyên đề
        ---------------------------------------------------------------------- */
     const renderCards = () => {
+        /* Đọc lại thẻ HIỆN TẠI: public-pages.js dựng lại lưới sau khi nạp API */
+        const cards = Array.from(gridList.querySelectorAll('.ed-card'));
         if (!cards.length) {
             if (emptyState) emptyState.classList.remove('is-visible');
             if (resultCountEl) resultCountEl.textContent = '';
             return;
         }
+        const cardRecords = cardRecordsOf(cards);
         const normalizedKeyword = normalizeText(state.keyword);
 
         const matchedRecords = cardRecords.filter((item) => {
@@ -1070,15 +1084,22 @@ const initEducationPage = () => {
        ---------------------------------------------------------------------- */
 
     // 1. Chuyển đổi tab chuyên mục
-    tabButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
+    //
+    // Uỷ nhiệm sự kiện trên vùng chứa: public-pages.js dựng lại .ed-tabs sau khi
+    // nạp dữ liệu, nên nút gắn handler trực tiếp lúc init sẽ bị thay bởi nút mới
+    // không có worker → bấm tab không có tác dụng.
+    const eduTabsHost = document.querySelector('.ed-tabs');
+    if (eduTabsHost && !alreadyBound) {
+        eduTabsHost.addEventListener('click', (event) => {
+            const btn = event.target.closest('.ed-tab-btn');
+            if (!btn || !eduTabsHost.contains(btn)) return;
             state.topic = btn.dataset.topic || 'all';
             renderCards();
         });
-    });
+    }
 
     // 2. Tìm kiếm theo từ khóa nhập vào ô input
-    if (searchInput) {
+    if (searchInput && !alreadyBound) {
         searchInput.addEventListener('input', (e) => {
             state.keyword = e.target.value;
             renderCards();
@@ -1093,18 +1114,21 @@ const initEducationPage = () => {
         renderCards();
     };
 
-    if (resetBtn) resetBtn.addEventListener('click', handleReset);
-    if (emptyResetBtn) emptyResetBtn.addEventListener('click', handleReset);
+    if (resetBtn && !alreadyBound) resetBtn.addEventListener('click', handleReset);
+    if (emptyResetBtn && !alreadyBound) emptyResetBtn.addEventListener('click', handleReset);
 
     /* ----------------------------------------------------------------------
-       Khởi tạo ban đầu (Hỗ trợ đọc tham số ?topic= nếu có trên URL)
+       Khởi tạo / render lại
+       Hỗ trợ đọc tham số ?topic= trên URL; kiểm tra bằng nút HIỆN TẠI trong DOM
+       (tab được dựng lại từ dữ liệu CMS, không có sẵn lúc DOMContentLoaded).
        ---------------------------------------------------------------------- */
     const urlParams = new URLSearchParams(window.location.search);
     const initialTopic = urlParams.get('topic');
-    if (initialTopic && tabButtons.some((b) => b.dataset.topic === initialTopic)) {
+    if (initialTopic && document.querySelector(`.ed-tab-btn[data-topic="${initialTopic}"]`)) {
         state.topic = initialTopic;
     }
 
+    if (!alreadyBound) gridList.dataset.eduBound = '1';
     renderCards();
 };
 
@@ -1114,14 +1138,26 @@ if (document.readyState === 'loading') {
     initEducationPage();
 }
 
+/*
+ * Gắn MỘT lần duy nhất. Cả nhánh DOMContentLoaded và nhánh chạy ngay cùng
+ * thực thi khi readyState = 'interactive', nên trước đây listener bị gắn hai lần:
+ * initEducationPage chạy hai lượt, tạo hai closure `renderDocs` với hai biến
+ * `cards` khác nhau. Closure tạo sớm (chưa có bài) không bao giờ lọc đúng.
+ */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('ed-grid-list');
-        if (host) host.addEventListener('portal:content-rendered', initEducationPage);
+        if (host && !host.dataset.eduEventBound) {
+            host.dataset.eduEventBound = '1';
+            host.addEventListener('portal:content-rendered', initEducationPage);
+        }
     });
 } else {
     const edHost = document.getElementById('ed-grid-list');
-    if (edHost) edHost.addEventListener('portal:content-rendered', initEducationPage);
+    if (edHost && !edHost.dataset.eduEventBound) {
+        edHost.dataset.eduEventBound = '1';
+        edHost.addEventListener('portal:content-rendered', initEducationPage);
+    }
 }
 
 
@@ -1250,8 +1286,15 @@ const initLawsPage = () => {
     const docListContainer = document.getElementById('lw-doc-list');
     if (!docListContainer) return;
 
-    const cards = Array.from(docListContainer.querySelectorAll('.lw-doc-card'));
-    const tabButtons = Array.from(document.querySelectorAll('.lw-tab-btn'));
+    /*
+     * Hàm này được gọi cả lúc DOM sẵn sàng (có thể CHƯA có bài) và mỗi lần
+     * `portal:content-rendered` (vừa có bài từ API). Vì vậy:
+     *  - Danh sách thẻ phải được đọc LẠI mỗi lần gọi.
+     *  - Sự kiện chỉ gắn MỘT lần (đánh dấu), nếu không mỗi lần phát sự kiện sẽ
+     *    cộng thêm một lớp listener và một lần bấm bị xử lý nhiều lượt.
+     */
+    const alreadyBound = docListContainer.dataset.lawsBound === '1';
+
     const topicSelect = document.getElementById('lw-topic-select');
     const searchInput = document.getElementById('lw-search-input');
     const resetBtn = document.getElementById('lw-reset-btn');
@@ -1278,8 +1321,35 @@ const initLawsPage = () => {
             .trim();
     };
 
-    // Lập chỉ mục nội dung tìm kiếm cho từng thẻ văn bản pháp luật
-    const cardRecords = cards.map((el) => {
+    /* ----------------------------------------------------------------------
+       Cập nhật trạng thái hiển thị của các nút tab loại văn bản
+       ---------------------------------------------------------------------- */
+    const updateTabsUI = () => {
+        /*
+         * Truy vấn NÚT HIỆN TẠI mỗi lần cập nhật, không dùng danh sách chụp lúc
+         * init: #lw-type-tabs bị public-pages.js dựng lại sau khi tải API, nên
+         * danh sách cũ toàn nút đã bị gỡ khỏi DOM → tab đang chọn không được tô sáng.
+         */
+        document.querySelectorAll('#lw-type-tabs .lw-tab-btn').forEach((btn) => {
+            const isSelected = (btn.dataset.doctype || 'all') === state.docType;
+            btn.classList.toggle('is-active', isSelected);
+            btn.setAttribute('aria-selected', String(isSelected));
+        });
+    };
+
+    /*
+     * Đọc thẻ HIỆN TẠI từ DOM mỗi lần lọc.
+     *
+     * Trước đây `cards`/`cardRecords` chụp một lần lúc init. Nhưng
+     * public-pages.js thay toàn bộ nội dung #lw-doc-list bằng dữ liệu API SAU đó,
+     * và `portal:content-rendered` lại gọi init một lần nữa → tồn tại hai closure
+     * `renderDocs`: closure cũ giữ `cards = []` nên lần bấm/ gõ đầu tiên rơi vào
+     * nhánh thoát sớm và xoá trắng bộ đếm, khiến tab “không hoạt động”.
+     * Đọc lại DOM mỗi lần gọi loại bỏ hoàn toàn lỗi này.
+     */
+    const getCards = () => Array.from(docListContainer.querySelectorAll('.lw-doc-card'));
+
+    const cardRecordsOf = (list) => list.map((el) => {
         const title = el.querySelector('.lw-doc-card__title')?.textContent || '';
         const desc = el.querySelector('.lw-doc-card__desc')?.textContent || '';
         const code = el.querySelector('.lw-doc-code')?.textContent || '';
@@ -1290,30 +1360,21 @@ const initLawsPage = () => {
             element: el,
             docType: el.dataset.doctype || 'all',
             topic: el.dataset.topic || 'all',
-            searchableText: normalizeText(`${code} ${type} ${title} ${desc} ${meta}`)
+            searchableText: normalizeText(`${code} ${type} ${title} ${desc} ${meta}`),
         };
     });
-
-    /* ----------------------------------------------------------------------
-       Cập nhật trạng thái hiển thị của các nút tab loại văn bản
-       ---------------------------------------------------------------------- */
-    const updateTabsUI = () => {
-        tabButtons.forEach((btn) => {
-            const isSelected = (btn.dataset.doctype || 'all') === state.docType;
-            btn.classList.toggle('is-active', isSelected);
-            btn.setAttribute('aria-selected', String(isSelected));
-        });
-    };
 
     /* ----------------------------------------------------------------------
        Hàm lọc và hiển thị danh sách văn bản pháp luật
        ---------------------------------------------------------------------- */
     const renderDocs = () => {
+        const cards = getCards();
         if (!cards.length) {
             if (emptyState) emptyState.classList.remove('is-visible');
             if (resultCountEl) resultCountEl.textContent = '';
             return;
         }
+        const cardRecords = cardRecordsOf(cards);
         const normalizedKeyword = normalizeText(state.keyword);
 
         const matchedRecords = cardRecords.filter((item) => {
@@ -1357,15 +1418,24 @@ const initLawsPage = () => {
        ---------------------------------------------------------------------- */
 
     // 1. Lọc theo tab loại văn bản
-    tabButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
+    //
+    // Dùng uỷ nhiệm sự kiện trên vùng chứa tab: public-pages.js dựng LẠI toàn bộ
+    // #lw-type-tabs sau khi nạp dữ liệu từ API, nên nút được gắn sự kiện trực tiếp
+    // lúc init sẽ bị thay bằng nút mới không có handler. Uỷ nhiệm trên container
+    // vẫn bắt được sự kiện của các nút được tạo sau đó.
+    const tabHost = document.getElementById('lw-type-tabs');
+    if (tabHost && tabHost.dataset.lawsTabsBound !== '1') {
+        tabHost.dataset.lawsTabsBound = '1';
+        tabHost.addEventListener('click', (event) => {
+            const btn = event.target.closest('.lw-tab-btn');
+            if (!btn || !tabHost.contains(btn)) return;
             state.docType = btn.dataset.doctype || 'all';
             renderDocs();
         });
-    });
+    }
 
     // 2. Lọc theo danh mục lĩnh vực quy định (Dropdown select)
-    if (topicSelect) {
+    if (topicSelect && !alreadyBound) {
         topicSelect.addEventListener('change', (e) => {
             state.topic = e.target.value;
             renderDocs();
@@ -1373,7 +1443,7 @@ const initLawsPage = () => {
     }
 
     // 3. Tìm kiếm theo số hiệu hoặc từ khóa (Input search)
-    if (searchInput) {
+    if (searchInput && !alreadyBound) {
         searchInput.addEventListener('input', (e) => {
             state.keyword = e.target.value;
             renderDocs();
@@ -1390,12 +1460,16 @@ const initLawsPage = () => {
         renderDocs();
     };
 
-    if (resetBtn) resetBtn.addEventListener('click', handleReset);
-    if (emptyResetBtn) emptyResetBtn.addEventListener('click', handleReset);
+    if (resetBtn && !alreadyBound) resetBtn.addEventListener('click', handleReset);
+    if (emptyResetBtn && !alreadyBound) emptyResetBtn.addEventListener('click', handleReset);
 
-    /* ----------------------------------------------------------------------
-       Khởi tạo ban đầu
-       ---------------------------------------------------------------------- */
+    /*
+     * Khởi tạo / lập lại chỉ mục.
+     * Lần gọi đầu (trước khi có dữ liệu API) sẽ không có thẻ nào → hàm thoát sớm
+     * trong renderDocs, đúng ý. Lần gọi sau khi `portal:content-rendered` mới có
+     * thẻ thật, và `cards`/`cardRecords` đã được đọc lại ở đầu hàm.
+     */
+    if (!alreadyBound) docListContainer.dataset.lawsBound = '1';
     renderDocs();
 };
 
@@ -1406,14 +1480,26 @@ if (document.readyState === 'loading') {
 }
 
 // Lập lại chỉ mục bộ lọc khi public-pages.js thay danh sách tĩnh bằng dữ liệu API
+//
+// Gắn MỘT lần duy nhất. Trước đây cả nhánh DOMContentLoaded và nhánh chạy ngay
+// cùng thực thi (readyState = 'interactive'), khiến sự kiện được gắn HAI lần:
+// mỗi lần phát, initLawsPage chạy hai lượt, tạo hai closure `renderDocs` với
+// hai biến `cards` riêng. Lượt init đầu (chưa có bài) tạo closure `cards = []`
+// → khi gõ tìm kiếm, handler của lượt đó chạy trước và làm rỗng bộ đếm.
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         const host = document.getElementById('lw-doc-list');
-        if (host) host.addEventListener('portal:content-rendered', initLawsPage);
+        if (host && !host.dataset.lawsEventBound) {
+            host.dataset.lawsEventBound = '1';
+            host.addEventListener('portal:content-rendered', initLawsPage);
+        }
     });
 } else {
     const lwHost = document.getElementById('lw-doc-list');
-    if (lwHost) lwHost.addEventListener('portal:content-rendered', initLawsPage);
+    if (lwHost && !lwHost.dataset.lawsEventBound) {
+        lwHost.dataset.lawsEventBound = '1';
+        lwHost.addEventListener('portal:content-rendered', initLawsPage);
+    }
 }
 
 
@@ -1442,13 +1528,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /**
- * agencies.js - Xử lý lọc theo nhóm, địa bàn, tìm kiếm và đặt lại cho trang agencies.html
+ * agencies.js - Lọc theo loại hình, cấp quản lý, tìm kiếm và đặt lại cho agencies.html
  * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
+ *
+ * Danh bạ cơ quan do CMS quản lý và public-pages.js kết xuất; bộ lọc được dựng
+ * từ chính dữ liệu đó, nên ở đây không khai báo nhóm hay địa bàn nào.
  */
 
 const initAgenciesPage = () => {
     const gridContainer = document.getElementById('ag-grid-list');
     if (!gridContainer) return;
+    /* Bộ lọc đã được dựng cùng danh sách động trong public-pages.js */
+    if (gridContainer.querySelector('.ag-card')) return;
 
     const cards = Array.from(gridContainer.querySelectorAll('.ag-card'));
     const tabButtons = Array.from(document.querySelectorAll('.ag-tab-btn'));
@@ -1602,16 +1693,10 @@ if (document.readyState === 'loading') {
     initAgenciesPage();
 }
 
-// Lập lại chỉ mục bộ lọc khi public-pages.js thay danh sách tĩnh bằng dữ liệu API
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        const host = document.getElementById('ag-grid-list');
-        if (host) host.addEventListener('portal:content-rendered', initAgenciesPage);
-    });
-} else {
-    const agHost = document.getElementById('ag-grid-list');
-    if (agHost) agHost.addEventListener('portal:content-rendered', initAgenciesPage);
-}
+/*
+ * Không nghe lại 'portal:content-rendered': public-pages.js đã gắn sự kiện cho
+ * bộ lọc của chính nó, nghe lại sẽ khiến hai cơ chế cùng điều khiển một danh sách.
+ */
 
 
 

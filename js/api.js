@@ -151,6 +151,10 @@
             }
             let rows = snapshot.legalDocuments || [];
             if (query.get('type')) rows = rows.filter((item) => item.docType === query.get('type'));
+            if (query.get('field')) rows = rows.filter((item) => item.legalField === query.get('field'));
+            if (query.get('issuer')) rows = rows.filter((item) => item.issuer === query.get('issuer'));
+            if (query.get('year')) rows = rows.filter((item) => String(item.issuedAt || '').slice(0, 4) === query.get('year'));
+            if (query.get('effectStatus')) rows = rows.filter((item) => item.effectStatus === query.get('effectStatus'));
             if (query.get('search')) {
                 const search = normalizeSearch(query.get('search'));
                 rows = rows.filter((item) => normalizeSearch(item.title).includes(search)
@@ -162,7 +166,7 @@
         if (pathname === '/api/public/events') {
             const id = query.get('id');
             if (!id) return events;
-            const item = events.find((row) => row.id === id);
+            const item = events.find((row) => row.id === id || row.slug === id);
             if (!item) throw new ApiError('Sự kiện không tồn tại hoặc chưa được công bố.', 404);
             return Object.assign({}, item, {
                 related: events.filter((row) => row.id !== id).slice(0, 3),
@@ -172,7 +176,7 @@
         if (pathname === '/api/public/agencies') {
             const id = query.get('id');
             if (!id) return agencies;
-            const item = agencies.find((row) => row.id === id);
+            const item = agencies.find((row) => row.id === id || row.slug === id);
             if (!item) throw new ApiError('Cơ quan, đơn vị không tồn tại.', 404);
             return Object.assign({}, item, {
                 related: agencies.filter((row) => row.id !== id).slice(0, 3),
@@ -180,7 +184,16 @@
         }
 
         if (pathname === '/api/public/statistics') return snapshot.statistics || [];
-        if (pathname === '/api/public/support-facilities') return snapshot.supportFacilities || [];
+        if (pathname === '/api/public/support-facilities') {
+            let rows = snapshot.supportFacilities || [];
+            if (query.get('type')) rows = rows.filter((f) => f.type === query.get('type'));
+            if (query.get('district')) rows = rows.filter((f) => f.district === query.get('district'));
+            if (query.get('search')) {
+                const search = normalizeSearch(query.get('search'));
+                rows = rows.filter((f) => normalizeSearch(`${f.name} ${f.address} ${f.district} ${f.description}`).includes(search));
+            }
+            return rows;
+        }
         if (pathname === '/api/public/banners') return snapshot.banners || [];
         if (pathname === '/api/public/notifications') return snapshot.notifications || [];
         return undefined;

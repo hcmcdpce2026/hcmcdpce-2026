@@ -94,7 +94,17 @@ async function waitForServer(timeoutMs = 30000) {
       cwd: ROOT, env: testEnv, stdio: 'inherit',
     }).status;
 
-    exitCode = (apiStatus === 0 && smokeStatus === 0) ? 0 : 1;
+    log('Chạy smoke-security.js ...');
+    const secStatus = spawnSync(process.execPath, ['server/scripts/smoke-security.js'], {
+      cwd: ROOT, env: testEnv, stdio: 'inherit',
+    }).status;
+
+    log('Chạy smoke-workspace-crud.js ...');
+    const crudStatus = spawnSync(process.execPath, ['server/scripts/smoke-workspace-crud.js'], {
+      cwd: ROOT, env: testEnv, stdio: 'inherit',
+    }).status;
+
+    exitCode = (apiStatus === 0 && smokeStatus === 0 && secStatus === 0 && crudStatus === 0) ? 0 : 1;
     log(exitCode === 0 ? 'TẤT CẢ ĐẠT' : 'CÓ MỤC KHÔNG ĐẠT');
   } catch (err) {
     console.error(`[isolated] Lỗi: ${err.message}`);

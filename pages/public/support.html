@@ -205,8 +205,8 @@
                         </div>
                         <div class="sup-hotline-card__content">
                             <h3>Cơ sở Methadone TP. Hồ Chí Minh</h3>
-                            <a href="#lookup-section" class="sup-hotline-card__phone">30 cơ sở</a>
-                            <p class="sup-hotline-card__desc">Tra cứu điểm điều trị gần nhất bên dưới</p>
+                            <a href="#lookup-section" class="sup-hotline-card__phone" id="sup-methadone-count">Tra cứu</a>
+                            <p class="sup-hotline-card__desc">Số cơ sở điều trị gần nhất được cập nhật từ danh mục</p>
                         </div>
                     </div>
                 </div>
@@ -262,7 +262,7 @@
                                     ổn định sức khỏe để lao động và sinh hoạt bình thường.
                                 </p>
                             </div>
-                            <span class="sup-path-card__footer">CÓ TẠI 30 CƠ SỞ Y TẾ</span>
+                            <span class="sup-path-card__footer" id="sup-methadone-footer">THEO DANH MỤC CƠ SỞ Y TẾ</span>
                         </article>
 
                         <article class="sup-path-card">
@@ -296,11 +296,13 @@
                                    placeholder="Nhập tên xã/phường/đặc khu (VD: Hòa Hưng)..."
                                    aria-label="Tìm kiếm cơ sở">
 
+                            <!-- Danh mục lọc do CMS cung cấp (public-pages.js dựng từ dữ liệu công khai) -->
                             <select id="sup-type-select" class="sup-select" aria-label="Loại hình dịch vụ">
                                 <option value="all">Tất cả loại hình dịch vụ</option>
-                                <option value="methadone">Cơ sở điều trị Methadone</option>
-                                <option value="tu-van">Điểm tư vấn cộng đồng</option>
-                                <option value="co-so-tp">Cơ sở cai nghiện công lập TP.HCM</option>
+                            </select>
+
+                            <select id="sup-district-select" class="sup-select" aria-label="Lọc theo địa bàn">
+                                <option value="all">Tất cả địa bàn</option>
                             </select>
 
                             <button type="button" id="sup-search-btn" class="sup-search-btn">
@@ -353,35 +355,44 @@
                     <div class="sup-side-card">
                         <h2 class="sup-side-card__title">Câu hỏi thường gặp</h2>
                         <div class="sup-faq-list">
-                            <div class="sup-faq-item">
-                                <strong>1. Người tự giác khai báo tình trạng nghiện để đăng ký cai nghiện có bị
-                                    truy cứu trách nhiệm hình sự không?</strong>
-                                <p>
+                            <details class="sup-faq-item" open>
+                                <summary>
+                                    <span>1. Người tự giác khai báo tình trạng nghiện để đăng ký cai nghiện có bị
+                                        truy cứu trách nhiệm hình sự không?</span>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </summary>
+                                <div class="sup-faq-item__body">
                                     Không. Theo Khoản 3 Điều 3 và Điều 28 Luật Phòng, chống ma túy năm 2021 (sửa đổi, bổ sung năm 2025),
                                     người tự giác khai báo tình trạng nghiện để đăng ký cai nghiện tự nguyện được hỗ trợ tiếp cận y tế và
                                     không bị xử lý hình sự. Theo Điều 256a Bộ luật Hình sự sửa đổi năm 2025, pháp luật chỉ truy cứu trách nhiệm
                                     hình sự nếu người đó tái sử dụng ma túy trong thời gian đang cai nghiện, đang điều trị thay thế, đang quản lý
                                     sau cai hoặc đã bị xử phạt hành chính mà còn vi phạm.
-                                </p>
-                            </div>
-                            <div class="sup-faq-item">
-                                <strong>2. Chi phí điều trị nghiện bằng thuốc Methadone được quy định như thế nào?</strong>
-                                <p>
+                                </div>
+                            </details>
+                            <details class="sup-faq-item">
+                                <summary>
+                                    <span>2. Chi phí điều trị nghiện bằng thuốc Methadone được quy định như thế nào?</span>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </summary>
+                                <div class="sup-faq-item__body">
                                     Tại các cơ sở công lập ở TP.HCM, thuốc Methadone được cấp phát miễn phí, người bệnh được hỗ trợ kinh
                                     phí hoặc chỉ đóng góp chi phí dịch vụ y tế ở mức tối thiểu. Quy định này căn cứ theo Khoản 4 Điều 3,
                                     Điều 31 Luật Phòng, chống ma túy năm 2021, Nghị định 90/2016/NĐ-CP và các Nghị quyết hỗ trợ
                                     của HĐND TP.HCM.
-                                </p>
-                            </div>
-                            <div class="sup-faq-item">
-                                <strong>3. Gia đình và người đăng ký cần chuẩn bị giấy tờ gì khi làm thủ tục?</strong>
-                                <p>
+                                </div>
+                            </details>
+                            <details class="sup-faq-item">
+                                <summary>
+                                    <span>3. Gia đình và người đăng ký cần chuẩn bị giấy tờ gì khi làm thủ tục?</span>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </summary>
+                                <div class="sup-faq-item__body">
                                     Theo Nghị định 116/2021/NĐ-CP, Luật Cư trú 2020 (Điều 38) và Luật Căn cước 2023 (Điều 20, Điều 33),
                                     người đăng ký và người đại diện hợp pháp (nếu dưới 18 tuổi) chỉ cần xuất trình Thẻ Căn cước/CCCD hoặc
                                     tài khoản định danh điện tử mức độ 2 (VNeID) để đối chiếu dữ liệu cư trú điện tử, không cần nộp sổ hộ khẩu giấy
                                     hay giấy xác nhận cư trú.
-                                </p>
-                            </div>
+                                </div>
+                            </details>
                         </div>
                     </div>
 

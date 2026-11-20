@@ -39,6 +39,8 @@ Mật khẩu mới khi đổi mật khẩu cần tối thiểu 10 ký tự, có 
 - Đầu vào văn bản được làm sạch/giới hạn theo trường; nội dung HTML cho bài viết, báo cáo và đề xuất được xử lý bằng bộ lọc allow-list.
 - Có header `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` và Content Security Policy.
 - Đường dẫn tệp tĩnh được chuẩn hóa; một số thư mục nội bộ bị chặn khỏi truy cập HTTP.
+- **Chống path traversal:** URL được **giải mã trước** khi chuẩn hóa (`..%2f`, `..%5c`, `%2e%2e` đều bị từ chối); đường dẫn phải nằm trong thư mục gốc. Lớp phòng ngự thứ hai chặn theo phần mở rộng (`.sqlite`, `.env`, `.pem`, `.key`…) và theo tên tệp (`credentials.local.txt`, `package.json`).
+- **Chịu request sai định dạng:** toàn bộ handler được bọc `try/catch`, nên request không phải URL hợp lệ (ví dụ `GET //..%2f.env`) nhận lỗi ngay thay vì để kết nối treo. Kiểm thử hồi quy: `npm run test:security`.
 
 ### Giới hạn tần suất và nhật ký
 
@@ -69,6 +71,9 @@ Trước khi mở hệ thống cho người dùng:
 5. SQLite phù hợp triển khai đơn máy chủ; nhiều instance ghi đồng thời cần thiết kế lại lưu trữ/đồng bộ.
 6. Nhật ký trong SQLite không phải kho log bất biến; người có quyền truy cập tệp database có thể sửa dữ liệu trực tiếp.
 7. Ứng dụng không mã hóa database ở tầng ứng dụng; cần bảo vệ ổ đĩa, quyền hệ điều hành và backup.
+8. Trang Support chưa nhúng bản đồ tương tác bên thứ ba: CSP hiện chỉ cho `img-src 'self'`,
+   liên kết chỉ đường mở ở tab mới. Muốn nhúng bản đồ phải bổ sung domain bản đồ vào CSP và
+   đánh giá lại rủi ro theo dõi người dùng — không tự ý nới lỏng chính sách.
 
 ## Phản ứng sự cố
 

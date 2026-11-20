@@ -85,15 +85,33 @@ Các route đọc công khai không yêu cầu đăng nhập. API chỉ trả n�
 | `GET` | `/api/public/articles` | Danh sách bài đã xuất bản; hỗ trợ `page`, `limit`, `categoryId`/`category`, `search`/`q`, `group`, `featured=true` |
 | `GET` | `/api/public/articles/:id` | Chi tiết bài viết theo ID hoặc slug |
 | `GET` | `/api/public/categories` | Chuyên mục đang hoạt động |
-| `GET` | `/api/public/legal-documents` | Văn bản; hỗ trợ `id`, `type`, `search` |
-| `GET` | `/api/public/events` | Sự kiện công khai; dùng `id` để lấy chi tiết |
-| `GET` | `/api/public/agencies` | Cơ quan công khai; dùng `id` để lấy chi tiết |
+| `GET` | `/api/public/legal-documents` | Văn bản đã công khai; hỗ trợ `id`, `type`, `field`, `issuer`, `year`, `effectStatus`, `search` |
+| `GET` | `/api/public/events` | Sự kiện đã công khai; hỗ trợ `id` (hoặc slug), `type`, `status`, `search` |
+| `GET` | `/api/public/agencies` | Cơ quan công khai; hỗ trợ `id` để lấy chi tiết; phản hồi danh sách kèm `taxonomy` (loại hình, cấp quản lý) |
 | `GET` | `/api/public/statistics` | Kỳ và chỉ số thống kê |
-| `GET` | `/api/public/support-facilities` | Cơ sở hỗ trợ đang hoạt động |
+| `GET` | `/api/public/support-facilities` | Cơ sở y tế, điểm tư vấn đã công khai; hỗ trợ `id`, `type`, `district`, `service`, `audience`, `search` |
 | `GET` | `/api/public/banners` | Banner đang hoạt động |
 | `GET` | `/api/public/notifications` | Thông báo công khai |
 | `POST` | `/api/public/submissions` | Gửi phản ánh/yêu cầu |
 | `GET` | `/api/public/submissions/lookup?code=...&contact=...` | Tra cứu bằng mã và thông tin liên hệ nếu hồ sơ có thông tin liên hệ |
+
+### Sáu nhóm nội dung công khai
+
+Mỗi nhóm có mô hình dữ liệu riêng; không dùng chung một cấu trúc “bài viết” cho tất cả.
+
+| Nhóm | Nguồn dữ liệu | Trường phân biệt chính | Trang công khai |
+|---|---|---|---|
+| Tin tức | `articles` + `categories.group_key = 'news'` | `categoryGroup`, `publishedAt`, `authorName` | `news.html`, trang chủ |
+| Tuyên truyền - Giáo dục | `articles` + `categories.group_key = 'education'` | `categoryGroup`, `tags`, `source` | `education.html`, trang chủ |
+| Sự kiện | `public_events` | `start`, `end`, `location`, `organizer`, `coOrganizer`, `status`, `publishStatus` | `events.html` |
+| Pháp luật | `legal_documents` | `docNumber`, `docType`, `legalField`, `issuedAt`, `effectiveAt`, `expiryAt`, `effectStatus`, `fileUrl` | `laws.html` |
+| Cơ quan - Đơn vị | `public_agencies` | `roleType`, `managementLevel`, `functions`, `structure`, `headName` | `agencies.html` |
+| Cơ sở y tế - Tư vấn | `support_facilities` | `type`, `address`, `latitude`/`longitude`, `services`, `audience`, `publishStatus` | `support.html` |
+
+Nhóm nội dung của một bài viết được xác định bằng `categories.group_key` liên kết qua
+`articles.category_id`; không suy đoán nhóm từ tiêu đề hay nội dung.
+
+Chi tiết trường dữ liệu: xem [`DATABASE.md`](DATABASE.md).
 
 ### Gửi yêu cầu
 

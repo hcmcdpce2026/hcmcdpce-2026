@@ -148,7 +148,15 @@
             setLoading(list, 'Đang tải tin tức…');
         }
         try {
-            const articles = await api.get('/api/public/articles' + api.qs({ limit: 50, search: keyword }));
+            /*
+             * Trang Tin tức chỉ lấy bài thuộc nhóm chuyên mục "news".
+             * Trước đây truy vấn không kèm `group` nên nội dung Tuyên truyền -
+             * Giáo dục (nhóm education) cũng lọt vào khối tin tiêu điểm và danh sách.
+             * Trang chủ thì lấy toàn bộ bài đã xuất bản vì cần hiển thị đa nhóm.
+             */
+            const params = { limit: 50, search: keyword };
+            if (list) params.group = 'news';
+            const articles = await api.get('/api/public/articles' + api.qs(params));
             toggleSpotlight((articles || []).length > 0);
             renderSpotlight(articles || []);
             renderNewsSidebar(articles || []);
@@ -171,10 +179,17 @@
         spotlight.hidden = !hasArticles;
     }
 
+    /** Số bài tối đa ở cột phải của khối tin tiêu điểm. */
+    const SPOTLIGHT_SIDE_LIMIT = 3;
+
     /**
-     * Khối “Tin tiêu điểm”: bài mới nhất làm tin chính, các bài kế tiếp vào cột phụ.
-     * Cột phụ lấy tối đa 2 bài để cân bố cục; nếu không đủ 2 bài thì lưới chuyển
-     * sang 1 cột, để không có ô trống bên phải.
+     * Khối “Tin tiêu điểm”: bài mới nhất làm tin chính bên trái, các bài kế tiếp
+     * vào cột phải — tối đa 3 bài, đúng thứ tự mới nhất trước.
+     *
+     * Thứ tự do API quyết định (`ORDER BY published_at DESC`), nên chỉ cần cắt
+     * đúng số lượng: `hero` là bài đầu, cột phải là 3 bài tiếp theo.
+     * Cột phải luôn cố định kể cả khi chỉ có 1-2 bài: lưới giữ nguyên 2 cột để
+     * tin chính không co giãn khác thường so với trạng thái đủ bài.
      * Nội dung hoàn toàn từ API (bài đã xuất bản qua CMS).
      */
     function renderSpotlight(articles) {
@@ -182,10 +197,10 @@
         const spotlight = document.querySelector('.news-spotlight');
         if (!grid || !articles.length) return;
         const [hero, ...rest] = articles;
-        const side = rest.length >= 2 ? rest.slice(0, 2) : rest;
+        const side = rest.slice(0, SPOTLIGHT_SIDE_LIMIT);
 
-        /* Không đủ 2 bài phụ → 1 cột, tránh ô trống bên phải */
-        if (spotlight) spotlight.classList.toggle('news-spotlight--single', side.length < 2);
+        /* Chỉ còn đúng 1 bài: không có cột phải để dựng → tin chính chiếm full chiều rộng */
+        if (spotlight) spotlight.classList.toggle('news-spotlight--single', side.length === 0);
 
         grid.innerHTML = `
             <article class="news-hero-card">
@@ -205,8 +220,8 @@
             </article>
             ${side.length ? `<div class="news-spotlight__side">${side.map((a, i) => `
                 <article class="news-mini-card">
-                    <a href="${detailUrl(a)}" class="news-mini-card__thumb">
-                        <img src="${thumbOf(a, i + 1, '../../')}" alt="${esc(a.title)}" loading="lazy">
+                    <a href="${detailUrl(a)}" class="news-mini-card__thumb" tabindex="-1" aria-hidden="true">
+                        <img src="${thumbOf(a, i + 1, '../../')}" alt="" loading="lazy">
                     </a>
                     <div>
                         <span class="news-mini-card__cat">${esc(a.categoryName || 'Tin tức')}</span>
@@ -221,13 +236,17 @@
     /**
      * Nút lọc theo chuyên mục trên news.html – dựng từ danh mục thật trong CMS,
      * mỗi nút mang data-category = slug chuyên mục (khớp với thẻ bài viết).
+     * Chỉ lấy chuyên mục nhóm "news": chuyên mục của nhóm khác không có bài
+     * nào trên trang này nên sẽ tạo ra nút lọc luôn rỗng.
      */
     async function renderNewsCategoryTabs() {
         const host = document.getElementById('news-category-tabs');
         if (!host) return;
         try {
             const categories = await api.get('/api/public/categories');
-            const used = (categories || []).filter((c) => Number(c.articleCount || 0) > 0);
+            const used = (categories || [])
+                .filter((c) => Number(c.articleCount || 0) > 0 && (!c.group || c.group === 'news'))
+                .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
             const extra = used.map((c) => `
                 <button type="button" class="news-cat-btn" data-category="${esc(c.slug)}">
                     ${esc(c.name)}
@@ -251,8 +270,16 @@
                 : 'Chưa có bài viết nào được xuất bản.');
         }
 
+        /*
+         * data-category phải dùng SLUG chứ không phải id: nút lọc
+         * (#news-category-tabs) được dựng từ /api/public/categories và mang
+         * data-category="<slug>". Trước đây thẻ gắn categoryId (id nội bộ),
+         * không bao giờ khớp slug → bấm tag nào cũng ra 0 bài.
+         * data-category-id giữ lại để tra cứu/đối chiếu khi cần.
+         */
         list.innerHTML = articles.map((a, i) => `
-            <article class="news-article" data-category="${esc(a.categoryId || '')}">
+            <article class="news-article" data-category="${esc(a.categorySlug || a.categoryId || '')}"
+                data-category-id="${esc(a.categoryId || '')}">
                 <a class="news-article__thumb" href="${detailUrl(a)}">
                     <img src="${thumbOf(a, i, '../../')}" alt="${esc(a.title)}" loading="lazy">
                 </a>
@@ -355,6 +382,55 @@
                         <span class="site-main__date">${fmtDate(a.publishedAt)}</span>
                     </div>
                 </article>`).join('');
+        }
+    }
+
+    /**
+     * Trang chủ – khối “Tuyên truyền - Giáo dục”.
+     * Chỉ lấy bài đã xuất bản thuộc nhóm chuyên mục `education`; giữ nguyên bố cục
+     * 3 thẻ của section và hiển thị 3 bài mới nhất (hoặc theo thứ tự CMS).
+     */
+    async function initHomeEducation() {
+        const grid = document.getElementById('home-education-grid');
+        if (!grid) return;
+        const ICONS = [
+            'fa-shield-heart', 'fa-triangle-exclamation', 'fa-people-group',
+            'fa-book-open-reader', 'fa-graduation-cap', 'fa-house-chimney-user',
+        ];
+        setLoading(grid, 'Đang tải chuyên đề tuyên truyền - giáo dục…');
+        try {
+            const rows = asList(
+                await api.get('/api/public/articles' + api.qs({ limit: 3, group: 'education' })),
+                'chuyên đề tuyên truyền'
+            );
+
+            if (!rows.length) {
+                /* Không có bài: giữ section nhưng không để khoảng trống lớn */
+                grid.innerHTML = `<div class="pub-state" style="grid-column:1/-1">
+                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                    <span>Chuyên đề tuyên truyền - giáo dục đang được Ban Biên tập cập nhật.</span></div>`;
+                grid.removeAttribute('aria-busy');
+                return;
+            }
+
+            grid.innerHTML = rows.slice(0, 3).map((a, i) => `
+                <article class="site-main__education-card">
+                    <div class="site-main__education-icon">
+                        <i class="fa-solid ${ICONS[i % ICONS.length]}" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="site-main__education-title">
+                        <a href="pages/public/education-detail.html?id=${encodeURIComponent(a.id)}">${esc(a.title)}</a>
+                    </h3>
+                    <p class="site-main__education-description">${esc(a.excerpt || '')}</p>
+                    <a href="pages/public/education-detail.html?id=${encodeURIComponent(a.id)}"
+                        class="site-main__education-link">
+                        Tìm hiểu thêm
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                </article>`).join('');
+            grid.removeAttribute('aria-busy');
+        } catch (err) {
+            setError(grid, err.message);
         }
     }
 
@@ -692,13 +768,11 @@
     /**
      * Chuyên đề tuyên truyền được lấy từ bài viết đã xuất bản trong các chuyên mục
      * nhóm "education" (CMS quản lý nội dung → PUBLIC hiển thị).
+     *
+     * Bộ lọc chủ đề dựa trên slug chuyên mục do CMS quản lý — không dùng bảng ánh xạ
+     * cố định — nên chuyên mục thêm/sửa trong CMS tự xuất hiện thành một chủ đề lọc.
      */
-    const EDUCATION_TOPICS = {
-        'canh-bao-thu-doan-moi': 'tac-hai', 'nhan-dien-tac-hai': 'tac-hai', 'tac-hai': 'tac-hai',
-        'ky-nang-phong-ngua': 'ky-nang', 'phong-ngua': 'ky-nang',
-        'gia-dinh-hoc-duong': 'gia-dinh', 'gia-dinh': 'gia-dinh', 'hoc-duong': 'gia-dinh',
-    };
-    const topicOf = (categorySlug) => EDUCATION_TOPICS[categorySlug] || 'ky-nang';
+    const topicOf = (a) => a.categorySlug || 'khac';
 
     async function initEducation() {
         const grid = document.getElementById('ed-grid-list');
@@ -722,7 +796,7 @@
             }
 
             grid.innerHTML = rows.map((a, i) => `
-                <article class="ed-card" data-topic="${topicOf(a.categorySlug)}">
+                <article class="ed-card" data-topic="${esc(topicOf(a))}">
                     <a href="education-detail.html?id=${encodeURIComponent(a.id)}" class="ed-card__thumb">
                         <img src="${thumbOf(a, i, '../../')}" alt="${esc(a.title)}" loading="lazy">
                         <span class="ed-card__tag">${esc(a.categoryName || 'Tuyên truyền')}</span>
@@ -748,17 +822,18 @@
 
             if (countEl) countEl.textContent = `Hiển thị ${rows.length} chuyên đề tuyên truyền - giáo dục`;
 
-            /* Nút lọc theo chuyên mục thực có dữ liệu */
+            /* Nút lọc dựng từ chuyên mục thực có bài đã xuất bản, kèm số bài của từng chủ đề */
             if (tabsHost) {
                 const topics = new Map();
                 rows.forEach((article) => {
-                    const topic = topicOf(article.categorySlug);
-                    if (!topics.has(topic)) topics.set(topic, article.categoryName || 'Chuyên đề');
+                    const topic = topicOf(article);
+                    if (!topics.has(topic)) topics.set(topic, { label: article.categoryName || 'Chuyên đề', count: 0 });
+                    topics.get(topic).count += 1;
                 });
                 tabsHost.innerHTML = `<button type="button" class="ed-tab-btn is-active" data-topic="all">
                         Tất cả chuyên đề (${rows.length})
-                    </button>` + [...topics].map(([topic, label]) => `
-                    <button type="button" class="ed-tab-btn" data-topic="${esc(topic)}">${esc(label)}</button>`).join('');
+                    </button>` + [...topics].map(([topic, info]) => `
+                    <button type="button" class="ed-tab-btn" data-topic="${esc(topic)}">${esc(info.label)} (${info.count})</button>`).join('');
             }
 
             refreshStaticPage(grid);
@@ -768,6 +843,24 @@
     }
 
     /* -------------------------- Văn bản pháp luật --------------------------- */
+
+    /**
+     * Tình trạng hiệu lực hiển thị theo dữ liệu CMS, không mặc định "Đang có hiệu lực":
+     * văn bản đã hết hiệu lực/bị thay thế phải được cảnh báo đúng cho người tra cứu.
+     */
+    const LAW_EFFECT = {
+        in_effect: { label: 'Còn hiệu lực', icon: 'fa-circle-check', mod: 'ok' },
+        expired: { label: 'Đã hết hiệu lực', icon: 'fa-circle-xmark', mod: 'expired' },
+        replaced: { label: 'Đã bị thay thế', icon: 'fa-shuffle', mod: 'replaced' },
+        amended: { label: 'Được sửa đổi, bổ sung', icon: 'fa-pen-to-square', mod: 'amended' },
+    };
+
+    function lawStatusBadge(doc) {
+        const cfg = LAW_EFFECT[doc.effectStatus] || LAW_EFFECT.in_effect;
+        return `<span class="lw-doc-status lw-doc-status--${cfg.mod}">
+            <i class="fa-solid ${cfg.icon}" aria-hidden="true"></i> ${esc(cfg.label)}
+        </span>`;
+    }
 
     async function initLaws() {
         const host = document.getElementById('lw-doc-list');
@@ -826,10 +919,7 @@
                             </span>
                             <span class="lw-doc-type">${esc(TYPE_LABEL[d.docType] || d.docType)}</span>
                         </div>
-                        <span class="lw-doc-status">
-                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                            Đang có hiệu lực
-                        </span>
+                        ${lawStatusBadge(d)}
                     </div>
                     <h2 class="lw-doc-card__title">
                         <a href="law-detail.html?id=${encodeURIComponent(d.id)}">${esc(d.title)}</a>
@@ -934,7 +1024,12 @@
                         <li>
                             <a class="article-related-card" href="event-detail.html?id=${encodeURIComponent(r.id)}">
                                 <strong class="article-related-card__title">${esc(r.title)}</strong>
-                                <span class="article-related-card__desc">${fmtDate(r.start)} · ${esc(r.location || '')}</span>
+                                <span class="article-related-card__desc">
+                                    <i class="fa-regular fa-calendar" aria-hidden="true"></i> ${fmtDate(r.start)}
+                                </span>
+                                ${r.location ? `<span class="article-related-card__desc">
+                                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(r.location)}
+                                </span>` : ''}
                             </a>
                         </li>`).join('')
                     : '<li class="pub-inline-empty">Chưa có sự kiện khác.</li>';
@@ -1231,52 +1326,63 @@
 
     /* -------------------------- Cơ quan - đơn vị ---------------------------- */
 
+    /* Nhãn hiển thị cho loại hình cơ quan (giá trị khóa do CMS quản lý) */
+    const AGENCY_ROLE_LABELS = {
+        coordination: 'Chỉ đạo & Chuyên trách', enforcement: 'Lực lượng nòng cốt',
+        health: 'Y tế & Điều trị', education: 'Giáo dục - Tuyên truyền',
+        association: 'Mặt trận & Đoàn thể', local: 'Chính quyền cơ sở',
+        rehab: 'Cơ sở cai nghiện', treatment: 'Cơ sở điều trị',
+    };
+    const AGENCY_LEVEL_LABELS = {
+        'thanh-pho': 'Cấp Thành phố', 'so-nganh': 'Cấp sở, ngành',
+        'quan-huyen': 'Cấp quận, huyện', 'phuong-xa': 'Cấp phường, xã',
+    };
+    const AGENCY_ICONS = {
+        coordination: 'fa-shield-halved', enforcement: 'fa-building-shield',
+        health: 'fa-hospital', education: 'fa-graduation-cap',
+        association: 'fa-people-group', local: 'fa-building-columns',
+        rehab: 'fa-house-medical', treatment: 'fa-house-medical',
+    };
+
+    const normalizeText = (value) => String(value || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
+
+    /**
+     * Cơ quan - Đơn vị.
+     * Bộ lọc và thẻ được dựng hoàn toàn từ dữ liệu CMS: thêm/sửa/xóa cơ quan hoặc
+     * đổi loại hình trong CMS sẽ phản ánh ngay vào nút lọc và danh sách.
+     */
     async function initAgencies() {
         const host = document.getElementById('ag-grid-list');
         if (!host) return;
         setLoading(host, 'Đang tải danh bạ cơ quan, đơn vị…');
         try {
             const list = asList(await api.get('/api/public/agencies'), 'cơ quan, đơn vị');
+            const tabsHost = document.getElementById('ag-group-tabs');
+            const areaSelect = document.getElementById('ag-area-select');
+            const legend = document.getElementById('ag-legend');
+
             if (!list.length) {
                 setEmpty(host, 'Chưa có cơ quan, đơn vị nào được công bố.');
+                if (tabsHost) tabsHost.innerHTML = '<button type="button" class="ag-tab-btn is-active" data-group="all">Tất cả đơn vị</button>';
+                if (areaSelect) areaSelect.innerHTML = '<option value="all">Tất cả cấp quản lý</option>';
                 toggleEmptyState('ag-empty-state', false);
                 refreshStaticPage(host);
                 return;
             }
 
-            const ICONS = {
-                coordination: 'fa-shield-halved', enforcement: 'fa-building-shield',
-                health: 'fa-hospital', education: 'fa-graduation-cap',
-                association: 'fa-people-group', local: 'fa-building-columns',
-            };
-            const GROUPS = {
-                coordination: 'chuyen-trach', enforcement: 'chuyen-trach',
-                health: 'y-te', education: 'giao-duc', association: 'doan-the', local: 'chuyen-trach',
-                /* Cơ sở điều trị, cai nghiện: trước đây không có nhóm nên luôn rơi về tab đầu */
-                rehab: 'cai-nghien', treatment: 'cai-nghien',
-            };
-            const BADGES = {
-                coordination: 'Chỉ đạo & Chuyên trách', enforcement: 'Lực lượng nòng cốt',
-                health: 'Y tế & Điều trị', education: 'Giáo dục - Tuyên truyền',
-                association: 'Đoàn thể - Xã hội', local: 'Chính quyền cơ sở',
-                rehab: 'Cơ sở cai nghiện', treatment: 'Cơ sở cai nghiện',
-            };
-            const GROUP_LABELS = {
-                'chuyen-trach': 'Chỉ đạo & Chuyên trách',
-                'y-te': 'Y tế & Điều trị',
-                'giao-duc': 'Giáo dục - Tuyên truyền',
-                'cai-nghien': 'Cơ sở cai nghiện',
-                'doan-the': 'Đoàn thể - Xã hội',
-            };
+            const roleOf = (o) => o.roleType || '';
+            const levelOf = (o) => o.managementLevel || '';
 
             host.innerHTML = list.map((o) => `
-                <article class="ag-card" data-group="${GROUPS[o.roleType] || 'chuyen-trach'}" data-area="toan-thanh-pho">
+                <article class="ag-card" data-group="${esc(roleOf(o))}" data-level="${esc(levelOf(o))}"
+                    data-search="${esc(normalizeText(`${o.name} ${o.shortName || ''} ${o.description || ''} ${o.address || ''} ${o.functions || ''}`))}">
                     <div>
                         <div class="ag-card__top">
                             <div class="ag-card__icon">
-                                <i class="fa-solid ${ICONS[o.roleType] || 'fa-building-shield'}" aria-hidden="true"></i>
+                                <i class="fa-solid ${AGENCY_ICONS[roleOf(o)] || 'fa-building-shield'}" aria-hidden="true"></i>
                             </div>
-                            <span class="ag-card__badge">${BADGES[o.roleType] || 'Đơn vị'}</span>
+                            <span class="ag-card__badge">${esc(AGENCY_ROLE_LABELS[roleOf(o)] || 'Đơn vị')}</span>
                         </div>
                         <h2 class="ag-card__title">
                             <a href="agency-detail.html?id=${encodeURIComponent(o.id)}">${esc(o.name)}</a>
@@ -1289,7 +1395,7 @@
                         </ul>
                     </div>
                     <div class="ag-card__footer">
-                        <span class="ag-card__scope">Phạm vi: Toàn Thành phố</span>
+                        <span class="ag-card__scope">${esc(AGENCY_LEVEL_LABELS[levelOf(o)] || 'Phạm vi: Toàn Thành phố')}</span>
                         <a href="agency-detail.html?id=${encodeURIComponent(o.id)}" class="ag-card__link">
                             Xem hồ sơ đơn vị <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                         </a>
@@ -1297,26 +1403,111 @@
                 </article>`).join('');
             host.removeAttribute('aria-busy');
 
-            const count = document.getElementById('ag-result-count');
-            if (count) count.textContent = `Hiển thị ${list.length} cơ quan, đơn vị`;
-            const tab = document.querySelector('.ag-tab-btn[data-group="all"]');
-            if (tab) tab.textContent = `Tất cả đơn vị (${list.length})`;
-            const tabsHost = document.querySelector('.ag-tabs');
+            /* --- Bộ lọc theo loại hình: chỉ hiện loại hình thực có dữ liệu --- */
+            const countBy = (keyFn) => list.reduce((acc, o) => {
+                const k = keyFn(o);
+                if (k) acc[k] = (acc[k] || 0) + 1;
+                return acc;
+            }, {});
+            const roleCounts = countBy(roleOf);
+            const roleOrder = Object.keys(AGENCY_ROLE_LABELS).filter((k) => roleCounts[k])
+                .concat(Object.keys(roleCounts).filter((k) => !(k in AGENCY_ROLE_LABELS)));
             if (tabsHost) {
-                /* Thứ tự nhóm cố định để cột nút không nhảy khi dữ liệu thay đổi */
-                const ORDER = ['chuyen-trach', 'y-te', 'cai-nghien', 'doan-the', 'giao-duc'];
-                const countOf = {};
-                list.forEach((agency) => {
-                    const g = GROUPS[agency.roleType] || 'chuyen-trach';
-                    countOf[g] = (countOf[g] || 0) + 1;
-                });
-                const present = ORDER.filter((g) => countOf[g])
-                    .concat(Object.keys(countOf).filter((g) => ORDER.indexOf(g) === -1));
                 tabsHost.innerHTML = `<button type="button" class="ag-tab-btn is-active" data-group="all">
                         Tất cả đơn vị (${list.length})
-                    </button>` + present.map((group) => `
-                    <button type="button" class="ag-tab-btn" data-group="${group}">${GROUP_LABELS[group] || group} (${countOf[group]})</button>`).join('');
+                    </button>` + roleOrder.map((key) => `
+                    <button type="button" class="ag-tab-btn" data-group="${esc(key)}">
+                        ${esc(AGENCY_ROLE_LABELS[key] || key)} (${roleCounts[key]})
+                    </button>`).join('');
             }
+
+            /* --- Bộ lọc theo cấp quản lý, cũng từ dữ liệu thật --- */
+            const levelCounts = countBy(levelOf);
+            if (areaSelect) {
+                const levelOrder = Object.keys(AGENCY_LEVEL_LABELS).filter((k) => levelCounts[k])
+                    .concat(Object.keys(levelCounts).filter((k) => !(k in AGENCY_LEVEL_LABELS)));
+                areaSelect.innerHTML = '<option value="all">Tất cả cấp quản lý</option>' + levelOrder.map((key) =>
+                    `<option value="${esc(key)}">${esc(AGENCY_LEVEL_LABELS[key] || key)} (${levelCounts[key]})</option>`).join('');
+                areaSelect.value = 'all';
+            }
+
+            if (legend) {
+                legend.innerHTML = roleOrder.slice(0, 4).map((key) =>
+                    `<span><i class="ag-dot ag-dot--gov"></i> ${esc(AGENCY_ROLE_LABELS[key] || key)}</span>`).join('');
+            }
+
+            /* --- Lọc kết hợp: loại hình + cấp quản lý + tìm kiếm --- */
+            const cards = [...host.querySelectorAll('.ag-card')];
+            const state = { group: 'all', level: 'all', keyword: '' };
+            const resultCount = document.getElementById('ag-result-count');
+            const searchInput = document.getElementById('ag-search-input');
+            const resetBtn = document.getElementById('ag-reset-btn');
+            const emptyResetBtn = document.getElementById('ag-empty-reset');
+
+            const applyFilters = () => {
+                const keyword = normalizeText(state.keyword);
+                let visible = 0;
+                cards.forEach((card) => {
+                    const match = (state.group === 'all' || card.dataset.group === state.group)
+                        && (state.level === 'all' || card.dataset.level === state.level)
+                        && (!keyword || (card.dataset.search || '').includes(keyword));
+                    card.classList.toggle('is-filtered-out', !match);
+                    if (match) visible += 1;
+                });
+                if (resultCount) {
+                    resultCount.textContent = visible === 0
+                        ? 'Không tìm thấy cơ quan, đơn vị phù hợp'
+                        : `Hiển thị ${visible} / ${cards.length} cơ quan, đơn vị`;
+                }
+                toggleEmptyState('ag-empty-state', visible === 0);
+                if (tabsHost) {
+                    tabsHost.querySelectorAll('.ag-tab-btn').forEach((btn) => {
+                        const active = (btn.dataset.group || 'all') === state.group;
+                        btn.classList.toggle('is-active', active);
+                        btn.setAttribute('aria-selected', String(active));
+                    });
+                }
+            };
+
+            if (tabsHost && !tabsHost.dataset.bound) {
+                tabsHost.dataset.bound = '1';
+                tabsHost.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.ag-tab-btn');
+                    if (!btn || !tabsHost.contains(btn)) return;
+                    state.group = btn.dataset.group || 'all';
+                    applyFilters();
+                });
+            }
+            if (areaSelect && !areaSelect.dataset.bound) {
+                areaSelect.dataset.bound = '1';
+                areaSelect.addEventListener('change', () => {
+                    state.level = areaSelect.value || 'all';
+                    applyFilters();
+                });
+            }
+            if (searchInput && !searchInput.dataset.bound) {
+                searchInput.dataset.bound = '1';
+                searchInput.addEventListener('input', () => {
+                    state.keyword = searchInput.value;
+                    applyFilters();
+                });
+            }
+            const reset = () => {
+                state.group = 'all';
+                state.level = 'all';
+                state.keyword = '';
+                if (searchInput) searchInput.value = '';
+                if (areaSelect) areaSelect.value = 'all';
+                applyFilters();
+            };
+            [resetBtn, emptyResetBtn].forEach((btn) => {
+                if (btn && !btn.dataset.bound) {
+                    btn.dataset.bound = '1';
+                    btn.addEventListener('click', reset);
+                }
+            });
+
+            applyFilters();
             refreshStaticPage(host);
         } catch (err) {
             setError(host, err.message);
@@ -1325,49 +1516,139 @@
 
     /* --------------------------- Hỗ trợ cai nghiện -------------------------- */
 
+    const SUPPORT_TYPE_LABELS = {
+        methadone: 'Cơ sở điều trị Methadone',
+        'tu-van': 'Điểm tư vấn, hỗ trợ',
+        'co-so': 'Cơ sở điều trị, cai nghiện',
+        'co-so-tp': 'Cơ sở cai nghiện công lập',
+        'cong-dong': 'Tổ tư vấn cộng đồng',
+        'duong-day-nong': 'Đường dây nóng',
+    };
+
+    /**
+     * Trang Hỗ trợ – mô hình danh bạ/định vị dịch vụ.
+     * Toàn bộ cơ sở, loại hình và địa bàn lấy từ CMS; không có dữ liệu địa điểm
+     * nào được khai báo tĩnh trong HTML hay JavaScript.
+     */
     async function initSupport() {
         const host = document.querySelector('[data-support-list]') || document.getElementById('sup-centers-list');
         if (!host) return;
+        const input = document.getElementById('sup-search-input');
+        const typeSelect = document.getElementById('sup-type-select');
+        const districtSelect = document.getElementById('sup-district-select');
+        const searchBtn = document.getElementById('sup-search-btn');
+        setLoading(host, 'Đang tải danh sách cơ sở y tế và điểm tư vấn…');
         try {
-            const list = await api.get('/api/public/support-facilities');
+            const list = asList(await api.get('/api/public/support-facilities'), 'cơ sở hỗ trợ');
             if (!list.length) {
-                setEmpty(host, 'Chưa có cơ sở hỗ trợ cai nghiện nào được công bố.');
+                setEmpty(host, 'Chưa có cơ sở y tế hoặc điểm tư vấn nào được công bố.');
                 return;
             }
 
-            const items = (q, type) => list.filter((f) => {
-                const text = `${f.name} ${f.district} ${f.address} ${f.description}`.toLowerCase();
-                const matchQ = !q || text.includes(q.toLowerCase());
-                const matchType = !type || type === 'all' || f.type === type;
-                return matchQ && matchType;
-            });
+            /* Số cơ sở Methadone hiển thị theo dữ liệu thực, không phải con số cố định */
+            const methadoneCount = list.filter((f) => f.type === 'methadone').length;
+            const countEl = document.getElementById('sup-methadone-count');
+            if (countEl) countEl.textContent = methadoneCount ? `${methadoneCount} cơ sở` : 'Tra cứu';
+            const footerEl = document.getElementById('sup-methadone-footer');
+            if (footerEl) footerEl.textContent = methadoneCount ? `CÓ TẠI ${methadoneCount} CƠ SỞ Y TẾ` : 'THEO DANH MỤC CƠ SỞ Y TẾ';
 
-            const render = (q, type) => {
-                const rows = items(q, type);
-                host.innerHTML = rows.length ? rows.map((f) => `
-                    <li class="sup-center-item">
-                        <h3 class="sup-center-item__name">${esc(f.name)}</h3>
-                        <p class="sup-center-item__desc">${esc(f.description || '')}</p>
-                        <div class="sup-center-item__meta">
-                            <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(f.address || f.district || '')}</span>
-                            <span><i class="fa-solid fa-phone" aria-hidden="true"></i> ${esc(f.phone || '—')}</span>
-                            <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${esc(f.hours || '')}</span>
-                        </div>
-                    </li>`).join('')
-                    : '<li class="sup-center-item sup-center-item--empty">Không tìm thấy cơ sở phù hợp với điều kiện lọc.</li>';
+            /* Danh mục lọc dựng từ dữ liệu thực có */
+            const types = [...new Set(list.map((f) => f.type).filter(Boolean))];
+            if (typeSelect) {
+                typeSelect.innerHTML = '<option value="all">Tất cả loại hình dịch vụ</option>' + types.map((t) =>
+                    `<option value="${esc(t)}">${esc(SUPPORT_TYPE_LABELS[t] || t)}</option>`).join('');
+            }
+            const districts = [...new Set(list.map((f) => f.district).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
+            if (districtSelect) {
+                districtSelect.innerHTML = '<option value="all">Tất cả địa bàn</option>' + districts.map((d) =>
+                    `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+            }
+
+            const card = (f) => {
+                const hasCoords = Number.isFinite(f.latitude) && Number.isFinite(f.longitude);
+                const directions = hasCoords
+                    ? `https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}`
+                    : null;
+                const phone = f.phone ? `<a href="tel:${esc(String(f.phone).replace(/[^\d+]/g, ''))}">${esc(f.phone)}</a>` : '—';
+                return `
+                <li class="sup-center-item">
+                    <h3 class="sup-center-item__name">${esc(f.name)}</h3>
+                    ${f.type ? `<span class="sup-center-item__type">${esc(SUPPORT_TYPE_LABELS[f.type] || f.type)}</span>` : ''}
+                    ${f.managingOrg ? `<p class="sup-center-item__org"><i class="fa-solid fa-sitemap" aria-hidden="true"></i> ${esc(f.managingOrg)}</p>` : ''}
+                    <p class="sup-center-item__desc">${esc(f.description || '')}</p>
+                    ${f.services && f.services.length ? `<p class="sup-center-item__desc"><strong>Dịch vụ:</strong> ${esc(f.services.join(', '))}</p>` : ''}
+                    <div class="sup-center-item__meta">
+                        <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(f.address || f.district || f.ward || '')}</span>
+                        <span><i class="fa-solid fa-phone" aria-hidden="true"></i> ${phone}</span>
+                        <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${esc(f.hours || '')}</span>
+                    </div>
+                    ${directions ? `<div class="sup-center-item__meta">
+                        <a href="${directions}" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Mở chỉ đường</a>
+                    </div>` : ''}
+                </li>`;
             };
 
-            render('', 'all');
-            const input = document.getElementById('sup-search-input');
-            const select = document.getElementById('sup-type-select');
-            const apply = () => render(input ? input.value : '', select ? select.value : 'all');
-            if (input) input.addEventListener('input', apply);
-            if (select) select.addEventListener('change', apply);
-            const btn = document.getElementById('sup-search-btn');
-            if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); apply(); });
+            const apply = () => {
+                const q = normalizeText(input ? input.value : '');
+                const type = typeSelect ? typeSelect.value : 'all';
+                const district = districtSelect ? districtSelect.value : 'all';
+                const rows = list.filter((f) => {
+                    const text = normalizeText(`${f.name} ${f.district || ''} ${f.ward || ''} ${f.address || ''} ${f.description || ''} ${(f.services || []).join(' ')}`);
+                    return (type === 'all' || f.type === type)
+                        && (district === 'all' || f.district === district)
+                        && (!q || text.includes(q));
+                });
+                host.innerHTML = rows.length ? rows.map(card).join('')
+                    : '<li class="sup-center-item sup-center-item--empty">Không tìm thấy cơ sở phù hợp với điều kiện tra cứu.</li>';
+            };
+
+            apply();
+            if (input && !input.dataset.bound) { input.dataset.bound = '1'; input.addEventListener('input', apply); }
+            [typeSelect, districtSelect].forEach((sel) => {
+                if (sel && !sel.dataset.bound) { sel.dataset.bound = '1'; sel.addEventListener('change', apply); }
+            });
+            if (searchBtn && !searchBtn.dataset.bound) {
+                searchBtn.dataset.bound = '1';
+                searchBtn.addEventListener('click', (e) => { e.preventDefault(); apply(); });
+            }
         } catch (err) {
             setError(host, err.message);
         }
+    }
+
+    /* ------------------------------- FAQ ------------------------------------ */
+
+    /**
+     * FAQ dùng <details>/<summary> (bàn phím Enter/Space hoạt động sẵn, biểu tượng
+     * xoay theo [open]). Bổ sung `aria-expanded` và `aria-controls` mà trình duyệt
+     * không tự gắn, để trình đọc màn hình thông báo đúng trạng thái đóng/mở.
+     * Dùng chung cho trang Liên hệ và trang Hỗ trợ để hai nơi hành xử giống nhau.
+     */
+    function initFaqAccordion(root) {
+        const host = root || document;
+        const items = host.querySelectorAll('details.ct-faq-item, details.sup-faq-item');
+        items.forEach((details, index) => {
+            const summary = details.querySelector(':scope > summary');
+            const body = details.lastElementChild;
+            if (!summary || !body || body === summary || summary.dataset.faqBound === '1') return;
+            summary.dataset.faqBound = '1';
+
+            if (!body.id) body.id = `faq-panel-${index + 1}`;
+            summary.setAttribute('aria-controls', body.id);
+            summary.setAttribute('aria-expanded', String(details.open));
+            body.setAttribute('role', 'region');
+            body.setAttribute('aria-labelledby', summary.id || '');
+            if (!summary.id) {
+                summary.id = `${body.id}-summary`;
+                body.setAttribute('aria-labelledby', summary.id);
+            }
+
+            /* <details> phát sự kiện toggle: đồng bộ aria-expanded theo trạng thái thật */
+            details.addEventListener('toggle', () => {
+                summary.setAttribute('aria-expanded', String(details.open));
+            });
+        });
     }
 
     /* ------------------------------ Khởi tạo -------------------------------- */
@@ -1376,8 +1657,10 @@
     const isHome = !/\.html$/.test(window.location.pathname) || page === 'index.html';
 
     const run = () => {
+        initFaqAccordion();
         if (isHome) {
             initNewsList();
+            initHomeEducation();
             initEvents();
         }
         if (page === 'news.html') initNewsList();
@@ -1396,5 +1679,9 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
 
-    window.PublicPages = { initNewsList, initNewsDetail, initEducation, initEducationDetail, initStatistics, initEvents, initEventDetail, initAgencies, initAgencyDetail };
+    window.PublicPages = {
+        initNewsList, initNewsDetail, initEducation, initEducationDetail, initHomeEducation,
+        initStatistics, initEvents, initEventDetail, initAgencies, initAgencyDetail, initSupport,
+        initFaqAccordion,
+    };
 })();

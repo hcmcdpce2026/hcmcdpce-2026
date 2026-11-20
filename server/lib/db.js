@@ -37,6 +37,47 @@ function getDb() {
   return instance;
 }
 
+/**
+ * Bổ sung cột còn thiếu cho các bảng nội dung công khai (idempotent).
+ * Database tạo trước khi có schema mới cần bước này để các trường chuyên biệt
+ * của từng loại nội dung (lĩnh vực pháp luật, toạ độ cơ sở, …) luôn tồn tại.
+ */
+function ensureContentTypeColumns() {
+  const db = getDb();
+  const columns = {
+    legal_documents: [
+      ['slug', 'TEXT'], ['legal_field', 'TEXT'], ['expiry_at', 'TEXT'],
+      ['effect_status', "TEXT NOT NULL DEFAULT 'in_effect'"],
+      ['is_public', 'INTEGER NOT NULL DEFAULT 1'], ['status', "TEXT NOT NULL DEFAULT 'active'"],
+    ],
+    public_events: [
+      ['slug', 'TEXT'], ['event_type', 'TEXT'], ['co_organizer', 'TEXT'],
+      ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+    ],
+    public_agencies: [
+      ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],
+      ['structure', 'TEXT'], ['head_name', 'TEXT'],
+    ],
+    support_facilities: [
+      ['code', 'TEXT'], ['managing_org', 'TEXT'], ['org_id', 'TEXT'], ['ward', 'TEXT'],
+      ['city', 'TEXT'], ['latitude', 'REAL'], ['longitude', 'REAL'], ['email', 'TEXT'],
+      ['website', 'TEXT'], ['contact_person', 'TEXT'], ['services', 'TEXT'],
+      ['audience', 'TEXT'], ['scope', 'TEXT'], ['conditions', 'TEXT'], ['procedures', 'TEXT'],
+      ['cost_note', 'TEXT'], ['image_url', 'TEXT'], ['source', 'TEXT'], ['verified_at', 'TEXT'],
+      ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+    ],
+  };
+  Object.keys(columns).forEach((table) => {
+    const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    columns[table].forEach(([col, def]) => {
+      if (existing.has(col)) return;
+      try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch (err) {
+        console.warn(`[db] Không thêm được cột ${table}.${col}: ${err.message}`);
+      }
+    });
+  });
+}
+
 /** Helper: lấy một bản ghi */
 function get(sql, params = []) {
   return getDb().prepare(sql).get(...params) || null;
@@ -55,6 +96,7 @@ function run(sql, params = []) {
 /** Chạy toàn bộ seed nếu database còn trống */
 function initialize({ seed = true } = {}) {
   const db = getDb();
+  ensureContentTypeColumns();
   if (!seed) return db;
   const row = db.prepare('SELECT COUNT(*) AS c FROM users').get();
   if (!row || row.c === 0) {
@@ -75,4 +117,4 @@ function ensureSeed() {
   return count;
 }
 
-module.exports = { getDb, get, all, run, initialize, DB_FILE };
+module.exports = { getDb, get, all, run, initialize, ensureContentTypeColumns, DB_FILE };

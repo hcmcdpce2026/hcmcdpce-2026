@@ -822,55 +822,106 @@ function catalogRow(table, body, existing) {
     return {
       code: pick(['code', 'docNumber'], text),
       title: pick(['title'], text),
+      slug: pick(['slug'], text),
       doc_number: pick(['docNumber', 'code'], text),
-      doc_type: pick(['docType'], text),
+      doc_type: pick(['docType', 'doc_type'], text),
+      legal_field: pick(['legalField', 'legal_field'], text),
       issued_at: pick(['issuedAt', 'issued_at'], (v) => v || null),
       effective_at: pick(['effectiveAt', 'effective_at'], (v) => v || null),
+      expiry_at: pick(['expiryAt', 'expiry_at'], (v) => v || null),
+      effect_status: pick(['effectStatus', 'effect_status'], (v) =>
+        ['in_effect', 'expired', 'replaced', 'amended'].includes(v) ? v : undefined),
       issuer: pick(['issuer'], text),
       summary: pick(['summary'], text),
       content: pick(['content'], text),
       file_url: pick(['fileUrl', 'file_url'], text),
+      is_public: pick(['isPublic', 'is_public'], (v) => (v === false || v === 'false' || v === 0 || v === '0' ? 0 : 1)),
+      status: pick(['status'], (v) => (v === 'inactive' ? 'inactive' : 'active')),
     };
   }
   if (table === 'public_agencies') {
     return {
       name: pick(['name'], text),
+      slug: pick(['slug'], text),
       short_name: pick(['shortName', 'short_name'], text),
       role_type: pick(['roleType', 'role_type'], text),
+      management_level: pick(['managementLevel', 'management_level'], text),
       address: pick(['address'], text),
       phone: pick(['phone'], text),
       email: pick(['email'], text),
       website: pick(['website'], text),
       description: pick(['description'], text),
+      functions_text: pick(['functions', 'functionsText', 'functions_text'], text),
+      structure: pick(['structure'], text),
+      head_name: pick(['headName', 'head_name'], text),
       logo_url: pick(['logo', 'logoUrl', 'logo_url'], text),
+      org_id: pick(['orgId', 'org_id'], (v) => v || null),
       sort_order: pick(['sortOrder', 'sort_order'], (v) => Number(v) || 0),
-      status: pick(['status'], text),
+      status: pick(['status'], (v) => (v === 'inactive' ? 'inactive' : 'active')),
     };
   }
   if (table === 'public_events') {
     return {
       title: pick(['title'], text),
+      slug: pick(['slug'], text),
       category: pick(['category'], text),
+      event_type: pick(['eventType', 'event_type', 'category'], text),
       start_at: pick(['start', 'startAt', 'start_at'], (v) => v || null),
       end_at: pick(['end', 'endAt', 'end_at'], (v) => v || null),
       location: pick(['location'], text),
       organizer: pick(['organizer'], text),
+      co_organizer: pick(['coOrganizer', 'co_organizer'], text),
       summary: pick(['summary'], text),
       content: pick(['content'], text),
       image_url: pick(['image', 'imageUrl', 'image_url'], text),
       status: pick(['status'], text),
+      publish_status: pick(['publishStatus', 'publish_status'], (v) =>
+        ['draft', 'published', 'hidden'].includes(v) ? v : undefined),
     };
   }
   if (table === 'support_facilities') {
+    const listToJson = (v) => {
+      if (Array.isArray(v)) return JSON.stringify(v.map((x) => String(x).trim()).filter(Boolean).slice(0, 30));
+      if (typeof v === 'string') {
+        return JSON.stringify(v.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 30));
+      }
+      return undefined;
+    };
+    const coord = (v) => {
+      if (v === '' || v === null || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
     return {
+      code: pick(['code'], text),
       name: pick(['name'], text),
       type: pick(['type'], text),
+      managing_org: pick(['managingOrg', 'managing_org'], text),
+      org_id: pick(['orgId', 'org_id'], (v) => v || null),
       district: pick(['district'], text),
+      ward: pick(['ward'], text),
+      city: pick(['city'], text),
       address: pick(['address'], text),
+      latitude: pick(['latitude', 'lat'], coord),
+      longitude: pick(['longitude', 'lng'], coord),
       phone: pick(['phone'], text),
+      email: pick(['email'], text),
+      website: pick(['website'], text),
       hours: pick(['hours'], text),
+      contact_person: pick(['contactPerson', 'contact_person'], text),
+      services: pick(['services'], listToJson),
+      audience: pick(['audience'], text),
+      scope: pick(['scope'], text),
+      conditions: pick(['conditions'], text),
+      procedures: pick(['procedures'], text),
+      cost_note: pick(['costNote', 'cost_note'], text),
       description: pick(['description'], text),
-      status: pick(['status'], text),
+      image_url: pick(['image', 'imageUrl', 'image_url'], text),
+      source: pick(['source'], text),
+      verified_at: pick(['verifiedAt', 'verified_at'], (v) => v || null),
+      status: pick(['status'], (v) => (v === 'inactive' ? 'inactive' : 'active')),
+      publish_status: pick(['publishStatus', 'publish_status'], (v) =>
+        ['pending', 'published', 'rejected'].includes(v) ? v : undefined),
     };
   }
   return {
@@ -974,8 +1025,22 @@ async function saveCatalog(req, res, ctx) {
       items: db.prepare('SELECT * FROM statistics_items WHERE period_id = ? ORDER BY sort_order').all(effectiveId) });
   }
 
-  const cols = Object.keys(row).filter((k) => row[k] !== undefined && row[k] !== null);
+  /*
+   * Giá trị null được giữ lại cho các trường có thể xoá có chủ đích (toạ độ,
+   * ngày hết hiệu lực, tệp đính kèm) — nếu lọc bỏ null thì không thể xoá dữ liệu.
+   */
+  const NULLABLE = new Set(['latitude', 'longitude', 'expiry_at', 'org_id', 'verified_at', 'file_url', 'image_url']);
+  const cols = Object.keys(row).filter((k) => row[k] !== undefined && (row[k] !== null || NULLABLE.has(k)));
   if (!cols.length) return http.badRequest(res, 'Không có trường hợp lệ để lưu.');
+
+  /* Slug ổn định cho nhóm có hỗ trợ đường dẫn riêng */
+  if (colExists(db, table, 'slug') && !row.slug) {
+    const base = row.title || row.name || '';
+    if (base) { row.slug = uniqueSlug(db, table, base, effectiveId); if (!cols.includes('slug')) cols.push('slug'); }
+  }
+  if (colExists(db, table, 'slug') && row.slug && row.slug !== existing?.slug) {
+    row.slug = uniqueSlug(db, table, row.slug, effectiveId);
+  }
 
   if (existing) {
     if (colExists(db, table, 'updated_at')) {

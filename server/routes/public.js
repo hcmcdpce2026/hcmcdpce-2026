@@ -43,6 +43,7 @@ async function listArticles(req, res, ctx) {
   const cat = q.categoryId || q.category || null;
   const search = q.search || q.q || '';
   const group = q.group || null;
+  const catStatus = q.categoryStatus === 'all' ? 'all' : 'active';
 
   if (q.id) {
     const row = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug FROM articles a
@@ -56,12 +57,16 @@ async function listArticles(req, res, ctx) {
     return http.ok(res, m.article(row, { related: related.map((r) => m.article(r)) }));
   }
 
-  const rows = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.group_key AS category_group FROM articles a
+  const rows = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.group_key AS category_group,
+        c.status AS category_status
+      FROM articles a
       LEFT JOIN categories c ON c.id = a.category_id
       WHERE a.status = 'published'
       ORDER BY a.published_at DESC, a.created_at DESC, a.id DESC`).all();
   let items = rows.map((r) => m.article(r));
-  if (group) items = items.filter((a) => rows.find((r) => r.id === a.id) && rows.find((r) => r.id === a.id).category_group === group);
+  if (group) items = items.filter((a) => a.categoryGroup === group);
+  /* Chuyên mục đã ngừng hoạt động không còn hiển thị công khai trừ khi yêu cầu rõ */
+  if (catStatus === 'active') items = items.filter((a) => !a.categoryId || a.categoryStatus !== 'inactive');
   if (cat) {
     /* Lọc theo id, slug hoặc tên chuyên mục */
     items = items.filter((a) => a.categoryId === cat || a.categorySlug === cat || a.categoryName === cat);
@@ -94,61 +99,111 @@ async function listCategories(req, res, ctx) {
   return http.ok(res, rows.map(m.category));
 }
 
-async function listLegal(req, res, ctx) {
-  const db = getDb();
-  const q = ctx.query;
-  if (q.id) {
-    const row = db.prepare('SELECT * FROM legal_documents WHERE id = ? OR code = ?').get(q.id, q.id);
-    if (!row) return http.notFound(res, 'Văn bản không tồn tại.');
-    return http.ok(res, legal(row));
-  }
-  let rows = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC').all().map(legal);
-  if (q.type) rows = rows.filter((l) => l.docType === q.type);
-  if (q.search) rows = rows.filter((l) => norm(l.title).includes(norm(q.search)) || norm(l.docNumber).includes(norm(q.search)));
-  return http.ok(res, rows.map(({ content, ...rest }) => rest));
+/**
+ * Văn bản pháp luật: chỉ công khai bản ghi đã được bật công khai và chưa bị ẩn.
+ * Các cột mới (lĩnh vực, tình trạng hiệu lực, ngày hết hiệu lực) có thể chưa tồn tại
+ * trên database cũ nên luôn đọc qua bản ghi đầy đủ và trả `undefined` thành rỗng.
+ */
+function legalPublicWhere(r) {
+  return r.is_public !== 0 && r.status !== 'inactive';
 }
 
 function legal(r) {
   return {
     id: r.id, code: r.code, title: r.title, docNumber: r.doc_number, docType: r.doc_type,
-    issuedAt: r.issued_at, effectiveAt: r.effective_at, issuer: r.issuer, summary: r.summary,
-    content: r.content, fileUrl: r.file_url, sourceType: r.data_source,
+    issuedAt: r.issued_at, effectiveAt: r.effective_at, expiryAt: r.expiry_at || null,
+    legalField: r.legal_field || '', issuer: r.issuer, summary: r.summary,
+    content: r.content, fileUrl: r.file_url, status: r.status || 'active',
+    effectStatus: r.effect_status || 'in_effect', sourceType: r.data_source,
   };
 }
 
+async function listLegal(req, res, ctx) {
+  const db = getDb();
+  const q = ctx.query;
+  if (q.id) {
+    const row = db.prepare('SELECT * FROM legal_documents WHERE (id = ? OR code = ?) AND is_public = 1').get(q.id, q.id);
+    if (!row || !legalPublicWhere(row)) return http.notFound(res, 'Văn bản không tồn tại hoặc chưa được công bố.');
+    return http.ok(res, legal(row));
+  }
+  let rows = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC').all().filter(legalPublicWhere).map(legal);
+  if (q.type) rows = rows.filter((l) => l.docType === q.type);
+  if (q.field) rows = rows.filter((l) => l.legalField === q.field);
+  if (q.issuer) rows = rows.filter((l) => l.issuer === q.issuer);
+  if (q.year) rows = rows.filter((l) => String(l.issuedAt || '').slice(0, 4) === String(q.year));
+  if (q.effectStatus) rows = rows.filter((l) => l.effectStatus === q.effectStatus);
+  if (q.search) {
+    rows = rows.filter((l) => norm(l.title).includes(norm(q.search)) || norm(l.docNumber).includes(norm(q.search))
+      || norm(l.summary).includes(norm(q.search)));
+  }
+  return http.ok(res, rows.map(({ content, ...rest }) => rest));
+}
+
+/** Sự kiện: trạng thái công khai + trạng thái xuất bản tách biệt với tiến trình thời gian. */
 const eventMap = (r) => ({
-  id: r.id, title: r.title, category: r.category, start: r.start_at, end: r.end_at, location: r.location,
-  organizer: r.organizer, summary: r.summary, content: r.content, image: r.image_url, status: r.status,
+  id: r.id, title: r.title, slug: r.slug || '', category: r.category, eventType: r.event_type || r.category || '',
+  start: r.start_at, end: r.end_at, location: r.location,
+  organizer: r.organizer, coOrganizer: r.co_organizer || '', summary: r.summary, content: r.content,
+  image: r.image_url, status: r.status, publishStatus: r.publish_status || 'published',
 });
+
+function eventIsPublic(r) {
+  return (r.publish_status || 'published') === 'published' && r.status !== 'inactive';
+}
 
 async function listEvents(req, res, ctx) {
   const db = getDb();
   const id = ctx.query.id;
   if (id) {
-    const row = db.prepare("SELECT * FROM public_events WHERE id = ? AND status IN ('upcoming', 'ongoing', 'past')").get(id);
-    if (!row) return http.notFound(res, 'Sự kiện không tồn tại hoặc chưa được công bố.');
-    const related = db.prepare("SELECT * FROM public_events WHERE id <> ? AND status IN ('upcoming', 'ongoing', 'past') ORDER BY start_at DESC LIMIT 3").all(id);
+    const row = db.prepare('SELECT * FROM public_events WHERE id = ? OR slug = ?').get(id, id);
+    if (!row || !eventIsPublic(row)) return http.notFound(res, 'Sự kiện không tồn tại hoặc chưa được công bố.');
+    const related = db.prepare('SELECT * FROM public_events WHERE id <> ? ORDER BY start_at DESC LIMIT 8').all(id)
+      .filter(eventIsPublic).slice(0, 3);
     return http.ok(res, { ...eventMap(row), related: related.map(eventMap) });
   }
-  const rows = db.prepare("SELECT * FROM public_events WHERE status IN ('upcoming', 'ongoing', 'past') ORDER BY start_at DESC").all().map(eventMap);
+  const q = ctx.query;
+  let rows = db.prepare('SELECT * FROM public_events ORDER BY start_at DESC').all().filter(eventIsPublic).map(eventMap);
+  if (q.type) rows = rows.filter((e) => e.eventType === q.type);
+  if (q.status) rows = rows.filter((e) => e.status === q.status);
+  if (q.search) {
+    rows = rows.filter((e) => norm(e.title).includes(norm(q.search)) || norm(e.summary).includes(norm(q.search))
+      || norm(e.location).includes(norm(q.search)));
+  }
   return http.ok(res, rows);
 }
+
+const AGENCY_LINKS = `SELECT p.*, o.name AS org_name, o.code AS org_code
+  FROM public_agencies p LEFT JOIN organizations o ON o.id = p.org_id`;
 
 async function listAgencies(req, res, ctx) {
   const db = getDb();
   const id = ctx.query.id;
   const mapAgency = (r) => ({
-    id: r.id, name: r.name, shortName: r.short_name, roleType: r.role_type, address: r.address,
+    id: r.id, slug: r.slug || '', name: r.name, shortName: r.short_name, roleType: r.role_type,
+    managementLevel: r.management_level || '', parentOrg: r.org_id ? (r.org_name || '') : '',
+    logo: r.logo_url || '', address: r.address,
     phone: r.phone, email: r.email, website: r.website, description: r.description,
+    functions: r.functions_text || '', headName: r.head_name || '',
+    orgId: r.org_id || null, sortOrder: r.sort_order || 0, status: r.status,
   });
+  const isPublic = (r) => r.status !== 'inactive';
   if (id) {
-    const row = db.prepare('SELECT * FROM public_agencies WHERE id = ?').get(id);
-    if (!row) return http.notFound(res, 'Cơ quan, đơn vị không tồn tại.');
-    const related = db.prepare('SELECT * FROM public_agencies WHERE id <> ? AND status = \'active\' ORDER BY sort_order LIMIT 3').all(id);
+    const row = db.prepare(`${AGENCY_LINKS} WHERE p.id = ? OR p.slug = ?`).get(id, id);
+    if (!row || !isPublic(row)) return http.notFound(res, 'Cơ quan, đơn vị không tồn tại.');
+    const related = db.prepare(`${AGENCY_LINKS} WHERE p.id <> ? ORDER BY p.sort_order`).all(id)
+      .filter(isPublic).slice(0, 3);
     return http.ok(res, { ...mapAgency(row), related: related.map(mapAgency) });
   }
-  const rows = db.prepare("SELECT * FROM public_agencies WHERE status = 'active' ORDER BY sort_order").all().map(mapAgency);
-  return http.ok(res, rows);
+  const rows = db.prepare(`${AGENCY_LINKS} WHERE p.status <> 'inactive' ORDER BY p.sort_order, p.name`).all().map(mapAgency);
+  /* Danh mục lọc được dựng từ dữ liệu thật: loại hình + cấp quản lý hiện có */
+  const taxonomy = db.prepare("SELECT role_type, COUNT(*) AS c FROM public_agencies WHERE status <> 'inactive' GROUP BY role_type").all();
+  const levels = db.prepare("SELECT management_level, COUNT(*) AS c FROM public_agencies WHERE status <> 'inactive' GROUP BY management_level").all();
+  return http.ok(res, rows, {
+    taxonomy: {
+      roleTypes: taxonomy.filter((t) => t.role_type).map((t) => ({ value: t.role_type, count: t.c })),
+      levels: levels.filter((t) => t.management_level).map((t) => ({ value: t.management_level, count: t.c })),
+    },
+  });
 }
 
 async function listStatistics(req, res, ctx) {
@@ -168,12 +223,53 @@ async function listStatistics(req, res, ctx) {
   return http.ok(res, data);
 }
 
+/** Trạng thái công khai của cơ sở hỗ trợ: đã công khai + chưa ngừng hoạt động. */
+function supportMap(r) {
+  const services = (() => {
+    if (!r.services) return [];
+    try { const a = JSON.parse(r.services); return Array.isArray(a) ? a : []; } catch (_) { return []; }
+  })();
+  return {
+    id: r.id, code: r.code || '', name: r.name, type: r.type, district: r.district || '',
+    ward: r.ward || '', city: r.city || 'Thành phố Hồ Chí Minh', address: r.address,
+    phone: r.phone, email: r.email || '', website: r.website || '', hours: r.hours,
+    contactPerson: r.contact_person || '',
+    latitude: r.latitude != null ? Number(r.latitude) : null,
+    longitude: r.longitude != null ? Number(r.longitude) : null,
+    services, audience: r.audience || '', scope: r.scope || '', conditions: r.conditions || '',
+    procedures: r.procedures || '', costNote: r.cost_note || '', description: r.description,
+    /* Tên đơn vị quản lý (từ hồ sơ hoặc từ organizations) — không trả org_id nội bộ */
+    managingOrg: r.managing_org || r.org_name || '', image: r.image_url || '',
+    source: r.source || '', verifiedAt: r.verified_at || null,
+    status: r.status || 'active', publishStatus: r.publish_status || 'published',
+  };
+}
+
+function supportIsPublic(r) {
+  return r.status !== 'inactive' && (r.publish_status || 'published') === 'published';
+}
+
 async function listSupport(req, res, ctx) {
   const db = getDb();
-  const rows = db.prepare("SELECT * FROM support_facilities WHERE status = 'active' ORDER BY name").all().map((r) => ({
-    id: r.id, name: r.name, type: r.type, district: r.district, address: r.address,
-    phone: r.phone, hours: r.hours, description: r.description,
-  }));
+  const q = ctx.query || {};
+  if (q.id) {
+    const row = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
+        LEFT JOIN organizations o ON o.id = s.org_id WHERE s.id = ?`).get(q.id);
+    if (!row || !supportIsPublic(row)) return http.notFound(res, 'Cơ sở không tồn tại hoặc chưa được công bố.');
+    return http.ok(res, supportMap(row));
+  }
+  let rows = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
+      LEFT JOIN organizations o ON o.id = s.org_id
+      WHERE s.status <> 'inactive' ORDER BY s.name`).all()
+    .filter(supportIsPublic).map(supportMap);
+  if (q.type) rows = rows.filter((f) => f.type === q.type);
+  if (q.district) rows = rows.filter((f) => f.district === q.district);
+  if (q.service) rows = rows.filter((f) => f.services.some((s) => String(s).includes(q.service)));
+  if (q.audience) rows = rows.filter((f) => String(f.audience || '').includes(q.audience));
+  if (q.search) {
+    rows = rows.filter((f) => norm(f.name).includes(norm(q.search)) || norm(f.address).includes(norm(q.search))
+      || norm(f.description).includes(norm(q.search)) || norm(f.district).includes(norm(q.search)));
+  }
   return http.ok(res, rows);
 }
 

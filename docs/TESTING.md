@@ -6,7 +6,9 @@ Tài liệu này liệt kê các bộ kiểm thử và cách chạy an toàn tr�
 
 | Tệp/lệnh | Phạm vi | Ghi chú |
 |---|---|---|
-| `npm run test:isolated` (`server/scripts/run-tests-isolated.js`) | **Toàn bộ suite trên database tạm** | **Khuyến nghị.** Dựng server tạm (cổng riêng, SQLite tạm), nạp seed, chạy `test-api` + `smoke-interconnect`, rồi xoá sạch |
+| `npm run test:isolated` (`server/scripts/run-tests-isolated.js`) | **Toàn bộ suite trên database tạm** | **Khuyến nghị.** Dựng server tạm (cổng riêng, SQLite tạm), nạp seed, chạy `test-api` + `smoke-interconnect` + `smoke-security` + `smoke-workspace-crud`, rồi xoá sạch |
+| `npm run test:security` (`server/scripts/smoke-security.js`) | Path traversal, chịu request sai định dạng, chặn thư mục nội bộ, API nội bộ yêu cầu xác thực | Chỉ đọc; cần server đang chạy (`API_BASE`) |
+| `npm run test:workspace` (`server/scripts/smoke-workspace-crud.js`) | Tạo/đọc/sửa nhiệm vụ Workspace, nhật ký, CSRF, đầu vào không hợp lệ | Tạo bản ghi `[Kiểm thử]` rồi huỷ; nên chạy trên DB thử nghiệm |
 | `npm test` (`server/scripts/test-api.js`) | Tích hợp API: xác thực, quyền, CSRF, tải tệp, PUBLIC form và nghiệp vụ | Cần server đang chạy và `server/data/credentials.local.txt`; **ghi vào database của server đó** |
 | `npm run test:interconnect` (`server/scripts/smoke-interconnect.js`) | Luồng PUBLIC → CMS → Workspace | Ghi các bản ghi kiểm thử vào database được cấu hình |
 | `npm run test:clean` (`server/scripts/clean-test-data.js`) | Báo cáo dữ liệu kiểm thử còn sót | Mặc định chỉ báo cáo; thêm `--yes` để xoá |

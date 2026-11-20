@@ -24,13 +24,34 @@ Schema được khai báo trong `server/db/schema.sql`. Mã ứng dụng dùng p
 
 | Bảng | Mục đích |
 |---|---|
-| `categories` | Chuyên mục |
-| `articles`, `article_revisions` | Bài viết và lịch sử phiên bản |
+| `categories` | Chuyên mục; `group_key` quyết định nhóm nội dung (`news`, `education`, `law`, `event`, `agency`, `support`, `statistics`) |
+| `articles`, `article_revisions` | Bài viết và lịch sử phiên bản — dùng cho nhóm Tin tức và Tuyên truyền - Giáo dục |
 | `media`, `banners` | Tài nguyên và banner |
-| `legal_documents` | Văn bản pháp luật |
-| `public_agencies`, `public_events` | Danh mục cơ quan và sự kiện công khai |
+| `legal_documents` | Văn bản pháp luật (số hiệu, lĩnh vực, ngày ban hành/hiệu lực/hết hiệu lực, tình trạng hiệu lực) |
+| `public_agencies`, `public_events` | Hồ sơ cơ quan, đơn vị và sự kiện công khai |
 | `statistics_periods`, `statistics_items` | Kỳ và chỉ số thống kê |
-| `support_facilities` | Cơ sở hỗ trợ |
+| `support_facilities` | Cơ sở y tế, cơ sở cai nghiện và điểm tư vấn |
+
+### Sáu nhóm nội dung và trường phân biệt
+
+Mỗi nhóm có mô hình dữ liệu riêng, không dùng chung cấu trúc “bài viết”:
+
+| Nhóm | Bảng | Trường tiêu biểu |
+|---|---|---|
+| Tin tức | `articles` + `categories` (`group_key='news'`) | `title`, `slug`, `thumbnail`, `excerpt`, `body`, `author_name`, `published_at`, `category_id`, `tags`, `status` |
+| Tuyên truyền - Giáo dục | `articles` + `categories` (`group_key='education'`) | như trên, cộng `source` (chủ đề/đối tượng) và `tags` |
+| Sự kiện | `public_events` | `title`, `slug`, `event_type`, `start_at`, `end_at`, `location`, `organizer`, `co_organizer`, `status`, `publish_status` |
+| Pháp luật | `legal_documents` | `code`, `doc_number`, `doc_type`, `legal_field`, `issued_at`, `effective_at`, `expiry_at`, `effect_status`, `issuer`, `file_url`, `is_public` |
+| Cơ quan - Đơn vị | `public_agencies` | `name`, `slug`, `role_type`, `management_level`, `org_id`, `functions_text`, `structure`, `head_name`, `status` |
+| Cơ sở y tế - Tư vấn | `support_facilities` | `code`, `type`, `managing_org`, `address`, `ward`, `latitude`, `longitude`, `services`, `audience`, `verified_at`, `status`, `publish_status` |
+
+Quan hệ giữa nhóm: `support_facilities.org_id` → `organizations.id` (đơn vị quản lý trực tiếp),
+`public_agencies.org_id` → `organizations.id`. Một cơ quan có thể quản lý nhiều cơ sở, nhưng
+cơ quan và địa điểm cung cấp dịch vụ là hai bản ghi khác nhau.
+
+Trạng thái công khai: `legal_documents.is_public`, `public_events.publish_status`,
+`support_facilities.publish_status`. Bản ghi `inactive` hoặc chưa `published` không được
+API công khai trả về.
 
 ### Tiếp nhận và Workspace
 
@@ -73,6 +94,26 @@ npm run db:seed
 - `db:seed` thêm các tổ chức, quyền, vai trò, tài khoản và cấu hình hệ thống còn thiếu. Mặc định không thêm nội dung nghiệp vụ mẫu.
 - Chạy `db:seed` trước lần khởi động server đầu tiên để script CLI có thể tạo `server/data/credentials.local.txt` khi tạo tài khoản mới.
 - Server cũng bảo đảm schema và dữ liệu hệ thống tối thiểu khi khởi động. Tuy nhiên, cơ chế tự seed của server không ghi tệp bàn giao mật khẩu.
+
+### Dữ liệu mẫu cho 6 nhóm nội dung
+
+Để kiểm thử luồng CMS → PUBLIC mà không nhập tay, có thể nạp bộ dữ liệu mẫu cho cả sáu nhóm:
+
+```bash
+npm run demo:seed     # nạp dữ liệu mẫu (data_source = 'demo')
+npm run demo:purge    # xem số bản ghi mẫu còn lại
+node server/db/content-types.js --purge --yes   # xoá dữ liệu mẫu
+```
+
+Mọi bản ghi mẫu mang `data_source = 'demo'` và tiền tố `[Mẫu]` trong tiêu đề/tên, nên nhận
+diện chính xác và xoá sạch khi hoàn thành kiểm thử. Lệnh purge chỉ xoá bản ghi `demo`,
+không đụng tới dữ liệu vận hành. **Không dùng dữ liệu mẫu trên môi trường thật.**
+
+Kiểm thử tự động cho sáu nhóm chạy trên database tách biệt:
+
+```bash
+npm run test:content-types
+```
 
 ### Dữ liệu mẫu và reset
 

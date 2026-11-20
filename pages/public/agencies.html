@@ -186,11 +186,8 @@
                                    aria-label="Tìm kiếm cơ quan đơn vị">
                         </div>
 
-                        <select id="ag-area-select" class="ag-select" aria-label="Lọc theo phạm vi hoạt động">
-                            <option value="all">Tất cả phạm vi / địa bàn</option>
-                            <option value="toan-thanh-pho">Cấp Thành phố (Toàn địa bàn TP.HCM)</option>
-                            <option value="khu-vuc-trung-tam">Khu vực Trung tâm & Nội thành</option>
-                            <option value="khu-vuc-ngoai-thanh">Khu vực Ngoại thành & Cửa ngõ</option>
+                        <select id="ag-area-select" class="ag-select" aria-label="Lọc theo cấp quản lý">
+                            <option value="all">Tất cả cấp quản lý</option>
                         </select>
 
                         <button type="button" id="ag-reset-btn" class="ag-reset-btn">
@@ -199,21 +196,10 @@
                         </button>
                     </div>
 
-                    <div class="ag-tabs" role="tablist" aria-label="Lọc theo nhóm đơn vị">
+                    <!-- Danh mục lọc được dựng từ dữ liệu CMS (public-pages.js), không khai báo tĩnh -->
+                    <div class="ag-tabs" id="ag-group-tabs" role="tablist" aria-label="Lọc theo loại hình cơ quan, đơn vị">
                         <button type="button" class="ag-tab-btn is-active" data-group="all">
                             Tất cả đơn vị
-                        </button>
-                        <button type="button" class="ag-tab-btn" data-group="chuyen-trach">
-                            Chỉ đạo & Chuyên trách
-                        </button>
-                        <button type="button" class="ag-tab-btn" data-group="y-te">
-                            Y tế & Điều trị Methadone
-                        </button>
-                        <button type="button" class="ag-tab-btn" data-group="cai-nghien">
-                            Cơ sở cai nghiện
-                        </button>
-                        <button type="button" class="ag-tab-btn" data-group="doan-the">
-                            Mặt trận & Đoàn thể
                         </button>
                     </div>
                 </div>
@@ -225,12 +211,7 @@
             <div class="container">
                 <div class="ag-toolbar-meta">
                     <span class="ag-count" id="ag-result-count"></span>
-                    <div class="ag-legend" aria-hidden="true">
-                        <span><i class="ag-dot ag-dot--gov"></i> Quản lý & Chuyên trách</span>
-                        <span><i class="ag-dot ag-dot--med"></i> Y tế & Điều trị</span>
-                        <span><i class="ag-dot ag-dot--rehab"></i> Cơ sở cai nghiện</span>
-                        <span><i class="ag-dot ag-dot--social"></i> Hỗ trợ cộng đồng</span>
-                    </div>
+                    <div class="ag-legend" id="ag-legend" aria-hidden="true"></div>
                 </div>
 
                 <div class="ag-grid" id="ag-grid-list">

@@ -28,7 +28,7 @@ SQLite: server/data/portal.sqlite
 | Phân hệ | Trách nhiệm | Dữ liệu chính |
 |---|---|---|
 | PUBLIC | Cung cấp nội dung công khai, nhận yêu cầu, tra cứu mã | Bài đã xuất bản, danh mục công khai, hồ sơ tiếp nhận |
-| CMS | Quản lý nội dung và quy trình xuất bản; xử lý tiếp nhận | Bài viết, phiên bản, chuyên mục, tài nguyên, đề xuất |
+| CMS | Quản lý nội dung và quy trình xuất bản; xử lý tiếp nhận | Sáu nhóm nội dung (xem dưới), phiên bản, chuyên mục, tài nguyên, đề xuất |
 | Workspace | Điều phối nhiệm vụ, báo cáo, lịch, tài liệu và tài khoản nghiệp vụ | Nhiệm vụ, báo cáo, đơn vị, người dùng, vai trò |
 | Shared | Thông tin người dùng/đơn vị, thông báo, thiết lập và thống kê tổng hợp | Dữ liệu dùng chung giữa CMS và Workspace |
 
@@ -51,6 +51,34 @@ Workspace tạo proposal
 ```
 
 Việc tạo yêu cầu phối hợp cũng có thể nối CMS và Workspace; lịch sử được lưu trong bảng nghiệp vụ và `activity_logs`.
+
+## Sáu nhóm nội dung
+
+CMS là một hệ thống thống nhất (cùng tài khoản, phân quyền, quy trình duyệt), nhưng mỗi nhóm
+nội dung có mô hình dữ liệu và form nhập riêng:
+
+| Nhóm | Nơi quản lý | Bảng | Trang công khai |
+|---|---|---|---|
+| Tin tức | `content-list.html` (lọc `group=news`) | `articles` + `categories` | `news.html`, trang chủ |
+| Tuyên truyền - Giáo dục | `content-list.html` (lọc `group=education`) | `articles` + `categories` | `education.html`, trang chủ |
+| Sự kiện | `public-catalog.html` → tab Sự kiện | `public_events` | `events.html` |
+| Pháp luật | `public-catalog.html` → tab Pháp luật | `legal_documents` | `laws.html` |
+| Cơ quan - Đơn vị | `public-catalog.html` → tab Cơ quan | `public_agencies` | `agencies.html` |
+| Cơ sở y tế - Tư vấn | `public-catalog.html` → tab Cơ sở y tế | `support_facilities` | `support.html` |
+
+Nhóm của một bài viết được xác định bằng `categories.group_key` của chuyên mục được gán
+(`articles.category_id`) — không dò từ khóa trong tiêu đề hay nội dung.
+
+Mỗi trang công khai chỉ đọc đúng nguồn dữ liệu của mình qua `/api/public/*`; bộ lọc trên các
+trang danh mục được dựng từ chính dữ liệu CMS (danh mục chuyên mục, loại hình, cấp quản lý,
+lĩnh vực pháp luật), không khai báo tĩnh trong HTML.
+
+### Hệ thống đang chạy
+
+- `server/db/schema.sql` khai báo đầy đủ trường cho cả sáu nhóm; `server/lib/db.js`
+  (`ensureContentTypeColumns`) và `server/db/migrate.js` bổ sung cột cho database cũ.
+- `js/public-pages.js` kết xuất dữ liệu công khai; `js/main.js` chỉ giữ tương tác giao diện.
+- `server/db/content-types.js` nạp/xoá dữ liệu mẫu cho sáu nhóm (chỉ dùng để kiểm thử).
 
 ## Thành phần mã nguồn
 

@@ -156,7 +156,16 @@ function clearCookie(res, name, options = {}) {
   setCookie(res, name, '', { ...options, maxAge: 0 });
 }
 
-/** Chuẩn hóa & kiểm tra đường dẫn tệp tĩnh (chống path traversal) */
+/**
+ * Chuẩn hóa & kiểm tra đường dẫn tệp tĩnh (chống path traversal).
+ *
+ * THỨ TỰ BẮT BUỘC: giải mã URL TRƯỚC rồi mới chuẩn hóa.
+ * Bản cũ chuẩn hóa trước khi giải mã, nên `..%2f` chưa bị nhận diện ở bước
+ * normalize; sau khi giải mã nó trở thành `../` và thoát ra ngoài thư mục gốc.
+ * Lỗ hổng này cho phép tải toàn bộ `.env`, database, `.git/config`…
+ *
+ * Trả về null nếu đường dẫn không an toàn; nơi gọi phải coi null là 404.
+ */
 function resolveStaticPath(rootDir, urlPath) {
   let decoded;
   try {
@@ -164,15 +173,83 @@ function resolveStaticPath(rootDir, urlPath) {
   } catch (_) {
     return null;
   }
-  const normalized = path.normalize(decoded).replace(/^(\.\.[/\\])+/, '');
-  const full = path.resolve(rootDir, '.' + (normalized.startsWith('/') || normalized.startsWith('\\') ? normalized : '/' + normalized));
+
+  /* Ký tự NUL và đường dẫn tuyệt đối của hệ điều hành không được chấp nhận */
+  if (decoded.includes('\0')) return null;
+
+  /* Backslash là dấu phân cách trên Windows — quy về '/' để kiểm tra thống nhất */
+  const asPosix = decoded.replace(/\\/g, '/');
+
+  /* Chuẩn hóa SAU khi đã giải mã */
+  const normalized = path.posix.normalize(asPosix);
+
+  /*
+   * Từ chối nếu còn dấu hiệu thoát thư mục hoặc là đường dẫn tuyệt đối.
+   * `path.posix.normalize('/../x')` → '/x' nên không thể chỉ dựa vào kết quả.
+   */
+  if (normalized.split('/').includes('..')) return null;
+  if (/\.\./.test(asPosix)) return null;
+
+  const relative = normalized.replace(/^\/+/, '');
   const root = path.resolve(rootDir);
+  const full = path.resolve(root, relative);
+
+  /* Kiểm tra lớp cuối: kết quả phải nằm trong thư mục gốc */
   if (full !== root && !full.startsWith(root + path.sep)) return null;
+
   return full;
+}
+
+/**
+ * Phần mở rộng KHÔNG BAO GIỜ được phục vụ tĩnh, kể cả khi đường dẫn lọt qua
+ * kiểm tra thư mục. Đây là lớp phòng ngự thứ hai cho lỗi path traversal: dù có
+ * lọt ra ngoài web root thì database, tệp cấu hình và khóa bí mật vẫn bị chặn.
+ */
+const BLOCKED_EXTENSIONS = new Set([
+  '.sqlite', '.sqlite3', '.db', '.db3', '.sql', '.wal', '.shm',
+  '.env', '.pem', '.key', '.crt', '.p12', '.pfx', '.local',
+]);
+
+/** Tên tệp không bao giờ được phục vụ (tệp bàn giao, bí mật, log nội bộ) */
+const BLOCKED_FILENAMES = new Set([
+  '.env', '.env.local', '.env.production', '.env.development', '.env.example',
+  'credentials.local.txt', 'config', 'package.json', 'package-lock.json',
+]);
+
+/**
+ * Tệp trang 404 đã nạp sẵn. Tìm từ thư mục chứa server/ lên một cấp để đọc
+ * 404.html ở gốc dự án (có thể truyền đường dẫn qua `options.notFoundFile`).
+ */
+let notFoundHtmlCache = null;
+function loadNotFoundPage(explicitPath) {
+  if (notFoundHtmlCache) return notFoundHtmlCache;
+  const candidates = [explicitPath, path.resolve(__dirname, '..', '..', '404.html')].filter(Boolean);
+  for (const file of candidates) {
+    try { notFoundHtmlCache = fs.readFileSync(file); return notFoundHtmlCache; } catch (_) { /* thử tệp kế tiếp */ }
+  }
+  return null;
+}
+
+/** Trả trang 404 định dạng HTML (không phải JSON) */
+function serveNotFound(res, notFoundPath) {
+  const html = loadNotFoundPage(notFoundPath);
+  if (!html) return notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
+  res.writeHead(404, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': html.length,
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'no-cache',
+  });
+  res.end(html);
 }
 
 /** Phục vụ tệp tĩnh, không cho phép chạy mã từ thư mục upload */
 function serveFile(req, res, filePath, options = {}) {
+  const ext = path.extname(filePath).toLowerCase();
+  const base = path.basename(filePath);
+  if (BLOCKED_EXTENSIONS.has(ext) || BLOCKED_FILENAMES.has(base)) {
+    return notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
+  }
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
       if (options.fallbackIndex) {
@@ -182,9 +259,16 @@ function serveFile(req, res, filePath, options = {}) {
       if (options.spaFallback) {
         return serveFile(req, res, options.spaFallback, {});
       }
+      /*
+       * Yêu cầu HTML (đường dẫn có đuôi .html, hoặc không có đuôi mở rộng) mà
+       * tệp không tồn tại → trả trang 404 tuỳ chỉnh với HTTP 404.
+       */
+      const wantsHtml = /\.html?$/i.test(filePath) || !path.extname(filePath);
+      if (wantsHtml && options.notFoundPage !== false) {
+        return serveNotFound(res);
+      }
       return notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
     }
-    const ext = path.extname(filePath).toLowerCase();
     const isUpload = /[/\\]uploads[/\\]/i.test(filePath);
     const headers = {
       'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
@@ -251,5 +335,5 @@ function serveFile(req, res, filePath, options = {}) {
 module.exports = {
   MIME_TYPES, sendJson, ok, created, noContent, fail, badRequest, unauthorized, forbidden,
   notFound, conflict, tooMany, serverError, readJson, readRaw, parseCookies, setCookie,
-  clearCookie, resolveStaticPath, serveFile,
+  clearCookie, resolveStaticPath, serveFile, serveNotFound,
 };

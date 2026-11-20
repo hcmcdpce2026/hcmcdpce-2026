@@ -42,6 +42,7 @@ function mapArticle(row) {
   };
 }
 
+/* Hình dạng dưới đây phải khớp /api/public/* để bản xuất tĩnh dùng được khi mất mạng */
 function mapLegal(row) {
   return {
     id: row.id,
@@ -49,12 +50,16 @@ function mapLegal(row) {
     title: row.title,
     docNumber: row.doc_number,
     docType: row.doc_type,
+    legalField: row.legal_field || '',
     issuedAt: row.issued_at,
     effectiveAt: row.effective_at,
+    expiryAt: row.expiry_at || null,
     issuer: row.issuer,
     summary: row.summary,
     content: row.content,
     fileUrl: row.file_url,
+    effectStatus: row.effect_status || 'in_effect',
+    status: row.status || 'active',
     sourceType: row.data_source,
   };
 }
@@ -63,29 +68,62 @@ function mapEvent(row) {
   return {
     id: row.id,
     title: row.title,
+    slug: row.slug || '',
     category: row.category,
+    eventType: row.event_type || row.category || '',
     start: row.start_at,
     end: row.end_at,
     location: row.location,
     organizer: row.organizer,
+    coOrganizer: row.co_organizer || '',
     summary: row.summary,
     content: row.content,
     image: row.image_url,
     status: row.status,
+    publishStatus: row.publish_status || 'published',
   };
 }
 
 function mapAgency(row) {
   return {
     id: row.id,
+    slug: row.slug || '',
     name: row.name,
     shortName: row.short_name,
     roleType: row.role_type,
+    managementLevel: row.management_level || '',
+    logo: row.logo_url || '',
     address: row.address,
     phone: row.phone,
     email: row.email,
     website: row.website,
     description: row.description,
+    functions: row.functions_text || '',
+    headName: row.head_name || '',
+    orgId: row.org_id || null,
+    sortOrder: row.sort_order || 0,
+    status: row.status,
+  };
+}
+
+/** Cơ sở y tế, điểm tư vấn – chỉ bản ghi đã công khai */
+function mapSupport(row) {
+  let services = [];
+  if (row.services) {
+    try { const a = JSON.parse(row.services); if (Array.isArray(a)) services = a; } catch (_) { services = []; }
+  }
+  return {
+    id: row.id, code: row.code || '', name: row.name, type: row.type,
+    district: row.district || '', ward: row.ward || '', city: row.city || 'Thành phố Hồ Chí Minh',
+    address: row.address, phone: row.phone, email: row.email || '', website: row.website || '',
+    hours: row.hours, contactPerson: row.contact_person || '',
+    latitude: row.latitude != null ? Number(row.latitude) : null,
+    longitude: row.longitude != null ? Number(row.longitude) : null,
+    services, audience: row.audience || '', scope: row.scope || '', conditions: row.conditions || '',
+    procedures: row.procedures || '', costNote: row.cost_note || '', description: row.description,
+    managingOrg: row.managing_org || row.org_name || '', image: row.image_url || '',
+    source: row.source || '', verifiedAt: row.verified_at || null,
+    status: row.status || 'active', publishStatus: row.publish_status || 'published',
   };
 }
 
@@ -104,12 +142,13 @@ function collectPublicData() {
     ORDER BY c.sort_order, c.name`).all().map((row) => mapper.category(row));
 
   const legalDocuments = db.prepare('SELECT * FROM legal_documents ORDER BY issued_at DESC')
-    .all().map(mapLegal);
+    .all().filter((r) => r.is_public !== 0 && r.status !== 'inactive').map(mapLegal);
   const events = db.prepare(`SELECT * FROM public_events
-    WHERE status IN ('upcoming', 'ongoing', 'past')
-    ORDER BY start_at DESC`).all().map(mapEvent);
+    ORDER BY start_at DESC`).all()
+    .filter((r) => (r.publish_status || 'published') === 'published' && r.status !== 'inactive')
+    .map(mapEvent);
   const agencies = db.prepare(`SELECT * FROM public_agencies
-    WHERE status = 'active'
+    WHERE status <> 'inactive'
     ORDER BY sort_order`).all().map(mapAgency);
 
   const periods = db.prepare('SELECT * FROM statistics_periods ORDER BY created_at DESC').all();
@@ -130,18 +169,11 @@ function collectPublicData() {
     })),
   }));
 
-  const supportFacilities = db.prepare(`SELECT * FROM support_facilities
-    WHERE status = 'active'
-    ORDER BY name`).all().map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    district: row.district,
-    address: row.address,
-    phone: row.phone,
-    hours: row.hours,
-    description: row.description,
-  }));
+  const supportFacilities = db.prepare(`SELECT s.*, o.name AS org_name FROM support_facilities s
+    LEFT JOIN organizations o ON o.id = s.org_id
+    WHERE s.status <> 'inactive'
+    ORDER BY s.name`).all().filter((row) => (row.publish_status || 'published') === 'published').map(mapSupport);
+
 
   const banners = db.prepare(`SELECT * FROM banners
     WHERE status = 'active'

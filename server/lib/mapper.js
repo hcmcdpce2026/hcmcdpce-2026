@@ -32,6 +32,7 @@ function article(r, extra = {}) {
     categoryName: r.category_name || null,
     categorySlug: r.category_slug || null,
     categoryGroup: r.category_group || null,
+    categoryStatus: r.category_status || null,
     status: r.status,
     tags: parseList(r.tags),
     authorId: r.author_id,
@@ -68,6 +69,7 @@ function category(r) {
     description: r.description || '',
     group: r.group_key,
     status: r.status,
+    isActive: r.status !== 'inactive',
     order: r.sort_order,
     articleCount: r.article_count != null ? Number(r.article_count) : undefined,
   };

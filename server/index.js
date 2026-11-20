@@ -245,6 +245,34 @@ function enforceSystemScope(req, res, pathname) {
 
 /* ------------------------------- Server ----------------------------------- */
 const server = http.createServer(async (req, res) => {
+  /*
+   * Bọc TOÀN BỘ handler trong try/catch.
+   * Request ``GET //..%2f.env`` không phải URL hợp lệ đối với `new URL()` (phần
+   * sau `//` bị hiểu là authority) → ném `Invalid URL`. Với handler async, lỗi
+   * này không do bộ định tuyến bắt, phản hồi không bao giờ được gửi và kết nối
+   * bị treo (một client đơn lẻ có thể chiếm hết kết nối).
+   */
+  try {
+    await handleRequest(req, res);
+  } catch (err) {
+    if (res.headersSent) { try { res.end(); } catch (_) { /* bỏ qua */ } return; }
+    try {
+      if (String(req.url || '').startsWith('/api/')) {
+        libHttp.fail(res, 400, 'Đường dẫn yêu cầu không hợp lệ.');
+      } else {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', Connection: 'close' });
+        res.end('Yêu cầu không hợp lệ.');
+      }
+    } catch (_) { /* đã đóng */ }
+  }
+});
+
+/*
+ * Trang lỗi 404 dùng chung cho các đường dẫn HTML không tồn tại.
+ * Trả kèm HTTP 404 để trình duyệt và công cụ tìm kiếm hiểu đúng đây là trang lỗi,
+ * nhưng nội dung vẫn là trang 404 định dạng HTML (không phải JSON).
+ */
+async function handleRequest(req, res) {
   /* WHATWG URL thay cho url.parse() đã lỗi thời; luôn có base để xử lý URL tương đối */
   const parsed = new URL(req.url, 'http://localhost');
   const parsedQuery = Object.fromEntries(parsed.searchParams);
@@ -302,11 +330,21 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Không phục vụ các thư mục nội bộ
-  const blocked = /^\/(server|node_modules|\.git|\.env|docs\/internal)(\/|$)/i;
-  if (blocked.test(pathname)) return libHttp.notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
+  //
+  // Kiểm tra trên đường dẫn ĐÃ GIẢI MÃ: trước đây regex chạy trên pathname còn
+  // mã hóa (`/..%2fserver%2f...`) nên không khớp và thư mục nội bộ vẫn bị phục vụ.
+  let decodedPath = pathname;
+  try { decodedPath = decodeURIComponent(pathname); } catch (_) { /* giữ nguyên nếu mã hóa sai */ }
+  const blocked = /^\/(server|node_modules|\.git|\.env|docs\/internal|backups|scripts)(\/|$)/i;
+  if (blocked.test(decodedPath) || /\.env(\.|$)/i.test(decodedPath)) {
+    return libHttp.notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
+  }
 
   let target = libHttp.resolveStaticPath(ROOT, pathname);
-  if (!target) return libHttp.notFound(res, 'Đường dẫn không hợp lệ.');
+  if (!target) {
+    /* Đường dẫn không an toàn: vẫn trả trang 404 định dạng HTML cho người dùng */
+    return libHttp.serveNotFound(res, path.join(ROOT, '404.html'));
+  }
 
   if (pathname === '/' || pathname.endsWith('/')) {
     target = path.join(target, 'index.html');
@@ -314,14 +352,14 @@ const server = http.createServer(async (req, res) => {
   fs.stat(target, (err, stat) => {
     if (err && !path.extname(target)) {
       // Cho phép truy cập không có đuôi .html
-      return libHttp.serveFile(req, res, `${target}.html`, { csp: CSP });
+      return libHttp.serveFile(req, res, `${target}.html`, { csp: CSP, fallbackIndex: true, notFoundPage: true });
     }
     if (err || !stat.isDirectory()) {
-      return libHttp.serveFile(req, res, target, { csp: CSP, fallbackIndex: true });
+      return libHttp.serveFile(req, res, target, { csp: CSP, fallbackIndex: true, notFoundPage: true });
     }
     libHttp.serveFile(req, res, path.join(target, 'index.html'), { csp: CSP });
   });
-});
+}
 
 server.listen(PORT, HOST, () => {
   log('════════════════════════════════');

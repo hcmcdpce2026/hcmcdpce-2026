@@ -54,6 +54,54 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id)) {
   console.log('  • Migration', id, 'đã áp dụng trước đó');
 }
 
+/* ---------------------------------------------------------------------------
+ * 002 – Trường dữ liệu riêng cho từng loại nội dung công khai
+ *   Legal documents : slug, lĩnh vực pháp luật, ngày hết hiệu lực, tình trạng
+ *                     hiệu lực, trạng thái công khai
+ *   Events          : slug, loại sự kiện, đơn vị phối hợp, trạng thái xuất bản
+ *   Agencies        : slug, cấp quản lý, chức năng nhiệm vụ, cơ cấu tổ chức,
+ *                     người đứng đầu
+ *   Support         : mã định danh, đơn vị quản lý, phường/xã, toạ độ, liên hệ,
+ *                     dịch vụ, đối tượng, nguồn, ngày xác minh, kiểm duyệt
+ * Idempotent: chỉ thêm cột còn thiếu, giữ nguyên dữ liệu đang vận hành.
+ * ------------------------------------------------------------------------- */
+const CONTENT_TYPE_COLUMNS = {
+  legal_documents: [
+    ['slug', 'TEXT'], ['legal_field', 'TEXT'], ['expiry_at', 'TEXT'],
+    ['effect_status', "TEXT NOT NULL DEFAULT 'in_effect'"],
+    ['is_public', 'INTEGER NOT NULL DEFAULT 1'], ['status', "TEXT NOT NULL DEFAULT 'active'"],
+  ],
+  public_events: [
+    ['slug', 'TEXT'], ['event_type', 'TEXT'], ['co_organizer', 'TEXT'],
+    ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+  ],
+  public_agencies: [
+    ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],
+    ['structure', 'TEXT'], ['head_name', 'TEXT'],
+  ],
+  support_facilities: [
+    ['code', 'TEXT'], ['managing_org', 'TEXT'], ['org_id', 'TEXT'], ['ward', 'TEXT'],
+    ['city', 'TEXT'], ['latitude', 'REAL'], ['longitude', 'REAL'], ['email', 'TEXT'],
+    ['website', 'TEXT'], ['contact_person', 'TEXT'], ['services', 'TEXT'],
+    ['audience', 'TEXT'], ['scope', 'TEXT'], ['conditions', 'TEXT'], ['procedures', 'TEXT'],
+    ['cost_note', 'TEXT'], ['image_url', 'TEXT'], ['source', 'TEXT'], ['verified_at', 'TEXT'],
+    ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+  ],
+};
+
+console.log('  Đối chiếu trường dữ liệu theo loại nội dung…');
+Object.keys(CONTENT_TYPE_COLUMNS).forEach((table) => {
+  CONTENT_TYPE_COLUMNS[table].forEach(([col, def]) => addColumnIfMissing(table, col, def));
+});
+
+const id2 = '002-content-type-fields';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id2)) {
+  db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id2, new Date().toISOString());
+  console.log('  ✓ Ghi nhận migration', id2);
+} else {
+  console.log('  • Migration', id2, 'đã áp dụng trước đó');
+}
+
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();
 console.log(`  ✓ Tổng số bảng: ${tables.length}`);
 console.log('═══════════════════════════════');

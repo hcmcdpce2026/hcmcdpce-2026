@@ -94,9 +94,14 @@ async function createTask(req, res, ctx) {
   const assignees = (Array.isArray(body.assigneeIds) ? body.assigneeIds : []).filter(Boolean);
   const partners = (Array.isArray(body.partnerOrgIds) ? body.partnerOrgIds : []).filter(Boolean);
 
+  /*
+   * Liệt kê ĐÚNG các cột có trong VALUES.
+   * Bản trước ghi 21 cột nhưng VALUES chỉ có 14 placeholder + 7 hằng, trong khi
+   * `.run()` nhận 15 tham số → lệch số lượng, mọi lần tạo nhiệm vụ đều trả 500.
+   */
   db.prepare(`INSERT INTO tasks (id, code, title, description, owner_org_id, assigner_id, assignee_ids, partner_org_ids,
       start_date, due_date, priority, status, progress, source_type, source_id, data_source, is_seed_data, environment, created_at, updated_at, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,'new',0,'internal',NULL,'operational',0,?,?,?,?)`).run(
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,'new',0,'internal',NULL,'operational',0,?,?,?,?)`).run(
     id, code, title, sec.cleanText(body.description || body.desc, 5000), body.ownerOrgId || s.user.orgId,
     s.user.id, JSON.stringify(assignees), JSON.stringify(partners),
     body.startDate || ts.slice(0, 10), body.dueDate || null,
