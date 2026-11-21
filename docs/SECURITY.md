@@ -2,6 +2,8 @@
 
 Tài liệu mô tả kiểm soát hiện có và việc cần làm trước production. Nó không thay thế đánh giá bảo mật độc lập, kiểm tra ứng dụng hoặc quy trình pháp lý về dữ liệu cá nhân.
 
+Kiểm tra tĩnh cục bộ không thay thế quét secret trên toàn bộ Git history. Báo cáo bàn giao ghi rõ những kiểm tra đã chạy và các hạng mục chưa xác minh.
+
 ## 1. Tài sản cần bảo vệ
 
 - tài khoản và phiên đăng nhập;

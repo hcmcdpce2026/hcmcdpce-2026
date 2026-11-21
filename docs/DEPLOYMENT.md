@@ -1,5 +1,7 @@
 # Triển khai và vận hành
 
+> **Tình trạng hiện tại:** production chưa được xác minh và snapshot PUBLIC tĩnh đang thiếu. Backup lần bàn giao đã được restore trên bản sao tạm, chưa kiểm tra khôi phục trong production. Xem `HANDOVER.md`. Hướng dẫn dưới đây là quy trình mục tiêu, không phải bằng chứng hệ thống đã triển khai.
+
 ## 1. Mô hình đề xuất
 
 ```text
@@ -140,7 +142,7 @@ Chỉ proxy tin cậy được đặt header `X-Forwarded-*`. Tải ứng dụng
 6. Chèn IIS ARR/URL Rewrite, Caddy hoặc reverse proxy tương đương trước port Node.
 7. Giới hạn Firewall port Node.
 
-Không dùng script `verify-all.ps1` hoặc runner destructive trên môi trường production.
+Không chạy lệnh reset, purge hoặc test ghi dữ liệu trên môi trường production. Runner cũ có thể dừng Node/xóa database đã được loại bỏ; dùng suite cô lập để kiểm thử.
 
 ## 8. Kiểm tra sau deploy
 
@@ -207,7 +209,21 @@ Pages không chạy backend. Quy trình:
 
 Trang tĩnh không có đăng nhập, submit, CMS, Workspace hoặc API ghi.
 
-## 13. Giới hạn vận hành
+## 13. Checklist trước bàn giao/phát hành
+
+- [ ] Rà `git status` và danh sách staged; chỉ đưa đúng mã/tài liệu đã được duyệt.
+- [ ] Chạy `npm.cmd run check`, `npm.cmd run test:isolated` và `npm.cmd run test:content-types` trên môi trường cô lập.
+- [ ] Xác nhận `.env`, database, credential, upload và backup không bị đưa vào Git hoặc web root.
+- [ ] Kiểm tra cấu hình HTTPS, `COOKIE_SECURE=true`, host, CORS và quyền service trên môi trường đích.
+- [ ] Xác nhận credential seed đã được đổi và chuyển qua kênh an toàn.
+- [ ] Kiểm tra backup; diễn tập restore trên bản sao riêng trước khi thay đổi database thật.
+- [ ] Với GitHub Pages, chỉ export nội dung đã được duyệt; kiểm tra snapshot/media và chạy `check:static-public:git`.
+- [ ] Sau deploy, kiểm tra health, PUBLIC, CMS, Workspace, quyền truy cập, upload và log.
+- [ ] Ghi lại commit, backup, người thực hiện, kết quả và các hạng mục chưa xác nhận trong `HANDOVER.md`.
+
+Trạng thái lần bàn giao gần nhất và các giới hạn cụ thể nằm trong `HANDOVER.md`; checklist này không chứng minh đã triển khai production.
+
+## 14. Giới hạn vận hành
 
 - SQLite phù hợp một instance ghi;
 - rate limit trong bộ nhớ không đồng bộ nhiều instance;

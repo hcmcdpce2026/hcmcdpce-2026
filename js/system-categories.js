@@ -94,7 +94,6 @@
         el.formType.disabled = !!row;
         el.formCode.value = row ? row.code : '';
         el.formName.value = row ? row.name : '';
-        el.formOrder.value = row ? row.sort_order : 0;
         el.formDescription.value = row ? row.description || '' : '';
         el.formStatus.value = row ? row.status : 'active';
         el.dialog.showModal();
@@ -118,7 +117,6 @@
                 code: el.formCode.value.trim(),
                 name: el.formName.value.trim(),
                 description: el.formDescription.value.trim(),
-                sortOrder: Number(el.formOrder.value) || 0,
                 status: el.formStatus.value,
             };
             if (!payload.name) return el.formName.focus();
@@ -175,7 +173,6 @@
         el.formType = document.getElementById('system-category-form-type');
         el.formCode = document.getElementById('system-category-form-code');
         el.formName = document.getElementById('system-category-form-name');
-        el.formOrder = document.getElementById('system-category-form-order');
         el.formDescription = document.getElementById('system-category-form-description');
         el.formStatus = document.getElementById('system-category-form-status');
         el.close = document.getElementById('system-category-close');

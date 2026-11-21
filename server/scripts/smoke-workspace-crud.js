@@ -81,7 +81,10 @@ function readCredentials() {
   /* ---- 1. Tạo nhiệm vụ: phải 201, không phải 500 ---- */
   const createRes = await fetch(BASE + '/api/workspace/tasks', {
     method: 'POST', headers: H,
-    body: JSON.stringify({ title: `${TAG} tạo nhiệm vụ`, description: 'Nội dung kiểm thử.', priority: 'normal' }),
+    body: JSON.stringify({
+      title: `${TAG} tạo nhiệm vụ`, description: 'Nội dung kiểm thử.', priority: 'normal',
+      items: [{ title: 'Bước kiểm thử 1' }, { title: 'Bước kiểm thử 2' }],
+    }),
   });
   let created = null;
   try { created = (await createRes.json()).data; } catch (_) { created = null; }
@@ -96,6 +99,15 @@ function readCredentials() {
     check(getRes.status === 200 && got.data && got.data.id === created.id, 'GET /tasks/:id trả đúng bản ghi');
     check(got.data && got.data.title === `${TAG} tạo nhiệm vụ`, 'Tiêu đề lưu đúng');
     check(got.data && got.data.status === 'new', 'Trạng thái mặc định là "new"');
+    check(got.data && got.data.items.map((item) => item.title).join('|') === 'Bước kiểm thử 1|Bước kiểm thử 2',
+      'Thứ tự các mục checklist được tạo tự động');
+
+    const itemRes = await fetch(BASE + '/api/workspace/tasks/' + encodeURIComponent(created.id) + '/items', {
+      method: 'POST', headers: H, body: JSON.stringify({ title: 'Bước kiểm thử 3' }),
+    });
+    const addedItem = await itemRes.json();
+    check(itemRes.status === 201 && addedItem.data && addedItem.data.sortOrder === 3,
+      'Mục checklist mới tự nhận số thứ tự tiếp theo');
 
     /* ---- 3. Cập nhật ---- */
     const updRes = await fetch(BASE + '/api/workspace/tasks/' + encodeURIComponent(created.id), {

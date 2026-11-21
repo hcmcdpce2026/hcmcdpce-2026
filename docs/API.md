@@ -1,6 +1,6 @@
 # Tài liệu API
 
-Base URL mặc hiện tại: `http://localhost:8099`.
+Base URL mặc định ở local: `http://localhost:8099`; có thể đổi bằng `PORT` và `HOST`. Production phải dùng HTTPS sau reverse proxy tin cậy. Danh sách route thực tế được đăng ký tường minh trong `server/index.js`.
 
 ## 1. Quy ước chung
 
@@ -50,7 +50,7 @@ Phản hồi lỗi:
 | 403 | Thiếu quyền, sai phân hệ hoặc CSRF |
 | 404 | Route hoặc bản ghi không tồn tại |
 | 409 | Xung đột/trùng dữ liệu |
-| 413 | Body/quyền tải tệp quá lớn |
+| 413 | Request body hoặc tệp vượt giới hạn |
 | 429 | Giới hạn tần suất |
 | 500 | Lỗi máy chủ |
 
@@ -106,14 +106,16 @@ Ví dụ:
 ```powershell
 $body = @{
   username = "cms-admin"
-  # Không lưu mật khẩu dạng văn bản trong mã; nhập khi chạy
-  password = Read-Host "Mat khau CMS" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+  # Nhập mật khẩu tạm thời; không lưu nội dung này thành file/script.
+  password = Read-Host "Mat khau CMS"
   system = "cms"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "http://localhost:8099/api/auth/login" `
   -Method POST -ContentType "application/json" -Body $body
 ```
+
+Không ghi mật khẩu, Bearer token, cookie phiên hoặc CSRF token vào Git, log hay ticket hỗ trợ. Ví dụ này gửi mật khẩu qua request body local; chỉ dùng với môi trường tin cậy và HTTPS ở môi trường triển khai.
 
 ## 4. PUBLIC
 
@@ -128,7 +130,7 @@ Các endpoint đọc không cần đăng nhập.
 | GET | `/api/public/system-categories` | Danh mục hệ thống theo `type` (chỉ bản ghi `active`) |
 | GET | `/api/public/system-category-types` | Danh sách loại danh mục `{ type, label }` do máy chủ khai báo |
 | GET | `/api/public/event-statuses` | Bộ lọc trạng thái sự kiện `{ code, name, role }` do CMS quản lý |
-| GET | `/api/public/summary` | Số liệu đếm cho trang chủ: `laws`, `articles`, `agencies`, `educationTopics` |
+| GET | `/api/public/summary` | Số liệu đếm dữ liệu đang công khai: `laws`, `articles`, `agencies`, `educationTopics` (chuyên mục tuyên truyền có bài đã xuất bản) |
 | GET | `/api/public/legal-documents` | `id`, `type`, `field`, `issuer`, `year`, `effectStatus`, `search` |
 | GET | `/api/public/events` | `id`, `type`, `status`, `search` |
 | GET | `/api/public/agencies` | `id`, taxonomy loại hình/cấp quản lý |

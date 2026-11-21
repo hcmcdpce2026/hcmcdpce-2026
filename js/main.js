@@ -234,7 +234,7 @@ function initHomepageStats() {
 
     const setValue = (key, total) => {
         const value = Number(total);
-        if (!Number.isFinite(value) || value <= 0) return;
+        if (!Number.isFinite(value) || value < 0) return;
         nodes.forEach((el) => {
             if (el.getAttribute('data-stat') !== key) return;
             el.textContent = value.toLocaleString('vi-VN');

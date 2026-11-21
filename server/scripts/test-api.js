@@ -249,17 +249,25 @@ async function run() {
   const wsAdmin = new Session('ws.nguyenvandat');
   r = await wsAdmin.login('ws.nguyenvandat', creds['ws.nguyenvandat'], 'workspace');
   check('Workspace admin đăng nhập', r.status === 200);
+  r = await wsAdmin.request('GET', '/api/workspace/permissions');
+  check('Danh mục quyền Workspace lấy từ máy chủ',
+    r.status === 200 && r.body.data.some((permission) => permission.code === 'task.create')
+      && r.body.data.some((permission) => permission.code === 'doc.view')
+      && r.body.data.every((permission) => !['content', 'media', 'catalog', 'submission'].includes(permission.group)));
   const categorySuffix = Date.now().toString(36);
   const orgTypeCode = `test-org-${categorySuffix}`;
   const managementLevelCode = `test-level-${categorySuffix}`;
   const contactTopicCode = `test-topic-${categorySuffix}`;
   r = await cmsAdmin.request('GET', '/api/cms/system-categories?type=contact_topic');
   check('CMS đọc được nhóm nội dung liên hệ', r.status === 200 && r.body.data.length === 5);
+  const maxContactTopicOrder = Math.max(0, ...r.body.data.map((item) => Number(item.sort_order) || 0));
   r = await cmsAdmin.request('POST', '/api/cms/system-categories', {
     categoryType: 'contact_topic', code: contactTopicCode, name: `Nhóm liên hệ kiểm thử ${categorySuffix}`,
   });
   const contactTopic = r.body.data;
   check('CMS tạo được lựa chọn liên hệ', r.status === 201 && contactTopic.code === contactTopicCode);
+  check('Thứ tự lựa chọn liên hệ được tự động tăng',
+    r.status === 201 && contactTopic.sort_order === maxContactTopicOrder + 1);
   r = await anon.request('GET', '/api/public/system-categories?type=contact_topic');
   check('PUBLIC nhận lựa chọn liên hệ mới từ CMS', r.status === 200 && r.body.data.some((item) => item.code === contactTopicCode));
   r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${contactTopic.id}`);
@@ -293,6 +301,24 @@ async function run() {
     if (newsGroup && newsGroup.id) {
       r = await cmsAdmin.request('DELETE', `/api/cms/system-categories/${newsGroup.id}`);
       check('CMS xóa nhóm chuyên mục kiểm thử', r.status === 200);
+    }
+  }
+  const groupForAutoOrder = existingGroupRows.find((item) => item.status === 'active');
+  if (groupForAutoOrder) {
+    r = await cmsAdmin.request('GET', '/api/cms/categories');
+    const rootCategories = (r.body.data || []).filter((item) => !item.parentId);
+    const maxCategoryOrder = Math.max(0, ...rootCategories.map((item) => Number(item.order) || 0));
+    r = await cmsAdmin.request('POST', '/api/cms/categories', {
+      name: `Chuyên mục tự xếp ${categoryGroupSuffix}`,
+      slug: `chuyen-muc-tu-xep-${categoryGroupSuffix}`,
+      group: groupForAutoOrder.code,
+    });
+    const orderedCategory = r.body.data || {};
+    check('CMS tự xếp chuyên mục mới ở cuối danh sách cùng cấp',
+      r.status === 201 && orderedCategory.order === maxCategoryOrder + 1);
+    if (r.status === 201 && orderedCategory.id) {
+      r = await cmsAdmin.request('DELETE', `/api/cms/categories/${orderedCategory.id}`);
+      check('Xóa chuyên mục tự xếp kiểm thử', r.status === 200);
     }
   }
   r = await cmsAdmin.request('POST', '/api/cms/system-categories', {

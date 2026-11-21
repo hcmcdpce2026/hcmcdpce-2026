@@ -300,6 +300,7 @@ async function saveCategory(req, res, ctx) {
     const row = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
     if (!row) return http.notFound(res, 'Chuyên mục không tồn tại.');
     if (body.parentId === id) return http.badRequest(res, 'Chuyên mục không thể là cha của chính nó.');
+    const parentId = body.parentId || null;
     const rawGroup = body.group === undefined ? row.group_key : sec.cleanText(body.group, 80);
     const group = normalizeCategoryGroupCode(rawGroup);
     const categoryGroup = db.prepare(`SELECT status FROM system_categories
@@ -307,11 +308,15 @@ async function saveCategory(req, res, ctx) {
     if (!categoryGroup || (categoryGroup.status !== 'active' && group !== row.group_key)) {
       return http.badRequest(res, 'Nhóm chuyên mục phải thuộc danh mục đang sử dụng.');
     }
+    const sortOrder = row.parent_id === parentId
+      ? row.sort_order
+      : db.prepare(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM categories
+          WHERE IFNULL(parent_id, '') = IFNULL(?, '') AND id <> ?`).get(parentId, id).next_order;
     db.prepare(`UPDATE categories SET name = ?, slug = ?, parent_id = ?, description = ?, group_key = ?, status = ?, sort_order = ?, updated_at = ? WHERE id = ?`)
-      .run(name, uniqueSlug(db, 'categories', body.slug || name, id), body.parentId || null,
+      .run(name, uniqueSlug(db, 'categories', body.slug || name, id), parentId,
         sec.cleanText(body.description, 500), group,
         body.status === 'inactive' ? 'inactive' : 'active',
-        Number.isFinite(Number(body.order)) ? Number(body.order) : row.sort_order, ts, id);
+        sortOrder, ts, id);
     auth.logActivity({ systemKey: 'cms', user: s.user, action: 'category.update', targetType: 'Chuyên mục', targetId: id, targetName: name, detail: 'Cập nhật chuyên mục', req });
     return http.ok(res, m.category(db.prepare('SELECT * FROM categories WHERE id = ?').get(id)));
   }
@@ -324,12 +329,15 @@ async function saveCategory(req, res, ctx) {
   }
 
   const newId = sec.makeId('cat');
+  const parentId = body.parentId || null;
+  const sortOrder = db.prepare(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM categories
+    WHERE IFNULL(parent_id, '') = IFNULL(?, '')`).get(parentId).next_order;
   db.prepare(`INSERT INTO categories (id, name, slug, parent_id, description, group_key, status, sort_order,
       data_source, is_seed_data, environment, created_at, updated_at, created_by) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
-    .run(newId, name, uniqueSlug(db, 'categories', body.slug || name), body.parentId || null,
+    .run(newId, name, uniqueSlug(db, 'categories', body.slug || name), parentId,
       sec.cleanText(body.description, 500), group,
       body.status === 'inactive' ? 'inactive' : 'active',
-      Number.isFinite(Number(body.order)) ? Number(body.order) : 99,
+      sortOrder,
       'operational', process.env.APP_ENV || 'development', ts, ts, s.user.id);
   auth.logActivity({ systemKey: 'cms', user: s.user, action: 'category.create', targetType: 'Chuyên mục', targetId: newId, targetName: name, detail: 'Tạo chuyên mục mới', req });
   return http.created(res, m.category(db.prepare('SELECT * FROM categories WHERE id = ?').get(newId)));
@@ -1203,8 +1211,10 @@ async function saveSystemCategory(req, res, ctx) {
   if (used && existing.code !== code) return http.conflict(res, 'Không thể đổi mã danh mục đang được dữ liệu sử dụng.');
 
   const status = body.status === 'inactive' ? 'inactive' : 'active';
-  const sortOrder = Number.isFinite(Number(body.sortOrder ?? body.order))
-    ? Math.trunc(Number(body.sortOrder ?? body.order)) : (existing ? existing.sort_order : 0);
+  const sortOrder = existing
+    ? existing.sort_order
+    : db.prepare(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM system_categories
+        WHERE category_type = ?`).get(type).next_order;
   const description = sec.cleanText(body.description, 1000) || null;
   const ts = nowIso();
   if (existing) {

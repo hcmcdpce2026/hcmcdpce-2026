@@ -21,6 +21,7 @@
 
     <script src="../../js/main.js" defer></script>
     <script src="../../js/api.js" defer></script>
+    <script src="../../js/article-tags.js" defer></script>
     <script src="../../js/cms.js" defer></script>
 </head>
 
@@ -379,13 +380,15 @@
                                             <span><i class="fa-solid fa-tags" aria-hidden="true"></i>Thẻ nội
                                                 dung</span>
                                         </h2>
+                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                            id="editor-tags-auto">Gợi ý thẻ tự động</button>
                                         <div class="cms-tag-input">
                                             <span id="editor-tags" class="cms-u-flex cms-u-wrap cms-u-gap-sm"></span>
-                                            <input type="text" id="editor-tag-input" placeholder="Nhập thẻ rồi Enter…"
+                                            <input type="text" id="editor-tag-input" placeholder="Thêm thẻ thủ công rồi Enter…"
                                                 aria-label="Thêm thẻ nội dung">
                                         </div>
-                                        <p class="cms-help cms-u-mt-sm">Tối đa 8 thẻ. Thẻ giúp gom nhóm bài viết
-                                            theo chủ đề.</p>
+                                        <p class="cms-help cms-u-mt-sm">Thẻ được gợi ý từ tiêu đề, mô tả và nội dung.
+                                            Bạn có thể thêm hoặc xóa thẻ thủ công; tối đa 8 thẻ.</p>
                                     </div>
 
                                     <div class="cms-aside-section">

@@ -1306,9 +1306,12 @@
          */
         const TRANG_THAI_MAC_DINH = { upcoming: 'Sắp diễn ra', ongoing: 'Đang triển khai', past: 'Đã tổ chức' };
         const statusOptions = await api.get('/api/public/event-statuses').catch(() => null);
+         const effectiveStatusOptions = Array.isArray(statusOptions) && statusOptions.length
+             ? statusOptions
+             : Object.entries(TRANG_THAI_MAC_DINH).map(([code, name]) => ({ code, name }));
         const statusLabels = Object.assign({}, TRANG_THAI_MAC_DINH);
         const statusRoles = {};
-        (Array.isArray(statusOptions) ? statusOptions : []).forEach((row) => {
+         effectiveStatusOptions.forEach((row) => {
             if (!row || !row.code) return;
             statusLabels[row.code] = row.name || statusLabels[row.code] || row.code;
             statusRoles[row.code] = row.role || '';
@@ -1474,7 +1477,7 @@
                 allOption.value = 'all';
                 allOption.textContent = 'Tất cả trạng thái';
                 statusSelect.appendChild(allOption);
-                (Array.isArray(statusOptions) ? statusOptions : []).forEach((row) => {
+                effectiveStatusOptions.forEach((row) => {
                     if (!row || !row.code) return;
                     const option = document.createElement('option');
                     option.value = row.code;

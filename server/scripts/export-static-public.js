@@ -144,7 +144,7 @@ function collectPublicData() {
       c.group_key AS category_group
     FROM articles a
     LEFT JOIN categories c ON c.id = a.category_id
-    WHERE a.status = 'published'
+    WHERE a.status = 'published' AND (a.category_id IS NULL OR c.status <> 'inactive')
     ORDER BY a.published_at DESC, a.created_at DESC, a.id DESC`).all().map(mapArticle);
 
   const categories = db.prepare(`SELECT c.*,
@@ -161,7 +161,7 @@ function collectPublicData() {
     .map(mapEvent);
   const agencies = db.prepare(`SELECT * FROM public_agencies
     WHERE status <> 'inactive'
-    ORDER BY sort_order`).all().map((row) => mapAgency(row, labels));
+    ORDER BY sort_order, name`).all().map((row) => mapAgency(row, labels));
 
   const periods = db.prepare('SELECT * FROM statistics_periods ORDER BY created_at DESC').all();
   const metricRows = db.prepare('SELECT * FROM statistics_items ORDER BY period_id, sort_order').all();
@@ -207,10 +207,11 @@ function collectPublicData() {
     generatedAt: new Date().toISOString(),
     /* Số liệu đếm dùng cho khối thống kê trang chủ — cùng nguồn với /api/public/summary */
     summary: {
-      lawDocuments: legalDocuments.length,
+      laws: legalDocuments.length,
       articles: articles.length,
       agencies: agencies.length,
-      educationTopics: new Set(categories.filter((c) => Number(c.articleCount || 0) > 0).map((c) => c.group).filter(Boolean)).size,
+      educationTopics: categories.filter((c) => c.group === 'tuyen-truyen-giao-duc'
+        && Number(c.articleCount || 0) > 0).length,
     },
     articles,
     categories,

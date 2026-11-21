@@ -8,6 +8,8 @@
 server/data/portal.sqlite
 ```
 
+Inventory và backup của database local tại lần bàn giao 2026-11-21 được ghi trong `HANDOVER.md`. Không xem số liệu đó là số liệu của production hoặc môi trường khác.
+
 Đường dẫn có thể thay bằng `DB_FILE`. Khi mở database, `server/lib/db.js` thiết lập:
 
 - `journal_mode=WAL`;
@@ -30,6 +32,8 @@ npm.cmd run db:seed
 `db:migrate` áp dụng schema và migration tương thích. `db:seed` bổ sung quyền, vai trò, tài khoản seed, cấu hình và danh mục hệ thống còn thiếu.
 
 Không chạy `db:reset` ngoài database thử nghiệm. Lệnh reset xóa database vận hành.
+
+Server khởi động cũng bảo đảm schema và seed hệ thống khi cần; không dùng việc khởi động server để thay thế backup hoặc import dữ liệu.
 
 ## 3. Nhóm bảng
 

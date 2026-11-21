@@ -236,10 +236,11 @@ async function addTaskItem(req, res, ctx) {
   const title = sec.cleanText(body.title, 300);
   if (!title) return http.badRequest(res, 'Nội dung công việc là bắt buộc.');
   const id = sec.makeId('ti');
-  const count = db.prepare('SELECT COUNT(*) AS c FROM task_items WHERE task_id = ?').get(row.id).c;
+  const nextOrder = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM task_items WHERE task_id = ?')
+    .get(row.id).next_order;
   db.prepare('INSERT INTO task_items (id, task_id, title, done, assignee_id, due_date, sort_order) VALUES (?,?,?,0,?,?,?)')
-    .run(id, row.id, title, body.assigneeId || null, body.dueDate || null, count + 1);
-  return http.created(res, { id, taskId: row.id, title, done: false });
+    .run(id, row.id, title, body.assigneeId || null, body.dueDate || null, nextOrder);
+  return http.created(res, { id, taskId: row.id, title, done: false, sortOrder: nextOrder });
 }
 
 async function updateTaskItems(req, res, ctx) {
@@ -457,7 +458,9 @@ async function listPermissions(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'workspace' });
   if (!s) return;
   const db = getDb();
-  return http.ok(res, db.prepare('SELECT * FROM permissions ORDER BY group_code, code').all()
+  return http.ok(res, db.prepare(`SELECT * FROM permissions
+    WHERE group_code IN ('task','report','doc','calendar','proposal','collaboration','org','system')
+    ORDER BY group_code, code`).all()
     .map((p) => ({ code: p.code, name: p.name, group: p.group_code })));
 }
 
@@ -849,7 +852,9 @@ async function stats(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'workspace' });
   if (!s) return;
   const db = getDb();
-  const t = Object.fromEntries(db.prepare('SELECT status, COUNT(*) AS c FROM tasks GROUP BY status').all().map((r) => [r.status, r.c]));
+  const taskScope = scopeFilter(s.user, 't');
+  const t = Object.fromEntries(db.prepare(`SELECT t.status, COUNT(*) AS c FROM tasks t
+      WHERE 1 = 1 ${taskScope.sql} GROUP BY t.status`).all(...taskScope.params).map((r) => [r.status, r.c]));
   const r = Object.fromEntries(db.prepare('SELECT status, COUNT(*) AS c FROM reports GROUP BY status').all().map((x) => [x.status, x.c]));
   return http.ok(res, {
     tasks: { total: Object.values(t).reduce((a, b) => a + b, 0), ...t },

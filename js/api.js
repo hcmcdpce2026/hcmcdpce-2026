@@ -171,14 +171,26 @@
             if (query.get('search')) {
                 const search = normalizeSearch(query.get('search'));
                 rows = rows.filter((item) => normalizeSearch(item.title).includes(search)
-                    || normalizeSearch(item.docNumber).includes(search));
+                    || normalizeSearch(item.docNumber).includes(search)
+                    || normalizeSearch(item.summary).includes(search));
             }
             return rows.map(({ content, ...item }) => item);
         }
 
         if (pathname === '/api/public/events') {
             const id = query.get('id');
-            if (!id) return events;
+            if (!id) {
+                let rows = events;
+                if (query.get('type')) rows = rows.filter((row) => row.eventType === query.get('type'));
+                if (query.get('status')) rows = rows.filter((row) => row.status === query.get('status'));
+                if (query.get('search')) {
+                    const search = normalizeSearch(query.get('search'));
+                    rows = rows.filter((row) => normalizeSearch(row.title).includes(search)
+                        || normalizeSearch(row.summary).includes(search)
+                        || normalizeSearch(row.location).includes(search));
+                }
+                return rows;
+            }
             const item = events.find((row) => row.id === id || row.slug === id);
             if (!item) throw new ApiError('Sự kiện không tồn tại hoặc chưa được công bố.', 404);
             return Object.assign({}, item, {
@@ -200,9 +212,13 @@
         if (pathname === '/api/public/support-facilities') {
             let rows = snapshot.supportFacilities || [];
             if (query.get('type')) rows = rows.filter((f) => f.type === query.get('type'));
+            if (query.get('service')) rows = rows.filter((f) =>
+                (f.services || []).some((service) => String(service).includes(query.get('service'))));
+            if (query.get('audience')) rows = rows.filter((f) =>
+                String(f.audience || '').includes(query.get('audience')));
             if (query.get('search')) {
                 const search = normalizeSearch(query.get('search'));
-                rows = rows.filter((f) => normalizeSearch(`${f.name} ${f.address} ${f.ward} ${f.city} ${f.description}`).includes(search));
+                rows = rows.filter((f) => normalizeSearch(`${f.name} ${f.address} ${f.description} ${f.ward}`).includes(search));
             }
             return rows.map((row) => {
                 const publicRow = Object.assign({}, row);

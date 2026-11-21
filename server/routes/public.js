@@ -135,13 +135,16 @@ async function listSummary(req, res) {
   const db = getDb();
   const one = (sql) => db.prepare(sql).get().c;
   return http.ok(res, {
-    articles: one("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'"),
+    articles: one(`SELECT COUNT(*) AS c FROM articles a
+        LEFT JOIN categories c ON c.id = a.category_id
+        WHERE a.status = 'published' AND (a.category_id IS NULL OR c.status <> 'inactive')`),
     laws: one("SELECT COUNT(*) AS c FROM legal_documents WHERE is_public <> 0 AND status <> 'inactive'"),
     agencies: one("SELECT COUNT(*) AS c FROM public_agencies WHERE status <> 'inactive'"),
-    /* Chuyên đề = số nhóm chuyên mục khác nhau đang có ít nhất một bài đã xuất bản */
-    educationTopics: one(`SELECT COUNT(DISTINCT c.group_key) AS c FROM articles a
+    /* Mỗi chuyên mục giáo dục có bài đã xuất bản là một chuyên đề công khai. */
+    educationTopics: one(`SELECT COUNT(DISTINCT c.id) AS c FROM articles a
         JOIN categories c ON c.id = a.category_id
-        WHERE a.status = 'published' AND c.status = 'active' AND c.group_key IS NOT NULL AND c.group_key <> ''`),
+        WHERE a.status = 'published' AND c.status = 'active'
+          AND c.group_key = 'tuyen-truyen-giao-duc'`),
     generatedAt: nowIso(),
   });
 }

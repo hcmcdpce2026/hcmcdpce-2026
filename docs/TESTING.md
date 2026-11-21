@@ -12,6 +12,8 @@ Không chạy suite ghi dữ liệu trên production. Một số script:
 
 Luôn xác nhận `DB_FILE` trước khi chạy.
 
+Kết quả kiểm thử chỉ có giá trị với đúng môi trường và thời điểm chạy. Không dùng kết quả trên database tạm để khẳng định production hoạt động; trạng thái lần bàn giao gần nhất được ghi trong `HANDOVER.md`.
+
 ## 2. Bảng lệnh
 
 | Lệnh | Phạm vi | Ghi vào |
@@ -120,6 +122,8 @@ Chạy:
 
 Kết quả tĩnh không thay thế kiểm thử runtime. Rà lại mọi cảnh báo và xác nhận điều đó là pattern đã chấp nhận hay thật sự cần sửa.
 
+`npm run check` không quét toàn bộ lịch sử commit để tìm secret và không chứng nhận bảo mật.
+
 ## 9. Dọn dữ liệu test
 
 Sau khi đã chạy suite ghi database:
@@ -158,17 +162,11 @@ Checklist thủ công:
 - responsive: mobile/tablet/desktop;
 - lỗi: loading, rỗng, network, validation.
 
-## 11. Script destructive
+## 11. Lệnh có thể xóa dữ liệu
 
-Không chạy các lệnh sau trên production:
-
-```text
-npm run db:reset
-scripts/verify-all.ps1
-server/scripts/run-tests.ps1
-```
-
-`verify-all.ps1` có thể dừng Node, xóa SQLite và tạo lại database.
+- `npm.cmd run db:reset` xóa và tạo lại database. Chỉ dùng với database thử nghiệm.
+- `node server/scripts/clean-test-data.js --yes` xóa candidate đã được xác nhận. Luôn xem dry-run trước.
+- Các runner PowerShell cũ có thể dừng mọi tiến trình Node hoặc xóa database vận hành đã được loại bỏ. Dùng `npm.cmd run test:isolated` để kiểm thử an toàn.
 
 ## 12. Khi suite thất bại
 

@@ -11,6 +11,7 @@ Repository chứa toàn bộ cổng thông tin: giao diện công khai cho ngư�
 - [Phân hệ](#phân-hệ)
 - [Kiến trúc tóm tắt](#kiến-trúc-tóm-tắt)
 - [Yêu cầu và khởi động](#yêu-cầu-và-khởi-động)
+- [Trạng thái bàn giao](#trạng-thái-bàn-giao)
 - [URL và tài khoản](#url-và-tài-khoản)
 - [Luồng nội dung](#luồng-nội-dung)
 - [Xuất PUBLIC sang GitHub Pages](#xuất-public-sang-github-pages)
@@ -91,6 +92,10 @@ Trong khi server chạy, truy cập:
 
 Giữ terminal server đang mở. `npm.cmd dev` hiện là alias tương đương `node server/index.js`.
 
+## Trạng thái bàn giao
+
+Theo lần kiểm tra ngày 2026-11-21, database vận hành đã được sao lưu và bản sao đã qua restore drill cô lập; không có dữ liệu test/demo đủ căn cứ để xóa. Snapshot GitHub Pages `public-data/public.json` hiện thiếu và môi trường production chưa được xác minh. Xem [`docs/HANDOVER.md`](docs/HANDOVER.md) trước khi phát hành.
+
 ## URL và tài khoản
 
 Tài khoản seed được tạo theo phân hệ `cms` hoặc `workspace`. Khi chạy `db:seed` CLI, tài khoản mới có thể được ghi vào `server/data/credentials.local.txt`. Không commit, chụp màn hình công khai hoặc gửi tệp qua kênh không an toàn.
@@ -163,7 +168,7 @@ git commit -m "Cap nhat noi dung cong khai"
 git push origin main
 ```
 
-Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.env`, `.sqlite`, credential, `uploads`, `backups`, thông tin cá nhân hoặc nội dung chưa phê duyệt. Hướng dẫn chi tiết: [docs/HUONG-DAN-UP-GITHUB-PAGES.md](docs/HUONG-DAN-UP-GITHUB-PAGES.md).
+Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.env`, `.sqlite`, credential, `uploads`, `backups`, thông tin cá nhân hoặc nội dung chưa phê duyệt. Hướng dẫn chi tiết: [docs/PUBLIC-PUBLISHING.md](docs/PUBLIC-PUBLISHING.md).
 
 ## Cấu hình
 
@@ -275,10 +280,10 @@ Xem [docs/SECURITY.md](docs/SECURITY.md) và [docs/DEPLOYMENT.md](docs/DEPLOYMEN
 - [Kiến trúc](docs/ARCHITECTURE.md)
 - [API](docs/API.md)
 - [Cơ sở dữ liệu](docs/DATABASE.md)
+- [Từ điển dữ liệu](docs/DATA_DICTIONARY.md)
 - [Triển khai](docs/DEPLOYMENT.md)
 - [Bảo mật](docs/SECURITY.md)
 - [Kiểm thử](docs/TESTING.md)
+- [Hướng dẫn PUBLIC tĩnh](docs/PUBLIC-PUBLISHING.md)
+- [Báo cáo bàn giao](docs/HANDOVER.md)
 - [Hướng dẫn người dùng](docs/USER-GUIDE.md)
-- [Đăng bài và GitHub Pages](docs/HUONG-DAN-UP-GITHUB-PAGES.md)
-- [Xóa dữ liệu PUBLIC đã xuất](docs/HUONG-DAN-XOA-DU-LIEU-PUBLIC.md)
-- [Báo cáo rà soát và chuẩn hóa](docs/RA-SOAT-CHUAN-HOA.md)

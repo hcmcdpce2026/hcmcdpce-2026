@@ -30,6 +30,7 @@
     "test:workspace": "node server/scripts/smoke-workspace-crud.js",
     "test:clean": "node server/scripts/clean-test-data.js",
     "test:content-types": "node server/scripts/run-content-type-tests.js",
+    "test:article-tags": "node server/scripts/test-article-tags.js",
     "demo:purge": "node server/db/content-types.js --purge",
     "export:static-public": "node server/scripts/export-static-public.js && node server/scripts/check-static-public.js",
     "check:static-public": "node server/scripts/check-static-public.js",

@@ -457,7 +457,6 @@ const Store = (function () {
             description: data.description,
             group: data.group,
             status: data.status,
-            order: data.order,
         };
         const saved = data.id
             ? await api.put(`/api/cms/categories/${encodeURIComponent(data.id)}`, payload)
@@ -2338,6 +2337,7 @@ const Store = (function () {
         let dirty = false;
         let saving = false;
         let tags = [];
+        let tagsManuallyEdited = false;
         let canvas = null;
         let savedRange = null;
 
@@ -2585,6 +2585,7 @@ const Store = (function () {
             el.seoTitle.value = record.seoTitle || record.title || '';
             el.seoDesc.value = record.seoDescription || record.excerpt || '';
             tags = (record.tags || []).slice();
+            tagsManuallyEdited = tags.length > 0;
             renderTags();
             setThumbnail(record.thumbnail || '');
 
@@ -2603,6 +2604,7 @@ const Store = (function () {
 
             const canEdit = !currentId || Store.can('content.edit', record);
             el.form.querySelectorAll('input, textarea, select').forEach((n) => { n.disabled = !canEdit; });
+            if (el.tagsAuto) el.tagsAuto.disabled = !canEdit;
             canvas.setAttribute('contenteditable', canEdit ? 'true' : 'false');
             el.toolbar.querySelectorAll('button, select').forEach((n) => { n.disabled = !canEdit; });
             if (!canEdit) {
@@ -2696,6 +2698,18 @@ const Store = (function () {
             }).join('');
         };
 
+        const updateAutoTags = () => {
+            if (tagsManuallyEdited || !window.PortalArticleTags) return;
+            const suggestions = window.PortalArticleTags.generateArticleTags({
+                title: el.title.value,
+                excerpt: el.excerpt.value,
+                body: canvas.textContent || util.stripTags(canvas.innerHTML),
+            });
+            if (suggestions.length === tags.length && suggestions.every((tag, index) => tag === tags[index])) return;
+            tags = suggestions;
+            renderTags();
+        };
+
         const addTag = (value) => {
             const t = String(value || '').trim().replace(/,+$/, '');
             if (!t) return;
@@ -2707,6 +2721,7 @@ const Store = (function () {
                 ui.toast('Tối đa 8 thẻ cho mỗi bài viết.', 'warning');
                 return;
             }
+            tagsManuallyEdited = true;
             tags.push(t);
             renderTags();
             markDirty();
@@ -3026,8 +3041,16 @@ const Store = (function () {
                 el.tagList.addEventListener('click', (e) => {
                     const btn = e.target.closest('[data-remove-tag]');
                     if (!btn) return;
+                    tagsManuallyEdited = true;
                     tags.splice(Number(btn.dataset.removeTag), 1);
                     renderTags();
+                    markDirty();
+                });
+            }
+            if (el.tagsAuto) {
+                el.tagsAuto.addEventListener('click', () => {
+                    tagsManuallyEdited = false;
+                    updateAutoTags();
                     markDirty();
                 });
             }
@@ -3035,6 +3058,7 @@ const Store = (function () {
             el.title.addEventListener('input', () => {
                 if (!el.slug.dataset.manual) el.slug.value = util.slugify(el.title.value);
                 if (!el.seoTitle.dataset.manual) el.seoTitle.value = el.title.value.slice(0, 60);
+                updateAutoTags();
                 updateSeo();
                 markDirty();
             });
@@ -3059,6 +3083,7 @@ const Store = (function () {
                 updateSeo();
             });
             if (el.excerpt) el.excerpt.addEventListener('input', () => {
+                updateAutoTags();
                 updateSeo();
                 markDirty();
             });
@@ -3067,6 +3092,7 @@ const Store = (function () {
                 if (e.target !== el.title && e.target !== el.excerpt) markDirty();
             });
             canvas.addEventListener('input', () => {
+                updateAutoTags();
                 markDirty();
                 updateCounters();
             });
@@ -3115,6 +3141,7 @@ const Store = (function () {
             el.thumbImage = el.thumbPicker ? el.thumbPicker.querySelector('img') : null;
             el.tagInput = document.getElementById('editor-tag-input');
             el.tagList = document.getElementById('editor-tags');
+            el.tagsAuto = document.getElementById('editor-tags-auto');
             el.seoPreview = document.getElementById('editor-seo-preview');
             el.wordCount = document.getElementById('editor-words');
             el.charCount = document.getElementById('editor-chars');
@@ -3237,7 +3264,7 @@ const Store = (function () {
                 return;
             }
             const isEdit = !!category;
-            const data = category || { name: '', slug: '', parentId: '', group: '', description: '', status: 'active', order: '' };
+            const data = category || { name: '', slug: '', parentId: '', group: '', description: '', status: 'active' };
             let groups;
             try {
                 groups = await window.PortalAPI.get('/api/cms/system-categories?type=category_group');
@@ -3275,8 +3302,8 @@ const Store = (function () {
                         (group.code === data.group ? ' selected' : '') +
                         (group.status !== 'active' ? ' disabled' : '') + '>' + util.escape(group.name) + '</option>').join('') +
                     '</select></div>' +
-                    '<div class="cms-field"><label class="cms-label" for="cat-order">Thứ tự hiển thị</label>' +
-                    '<input type="number" class="cms-input" id="cat-order" min="1" max="99" value="' + (data.order || '') + '" placeholder="Tự động"></div>' +
+                    '<div class="cms-field"><span class="cms-label">Thứ tự hiển thị</span>' +
+                    '<p class="cms-help">Tự động xếp ở cuối danh sách cùng cấp. Dùng nút lên/xuống để điều chỉnh.</p></div>' +
                     '<div class="cms-field cms-field--full"><label class="cms-label" for="cat-desc">Mô tả</label>' +
                     '<textarea class="cms-textarea" id="cat-desc" rows="3" maxlength="300">' + util.escape(data.description) + '</textarea>' +
                     '<span class="cms-help">Mô tả ngắn giúp người quản trị và người đọc hiểu phạm vi chuyên mục.</span></div>' +
@@ -3333,7 +3360,6 @@ const Store = (function () {
                     group: dlg.query('#cat-group').value,
                     description: dlg.query('#cat-desc').value.trim(),
                     status: dlg.query('#cat-status').checked ? 'active' : 'inactive',
-                    order: Number(dlg.query('#cat-order').value) || (isEdit ? data.order : Store.categories().length + 1)
                 };
                 if (isEdit) payload.id = data.id;
 

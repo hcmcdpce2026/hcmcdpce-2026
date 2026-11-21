@@ -2,6 +2,8 @@
 
 Tài liệu dùng cho người dân, cán bộ CMS và cán bộ Workspace. Chức năng hiển thị phụ thuộc quyền tài khoản.
 
+PUBLIC trên GitHub Pages chỉ đọc snapshot tĩnh; CMS, Workspace, đăng nhập và gửi phản ánh cần backend đang hoạt động. Không gửi mật khẩu, cookie phiên, CSRF token hoặc dữ liệu cá nhân qua kênh hỗ trợ chưa được phê duyệt.
+
 ## 1. Người dân - PUBLIC
 
 ### Tìm tin tức và tài liệu

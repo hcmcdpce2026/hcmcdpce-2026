@@ -4,7 +4,6 @@
  * --------------------------------------------------------------------------
  * 1  CONFIG / RBAC   – cấu hình, quyền, vai trò, phạm vi dữ liệu
  * 2  util            – tiện ích thuần
- * 3  SEED            – dữ liệu MÔ PHỎNG (gắn cờ demo)
  * 4  Store           – lớp dữ liệu dùng chung + ghi nhật ký
  * 5  ui              – component dùng chung
  * 6  PAGES           – danh mục trang (sidebar, breadcrumb, tiêu đề)
@@ -12,8 +11,8 @@
  * 8  Pages           – bộ điều khiển từng trang
  * 9  init            – khởi tạo theo trang hiện tại
  *
- * BẢO MẬT: bản demo chạy hoàn toàn trên trình duyệt. localStorage không phải
- * cơ chế xác thực/phân quyền. Xem README (mục Workspace).
+ * Dữ liệu nghiệp vụ và quyền được đọc/ghi qua API máy chủ; localStorage chỉ
+ * lưu tùy chọn giao diện, không phải cơ chế xác thực/phân quyền.
  */
 (function () {
     'use strict';
@@ -26,39 +25,11 @@
 
     const CONFIG = {
         version: '1.1.0',
-        storageKey: 'hcm-workspace-state-v1',
-        sessionKey: 'hcm-workspace-session',
         preferenceKey: 'hcm-workspace-prefs',
         loginFile: 'login.html',
         homeFile: 'dashboard.html',
         maxUpload: null
     };
-
-    const PERMISSIONS = {
-        'data.view': 'Xem dữ liệu',
-        'doc.manage': 'Tạo dữ liệu',
-        'task.edit': 'Chỉnh sửa dữ liệu',
-        'doc.manage': 'Xóa dữ liệu',
-        'task.assign': 'Phân công nhiệm vụ',
-        'task.approve': 'Duyệt / xác nhận nhiệm vụ',
-        'org.manage': 'Quản lý tổ chức',
-        'user.manage': 'Quản lý người dùng',
-        'report.create': 'Quản lý báo cáo',
-        'report.approve': 'Duyệt báo cáo',
-        'doc.manage': 'Quản lý tài liệu',
-        'calendar.manage': 'Quản lý lịch công tác',
-        'log.view': 'Xem nhật ký',
-        'role.manage': 'Quản lý phân quyền',
-        'calendar.manage': 'Quản lý thông báo'
-    };
-
-    const PERMISSION_GROUPS = [
-        { id: 'data', label: 'Dữ liệu chung', perms: ['data.view', 'doc.manage', 'task.edit', 'doc.manage'] },
-        { id: 'task', label: 'Nhiệm vụ', perms: ['task.assign', 'task.approve'] },
-        { id: 'org', label: 'Tổ chức & người dùng', perms: ['org.manage', 'user.manage', 'role.manage'] },
-        { id: 'report', label: 'Báo cáo & tài liệu', perms: ['report.create', 'report.approve', 'doc.manage'] },
-        { id: 'system', label: 'Lịch & hệ thống', perms: ['calendar.manage', 'calendar.manage', 'log.view'] }
-    ];
 
     const DATA_SCOPES = {
         own: 'Chỉ dữ liệu được giao',
@@ -66,42 +37,20 @@
         all: 'Toàn bộ dữ liệu'
     };
 
-    const ROLE_SEED = [
-        {
-            id: 'r-admin', name: 'Quản trị hệ thống', scope: 'all', system: true,
-            desc: 'Toàn quyền cấu hình, phân quyền và xử lý dữ liệu',
-            perms: Object.keys(PERMISSIONS)
-        },
-        {
-            id: 'r-lead', name: 'Lãnh đạo', scope: 'all',
-            desc: 'Theo dõi toàn bộ hoạt động, duyệt báo cáo và xác nhận nhiệm vụ',
-            perms: ['data.view', 'task.assign', 'task.approve', 'report.approve', 'log.view']
-        },
-        {
-            id: 'r-unit', name: 'Quản lý đơn vị', scope: 'unit',
-            desc: 'Điều hành công việc trong phạm vi đơn vị mình',
-            perms: ['data.view', 'doc.manage', 'task.edit', 'task.assign', 'task.approve',
-                'report.create', 'doc.manage', 'calendar.manage', 'log.view']
-        },
-        {
-            id: 'r-expert', name: 'Chuyên viên', scope: 'unit',
-            desc: 'Thực hiện nhiệm vụ, cập nhật tiến độ và xử lý báo cáo',
-            perms: ['data.view', 'doc.manage', 'task.edit', 'report.create', 'doc.manage', 'calendar.manage']
-        },
-        {
-            id: 'r-staff', name: 'Cán bộ phụ trách', scope: 'own',
-            desc: 'Cập nhật nhiệm vụ được giao, gửi báo cáo, quản lý tài liệu được cấp',
-            perms: ['data.view', 'doc.manage', 'report.create', 'doc.manage']
-        },
-        {
-            id: 'r-viewer', name: 'Người xem báo cáo', scope: 'unit',
-            desc: 'Chỉ tra cứu báo cáo và số liệu, không sửa dữ liệu',
-            perms: ['data.view']
-        }
-    ];
-
-    /* Tài khoản CMS dùng riêng cho pages/cms (chặn nhầm phân hệ khi đăng nhập) */
-    const CMS_ACCOUNTS = ['cms.nguyenvandat'];
+    const PERMISSION_GROUP_LABELS = {
+        content: 'Nội dung',
+        media: 'Tài nguyên',
+        catalog: 'Danh mục công khai',
+        submission: 'Tiếp nhận',
+        task: 'Nhiệm vụ',
+        report: 'Báo cáo',
+        doc: 'Tài liệu',
+        calendar: 'Lịch công tác',
+        proposal: 'Đề xuất nội dung',
+        collaboration: 'Phối hợp',
+        org: 'Tổ chức',
+        system: 'Hệ thống'
+    };
 
     const LABELS = {
         taskStatus: {
@@ -402,13 +351,6 @@
         };
     })();
 
-    /* =========================================================================
-       3. DỮ LIỆU MÔ PHỎNG (SEED)
-       Toàn bộ dữ liệu dưới đây là MINH HỌA cho môi trường demo: tên riêng,
-       email (*.local), số điện thoại (09xx.xxx.xxx) đều là dữ liệu mẫu.
-       ========================================================================= */
-
-
 /* =========================================================================
    4. STORE – LỚP DỮ LIỆU KẾT NỐI API MÁY CHỦ
    Dữ liệu được nạp từ REST API rồi giữ trong bộ nhớ để các hàm đọc giữ nguyên
@@ -565,6 +507,18 @@ const Store = (function () {
     const users = () => cache.users.slice();
     const roles = () => cache.roles.slice();
     const permissions = () => cache.permissions.slice();
+    const permissionGroups = () => {
+        const groups = new Map();
+        permissions().forEach((permission) => {
+            const key = permission.group || 'other';
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(permission);
+        });
+        return Array.from(groups.entries()).map(([key, items]) => ({
+            label: PERMISSION_GROUP_LABELS[key] || key,
+            permissions: items
+        }));
+    };
     const events = () => cache.events.slice();
     const documents = () => cache.documents.slice();
     const reports = () => cache.reports.slice();
@@ -885,7 +839,7 @@ const Store = (function () {
         load, loadSession, getSession, currentUser, login, logout, can, scopeOf, inScope,
         all, tasks, organizations, organizationTypes, managementLevels, organizationTypeName, managementLevelName,
         users, roles, permissions, events, documents, reports,
-        notifications, logs, proposals, collaborations, integrations, stats, taskStats,
+        notifications, logs, proposals, collaborations, integrations, stats, taskStats, permissionGroups,
         taskById, orgById, userById, docById, reportById, eventById, roleById, roleOf,
         orgName, userName, taskItems, taskComments, taskHistory, docVersions,
         saveTask, deleteTask, setTaskProgress, setTaskStatus,
@@ -1751,9 +1705,9 @@ const Store = (function () {
                         footer: false,
                         content: '<div class="ws-note ws-note--warning"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>' +
                             '<span>Mọi thao tác quan trọng được kiểm tra quyền tại máy chủ theo vai trò và phạm vi dữ liệu.</span></div>' +
-                            '<ul class="ws-perm-list ws-u-mt">' + Object.keys(PERMISSIONS).map((p) =>
-                                '<li><i class="fa-solid ' + (Store.can(p, user) ? 'fa-circle-check' : 'fa-circle-xmark') + '" aria-hidden="true"></i>' +
-                                util.escape(PERMISSIONS[p]) + '</li>').join('') + '</ul>'
+                            '<ul class="ws-perm-list ws-u-mt">' + Store.permissions().map((permission) =>
+                                '<li><i class="fa-solid ' + (Store.can(permission.code) ? 'fa-circle-check' : 'fa-circle-xmark') + '" aria-hidden="true"></i>' +
+                                util.escape(permission.name) + '</li>').join('') + '</ul>'
                     });
                     return;
                 }
@@ -3620,6 +3574,8 @@ const Store = (function () {
             const isEdit = !!user;
             if (!Shell.requirePerm('user.manage', 'Vai trò của bạn không có quyền quản lý người dùng.')) return;
             const data = user || {};
+            const roles = Store.roles();
+            const defaultRole = roles.find((role) => role.code === 'ws_staff');
             ui.openModal({
                 title: isEdit ? 'Chỉnh sửa tài khoản ' + data.username : 'Tạo tài khoản người dùng',
                 subtitle: 'Mật khẩu được băm (scrypt) và xác thực tại máy chủ; người dùng phải đổi mật khẩu ở lần đăng nhập đầu tiên.',
@@ -3632,7 +3588,11 @@ const Store = (function () {
                     ui.field({ id: 'uf-phone', label: 'Số điện thoại', value: data.phone || '', attrs: 'data-type="phone"' }) +
                     ui.field({ id: 'uf-org', label: 'Đơn vị', type: 'select', required: true, options: ui.optionsFrom(Store.organizations(), 'id', 'name'), value: data.orgId || (Store.currentUser() || {}).orgId }) +
                     ui.field({ id: 'uf-position', label: 'Chức vụ', value: data.position || '' }) +
-                    ui.field({ id: 'uf-role', label: 'Vai trò', type: 'select', required: true, options: Store.roles().map((r) => ({ value: r.id, label: r.name + ' (' + DATA_SCOPES[r.scope] + ')' })), value: data.roleId || 'r-staff' }) +
+                    ui.field({ id: 'uf-role', label: 'Vai trò', type: 'select', required: true,
+                        options: [{ value: '', label: 'Chọn vai trò' }].concat(roles.map((r) => ({
+                            value: r.id, label: r.name + ' (' + (DATA_SCOPES[r.scope] || r.scope) + ')'
+                        }))),
+                        value: data.roleId || (defaultRole ? defaultRole.id : '') }) +
                     ui.field({ id: 'uf-status', label: 'Trạng thái', type: 'select', options: Object.keys(LABELS.userStatus).map((k) => ({ value: k, label: LABELS.userStatus[k] })), value: data.status || 'pending' }) +
                     '</form><div class="ws-note ws-note--muted" style="margin-top:.9rem"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> ' +
                     'Không chia sẻ mật khẩu qua kênh không bảo mật. Mật khẩu khởi tạo cần được bàn giao riêng và đổi ngay khi đăng nhập.</div>',
@@ -3746,12 +3706,12 @@ const Store = (function () {
                 '<span class="ws-badge ws-badge--info">' + util.escape(DATA_SCOPES[role.scope]) + '</span>' +
                 '<span class="ws-help">Phạm vi dữ liệu được máy chủ áp dụng khi truy vấn dữ liệu trả về.</span></div>' +
                 '<form id="ws-perm-form">' +
-                PERMISSION_GROUPS.map((group) => '<fieldset class="ws-perm-group"><legend class="ws-perm-group__title">' +
+                Store.permissionGroups().map((group) => '<fieldset class="ws-perm-group"><legend class="ws-perm-group__title">' +
                     util.escape(group.label) + '</legend><div class="ws-perm-group__grid">' +
-                    group.perms.map((perm) => '<label class="ws-switch"><input type="checkbox" name="perm" value="' + perm + '"' +
-                        (role.perms.indexOf(perm) !== -1 ? ' checked' : '') + (editable ? '' : ' disabled') + '>' +
+                    group.permissions.map((permission) => '<label class="ws-switch"><input type="checkbox" name="perm" value="' + util.escape(permission.code) + '"' +
+                        (role.perms.indexOf(permission.code) !== -1 ? ' checked' : '') + (editable ? '' : ' disabled') + '>' +
                         '<span class="ws-switch__track" aria-hidden="true"></span><span class="ws-switch__label">' +
-                        util.escape(PERMISSIONS[perm]) + '</span></label>').join('') + '</div></fieldset>').join('') +
+                        util.escape(permission.name) + '</span></label>').join('') + '</div></fieldset>').join('') +
                 (editable
                     ? '<div class="ws-form__actions"><button type="button" class="ws-btn" id="ws-perm-reset">Đặt lại thay đổi</button>' +
                     '<button type="submit" class="ws-btn ws-btn--primary"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu quyền</button></div>'
@@ -5092,7 +5052,7 @@ const Store = (function () {
         store: Store,
         ui: ui,
         pages: PAGES,
-        permissions: PERMISSIONS,
+        get permissions() { return Object.fromEntries(Store.permissions().map((permission) => [permission.code, permission.name])); },
         labels: LABELS,
         reload: () => Store.load()
     };
