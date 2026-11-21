@@ -108,6 +108,26 @@
                         <p class="cms-filters__summary" id="category-summary" aria-live="polite"></p>
                     </section>
 
+                    <div class="cms-selection-toolbar">
+                        <label class="cms-check cms-selection-toolbar__select-all">
+                            <input type="checkbox" id="category-select-all"
+                                aria-label="Chọn tất cả chuyên mục đang hiển thị">
+                            <span>Chọn tất cả chuyên mục đang hiển thị</span>
+                        </label>
+                        <div class="cms-bulkbar" id="category-bulkbar" role="region"
+                            aria-label="Thao tác hàng loạt với chuyên mục">
+                            <span class="cms-bulkbar__count">Đã chọn <strong data-category-bulk-count>0</strong> chuyên mục</span>
+                            <div class="cms-bulkbar__actions">
+                                <button type="button" class="cms-btn cms-btn--sm cms-btn--danger"
+                                    data-category-bulk-action="delete">
+                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Xóa đã chọn
+                                </button>
+                                <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                    data-category-bulk-action="clear">Bỏ chọn</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Bảng -->
                     <div class="cms-card">
                         <div class="cms-table-wrap">

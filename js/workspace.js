@@ -3049,7 +3049,8 @@ const Store = (function () {
     /* 8.6 Tổ chức -------------------------------------------------------- */
 
     const OrganizationsPage = (function () {
-        const state = { q: '', type: '', status: '', page: 1, pageSize: 10, sort: 'name', dir: 'asc' };
+        const state = { q: '', type: '', status: '', page: 1, pageSize: 10, sort: 'name', dir: 'asc', selected: new Set(), busy: false };
+        let visibleRows = [];
 
         const init = () => {
             const root = document.getElementById('ws-organizations');
@@ -3060,29 +3061,32 @@ const Store = (function () {
                 typeSelect.innerHTML = '<option value="">Mọi loại hình</option>' + Store.organizationTypes()
                     .filter((category) => category.status === 'active')
                     .map((category) => '<option value="' + util.escape(category.code) + '">' + util.escape(category.name) + '</option>').join('');
-                typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 1; render(); });
+                typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 1; clearSelection(); render(); });
             }
             const statusSelect = document.getElementById('ws-org-status');
             if (statusSelect) {
                 statusSelect.innerHTML = '<option value="">Mọi trạng thái</option>' + Object.keys(LABELS.orgStatus)
                     .map((k) => '<option value="' + k + '">' + util.escape(LABELS.orgStatus[k]) + '</option>').join('');
-                statusSelect.addEventListener('change', () => { state.status = statusSelect.value; state.page = 1; render(); });
+                statusSelect.addEventListener('change', () => { state.status = statusSelect.value; state.page = 1; clearSelection(); render(); });
             }
             const search = document.getElementById('ws-org-search');
             if (search) search.addEventListener('input', util.debounce(() => {
                 state.q = search.value.trim();
                 state.page = 1;
+                clearSelection();
                 render();
             }, 200));
             const size = document.getElementById('ws-org-page-size');
             if (size) size.addEventListener('change', () => {
                 state.pageSize = Number(size.value) || 10;
                 state.page = 1;
+                clearSelection();
                 render();
             });
             const reset = document.getElementById('ws-org-reset');
             if (reset) reset.addEventListener('click', () => {
                 Object.assign(state, { q: '', type: '', status: '', page: 1 });
+                clearSelection();
                 if (search) search.value = '';
                 if (typeSelect) typeSelect.value = '';
                 if (statusSelect) statusSelect.value = '';
@@ -3091,7 +3095,29 @@ const Store = (function () {
 
             document.querySelectorAll('[data-org-create]').forEach((btn) => btn.addEventListener('click', () => openForm(null)));
 
+            root.addEventListener('change', (e) => {
+                const selectAll = e.target.closest('#ws-org-select-all');
+                if (selectAll) {
+                    visibleRows.forEach((org) => {
+                        if (selectAll.checked) state.selected.add(org.id);
+                        else state.selected.delete(org.id);
+                    });
+                    renderSelection();
+                    return;
+                }
+                const checkbox = e.target.closest('[data-org-select]');
+                if (checkbox) {
+                    if (checkbox.checked) state.selected.add(checkbox.dataset.orgSelect);
+                    else state.selected.delete(checkbox.dataset.orgSelect);
+                    renderSelection();
+                }
+            });
+
             root.addEventListener('click', (e) => {
+                const bulkDelete = e.target.closest('[data-org-bulk-delete]');
+                if (bulkDelete) { deleteSelected(); return; }
+                const clearSelected = e.target.closest('[data-org-clear-selection]');
+                if (clearSelected) { clearSelection(); renderSelection(); return; }
                 const edit = e.target.closest('[data-org-edit]');
                 if (edit) { openForm(Store.orgById(edit.dataset.orgEdit)); return; }
                 const del = e.target.closest('[data-org-delete]');
@@ -3102,10 +3128,11 @@ const Store = (function () {
                         heading: 'Xóa đơn vị?',
                         message: 'Đơn vị “' + org.name + '” sẽ bị xóa khỏi danh mục. Đơn vị còn người dùng hoặc đơn vị trực thuộc sẽ không thể xóa.',
                         confirmText: 'Xóa đơn vị'
-                    }).then((ok) => {
+                    }).then(async (ok) => {
                         if (!ok) return;
-                        const result = Store.deleteOrganization(org.id);
+                        const result = await Store.deleteOrganization(org.id);
                         if (!result.ok) { ui.toast(result.message, 'error'); return; }
+                        state.selected.delete(org.id);
                         ui.toast('Đã xóa đơn vị.', 'success');
                         render();
                     });
@@ -3116,15 +3143,18 @@ const Store = (function () {
                     const key = th.dataset.sort;
                     if (state.sort === key) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
                     else { state.sort = key; state.dir = 'asc'; }
+                    clearSelection();
                     render();
                     return;
                 }
                 const pageBtn = e.target.closest('[data-page]');
-                if (pageBtn && !pageBtn.disabled) { state.page = Number(pageBtn.dataset.page); render(); }
+                if (pageBtn && !pageBtn.disabled) { state.page = Number(pageBtn.dataset.page); clearSelection(); render(); }
             });
 
             render();
         };
+
+        const clearSelection = () => { state.selected.clear(); };
 
         const filtered = () => Store.organizations().filter((o) => {
             if (state.q && !util.matchText([o.code, o.name, o.address, o.head, o.email], state.q)) return false;
@@ -3133,12 +3163,83 @@ const Store = (function () {
             return true;
         });
 
+        const renderSelection = () => {
+            const selectedCount = visibleRows.filter((org) => state.selected.has(org.id)).length;
+            const canManage = Store.can('org.manage');
+            const selectAll = document.getElementById('ws-org-select-all');
+            if (selectAll) {
+                selectAll.checked = visibleRows.length > 0 && selectedCount === visibleRows.length;
+                selectAll.indeterminate = selectedCount > 0 && selectedCount < visibleRows.length;
+                selectAll.disabled = !canManage || visibleRows.length === 0 || state.busy;
+            }
+            document.querySelectorAll('#ws-org-body [data-org-select]').forEach((checkbox) => {
+                checkbox.checked = state.selected.has(checkbox.dataset.orgSelect);
+                checkbox.disabled = !canManage || state.busy;
+            });
+            const bar = document.getElementById('ws-org-bulkbar');
+            const count = document.getElementById('ws-org-selected-count');
+            const button = document.querySelector('[data-org-bulk-delete]');
+            if (bar) bar.hidden = selectedCount === 0;
+            if (count) count.textContent = String(selectedCount);
+            if (button) button.disabled = !canManage || selectedCount === 0 || state.busy;
+        };
+
+        const organizationDepth = (org) => {
+            let depth = 0;
+            let current = org;
+            const visited = new Set([org.id]);
+            while (current && current.parentId) {
+                const parent = Store.orgById(current.parentId);
+                if (!parent || visited.has(parent.id)) break;
+                visited.add(parent.id);
+                depth += 1;
+                current = parent;
+            }
+            return depth;
+        };
+
+        const deleteSelected = async () => {
+            if (state.busy || !Shell.requirePerm('org.manage', 'Vai trò của bạn không có quyền xóa đơn vị.')) return;
+            const selected = visibleRows.filter((org) => state.selected.has(org.id));
+            if (!selected.length) return;
+            state.busy = true;
+            renderSelection();
+            const confirmed = await ui.confirm({
+                heading: 'Xóa các đơn vị đã chọn?',
+                message: selected.length + ' đơn vị trên trang này sẽ được xử lý lần lượt. Đơn vị còn người dùng hoặc đơn vị trực thuộc sẽ không thể xóa.',
+                confirmText: 'Xóa đã chọn'
+            });
+            if (!confirmed) {
+                state.busy = false;
+                renderSelection();
+                return;
+            }
+
+            const failures = [];
+            let deleted = 0;
+            selected.sort((a, b) => organizationDepth(b) - organizationDepth(a));
+            for (const org of selected) {
+                const result = await Store.deleteOrganization(org.id);
+                if (result.ok) deleted += 1;
+                else failures.push({ name: org.name, message: result.message });
+            }
+            clearSelection();
+            state.busy = false;
+            render();
+
+            const summary = 'Đã xóa ' + deleted + ' đơn vị; ' + failures.length + ' đơn vị không xóa được.';
+            const details = failures.slice(0, 3).map((failure) => failure.name + ': ' + failure.message).join(' ');
+            const remaining = failures.length > 3 ? ' Còn ' + (failures.length - 3) + ' lỗi khác.' : '';
+            ui.toast(summary + (details ? ' ' + details : '') + remaining, failures.length ? 'warning' : 'success');
+        };
+
         const render = () => {
             const list = util.sortBy(filtered(), state.sort, state.dir);
             const total = list.length;
             const pages = Math.max(1, Math.ceil(total / state.pageSize));
             if (state.page > pages) state.page = pages;
             const rows = list.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
+            visibleRows = rows;
 
             const body = document.getElementById('ws-org-body');
             if (body) {
@@ -3146,7 +3247,9 @@ const Store = (function () {
                     const parent = o.parentId ? Store.orgById(o.parentId) : null;
                     const staff = Store.users().filter((u) => u.orgId === o.id).length;
                     const taskCount = Store.tasks().filter((t) => t.ownerOrgId === o.id).length;
-                    return '<tr><td data-label="Mã"><span class="ws-code ws-code--sm">' + util.escape(o.code) + '</span></td>' +
+                    return '<tr><td data-label="Chọn"><input type="checkbox" class="ws-org-check" data-org-select="' + util.escape(o.id) +
+                        '" aria-label="Chọn ' + util.escape(o.name) + '"' + (Store.can('org.manage') ? '' : ' disabled') + '></td>' +
+                        '<td data-label="Mã"><span class="ws-code ws-code--sm">' + util.escape(o.code) + '</span></td>' +
                         '<td data-label="Tên đơn vị"><a class="ws-table__title" href="organization-detail.html?id=' + o.id + '">' + util.escape(o.name) + '</a>' +
                         '<span class="ws-table__sub">' + util.escape(parent ? 'Trực thuộc ' + parent.name : 'Đơn vị độc lập') + '</span></td>' +
                         '<td data-label="Loại hình">' + util.escape(Store.organizationTypeName(o.type)) +
@@ -3162,8 +3265,9 @@ const Store = (function () {
                         '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost" data-org-edit="' + o.id + '" data-perm="org.manage" title="Chỉnh sửa" aria-label="Sửa ' + util.escape(o.name) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
                         '<button type="button" class="ws-btn ws-btn--icon ws-btn--ghost ws-btn--danger" data-org-delete="' + o.id + '" data-perm="org.manage" title="Xóa" aria-label="Xóa ' + util.escape(o.name) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
                         '</div></td></tr>';
-                }).join('') || '<tr><td colspan="8">' + ui.emptyState({ icon: 'fa-building-circle-xmark', title: 'Không tìm thấy đơn vị', message: 'Không có đơn vị phù hợp với bộ lọc hiện tại.' }) + '</td></tr>';
+                }).join('') || '<tr><td colspan="9">' + ui.emptyState({ icon: 'fa-building-circle-xmark', title: 'Không tìm thấy đơn vị', message: 'Không có đơn vị phù hợp với bộ lọc hiện tại.' }) + '</td></tr>';
             }
+            renderSelection();
 
             const pg = document.getElementById('ws-org-pagination');
             if (pg) pg.innerHTML = ui.pagination({ page: state.page, pageSize: state.pageSize, total: total, label: 'đơn vị' });

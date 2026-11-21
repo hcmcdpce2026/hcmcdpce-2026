@@ -482,7 +482,8 @@ async function deleteMedia(req, res, ctx) {
   const db = getDb();
   const row = db.prepare('SELECT * FROM media WHERE id = ?').get(ctx.params.id);
   if (!row) return http.notFound(res, 'Tài nguyên không tồn tại.');
-  const used = db.prepare('SELECT COUNT(*) AS c FROM articles WHERE thumbnail = ?').get(row.url).c;
+  const used = db.prepare(`SELECT COUNT(*) AS c FROM articles
+    WHERE thumbnail = ? OR instr(COALESCE(body, ''), ?) > 0`).get(row.url, row.url).c;
   if (used > 0) return http.conflict(res, `Tệp đang được sử dụng trong ${used} bài viết, không thể xóa.`);
   db.prepare('DELETE FROM media WHERE id = ?').run(row.id);
   if (String(row.url || '').startsWith('/uploads/')) {

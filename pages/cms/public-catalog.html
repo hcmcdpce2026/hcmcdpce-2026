@@ -63,8 +63,29 @@
                                 <i class="fa-solid fa-plus"></i> Thêm mới
                             </button>
                         </div>
-                        <div class="cms-card__body" id="public-catalog-content">
-                            <div class="cms-state">Đang tải dữ liệu…</div>
+                        <div class="cms-card__body">
+                            <div class="cms-selection-toolbar">
+                                <label class="cms-check cms-selection-toolbar__select-all">
+                                    <input type="checkbox" id="public-catalog-select-all"
+                                        aria-label="Chọn tất cả bản ghi đang hiển thị">
+                                    <span>Chọn tất cả bản ghi đang hiển thị</span>
+                                </label>
+                                <div class="cms-bulkbar" id="public-catalog-bulkbar" role="region"
+                                    aria-label="Thao tác hàng loạt với nội dung công khai">
+                                    <span class="cms-bulkbar__count">Đã chọn <strong data-catalog-bulk-count>0</strong> bản ghi</span>
+                                    <div class="cms-bulkbar__actions">
+                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--danger"
+                                            data-catalog-bulk-action="delete">
+                                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Xóa đã chọn
+                                        </button>
+                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                            data-catalog-bulk-action="clear">Bỏ chọn</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="public-catalog-content">
+                                <div class="cms-state">Đang tải dữ liệu…</div>
+                            </div>
                         </div>
                     </section>
                     <footer class="cms-main__footer">

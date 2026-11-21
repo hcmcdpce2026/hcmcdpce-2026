@@ -540,6 +540,7 @@ async function run() {
   r = await uploadFile('anh-kiem-thu.png', 'image/png', pngBytes);
   check('Nhận ảnh PNG hợp lệ', r.status === 201 && /^\/uploads\//.test(r.body.data.url), `status=${r.status}`);
   const uploadedId = r.status === 201 ? r.body.data.id : null;
+  const uploadedUrl = r.status === 201 ? r.body.data.url : null;
   check('Lưu đúng MIME và loại tài nguyên', r.status === 201 && r.body.data.mime === 'image/png' && r.body.data.type === 'image');
 
   r = await uploadFile('doc-hai.html', 'text/html', Buffer.from('<script>alert(1)</script>'));
@@ -564,6 +565,15 @@ async function run() {
   check('Ảnh tĩnh vẫn phục vụ đúng MIME',
     staticImage.status === 200 && /^image\//.test(staticImage.headers.get('content-type') || ''));
   if (uploadedId) {
+    const article = await cmsAdmin.request('POST', '/api/cms/articles', {
+      title: 'Bài viết dùng tài nguyên kiểm thử',
+      body: `<p><img src="${uploadedUrl}" alt="Ảnh kiểm thử"></p>`,
+    });
+    const articleId = article.body.data && article.body.data.id;
+    check('Tạo bài viết tham chiếu tệp tải lên', article.status === 201 && article.body.data.body.includes(uploadedUrl));
+    r = await cmsAdmin.request('DELETE', `/api/cms/media/${uploadedId}`);
+    check('Không xóa tài nguyên đang nhúng trong nội dung bài viết', r.status === 409);
+    if (articleId) await cmsAdmin.request('DELETE', `/api/cms/articles/${articleId}`);
     r = await cmsAdmin.request('DELETE', `/api/cms/media/${uploadedId}`);
     check('Xóa được tài nguyên vừa tải lên', r.status === 200);
   }

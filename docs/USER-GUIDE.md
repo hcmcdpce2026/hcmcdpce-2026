@@ -73,6 +73,15 @@ Người có quyền `submit` gửi duyệt. Người có quyền review kiểm 
 
 Chỉ bài `published` xuất hiện PUBLIC local/API hoặc snapshot tĩnh.
 
+### Chọn và xóa nhiều mục
+
+- **Chuyên mục bài viết:** chọn tất cả chuyên mục đang hiển thị theo bộ lọc hoặc chọn từng mục. Máy chủ giữ lại chuyên mục còn bài viết hoặc chuyên mục con; hãy xử lý các mục con trước.
+- **Danh mục hệ thống:** chọn các mục đang hiển thị theo loại/trạng thái/từ khóa. Danh mục còn được dữ liệu khác sử dụng sẽ không bị xóa; hãy chuyển sang trạng thái ngừng sử dụng nếu cần.
+- **Thư viện tài nguyên:** chọn các tệp trên trang hiện tại rồi xóa. Tệp đang được bài viết dùng làm ảnh đại diện hoặc nhúng trong nội dung sẽ được giữ lại.
+- **Nội dung công khai:** chọn các bản ghi đang hiển thị trong nhóm hiện tại. Khi xóa kỳ số liệu, toàn bộ chỉ số thuộc kỳ đó cũng bị xóa.
+
+Các thao tác đều yêu cầu xác nhận; nếu một số mục bị máy chủ từ chối, giao diện báo kết quả từng phần.
+
 ### Tiếp nhận submission
 
 1. Mở danh sách phản ánh.
@@ -119,6 +128,10 @@ Mở:
 ```
 
 Tài khoản CMS không truy cập Workspace trừ khi có tài khoản riêng thuộc hệ thống đó.
+
+### Cơ quan, đơn vị
+
+Trong danh sách cơ quan, đơn vị, có thể chọn từng mục hoặc chọn tất cả trên trang hiện tại rồi xóa hàng loạt. Đơn vị còn người dùng hoặc đơn vị trực thuộc sẽ được máy chủ từ chối xóa; kết quả từng phần được thông báo sau thao tác.
 
 ### Nhiệm vụ
 

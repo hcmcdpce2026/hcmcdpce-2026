@@ -465,9 +465,15 @@ const Store = (function () {
         return saved;
     };
 
-    const deleteCategory = async (id) => {
-        await api.del(`/api/cms/categories/${encodeURIComponent(id)}`);
+    const refreshCategories = async () => {
         cache.categories = await api.get('/api/cms/categories');
+        return cache.categories;
+    };
+
+    const deleteCategory = async (id, refresh = true) => {
+        await api.del(`/api/cms/categories/${encodeURIComponent(id)}`);
+        if (refresh) await refreshCategories();
+        else cache.categories = cache.categories.filter((category) => category.id !== id);
         return true;
     };
 
@@ -498,9 +504,15 @@ const Store = (function () {
         return saved;
     };
 
-    const deleteMedia = async (id) => {
-        await api.del(`/api/cms/media/${encodeURIComponent(id)}`);
+    const refreshMedia = async () => {
         cache.media = await api.get('/api/cms/media');
+        return cache.media;
+    };
+
+    const deleteMedia = async (id, refresh = true) => {
+        await api.del(`/api/cms/media/${encodeURIComponent(id)}`);
+        if (refresh) await refreshMedia();
+        else cache.media = cache.media.filter((item) => item.id !== id);
         return true;
     };
 
@@ -569,9 +581,9 @@ const Store = (function () {
         media, mediaById, logs, notifications, users, userById, workflow,
         stats, monthlySeries,
         /* ghi */
-        saveContent, setStatus, deleteContent, saveCategory, deleteCategory, moveCategory,
+        saveContent, setStatus, deleteContent, saveCategory, deleteCategory, refreshCategories, moveCategory,
         listCatalog, saveCatalog, deleteCatalog,
-        addMedia, deleteMedia, markNotificationsRead, addLog,
+        addMedia, deleteMedia, refreshMedia, markNotificationsRead, addLog,
         submissions, loadSubmissions, updateSubmission, assignSubmission,
         proposals, loadProposals, allProposals, reviewProposal, createCollaboration,
         /* tùy chọn */
@@ -3165,7 +3177,7 @@ const Store = (function () {
        ========================================================================== */
 
     const Categories = (function () {
-        const state = { q: '', status: '' };
+        const state = { q: '', status: '', selected: new Set() };
         const el = {};
 
         const allSorted = () => {
@@ -3192,11 +3204,39 @@ const Store = (function () {
 
         const canManage = () => Store.can('category.manage');
 
+        const renderBulkBar = (list) => {
+            if (el.bulkBar) {
+                const count = state.selected.size;
+                el.bulkBar.classList.toggle('is-visible', count > 0);
+                const countEl = el.bulkBar.querySelector('[data-category-bulk-count]');
+                if (countEl) countEl.textContent = util.formatNumber(count);
+                const deleteButton = el.bulkBar.querySelector('[data-category-bulk-action="delete"]');
+                if (deleteButton) deleteButton.classList.toggle('cms-u-hidden', !canManage());
+            }
+
+            if (el.selectAll) {
+                const selectedCount = list.filter((category) => state.selected.has(category.id)).length;
+                el.selectAll.checked = list.length > 0 && selectedCount === list.length;
+                el.selectAll.indeterminate = selectedCount > 0 && selectedCount < list.length;
+                el.selectAll.disabled = !canManage() || list.length === 0;
+            }
+
+            if (el.tbody) {
+                el.tbody.querySelectorAll('[data-category-select]').forEach((checkbox) => {
+                    checkbox.checked = state.selected.has(checkbox.value);
+                });
+            }
+        };
+
         /* ---------- Render ---------- */
 
         const render = () => {
             const list = filtered();
             const all = Store.categories();
+            const categoryIds = new Set(all.map((category) => category.id));
+            state.selected.forEach((id) => {
+                if (!categoryIds.has(id)) state.selected.delete(id);
+            });
             const activeCount = all.filter((c) => c.status === 'active').length;
 
             if (el.summary) {
@@ -3216,6 +3256,7 @@ const Store = (function () {
                     action: '<button type="button" class="cms-btn cms-btn--primary cms-btn--sm" data-category-action="create">' +
                         '<i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo chuyên mục</button>'
                 }) + '</td></tr>';
+                renderBulkBar(list);
                 return;
             }
 
@@ -3227,9 +3268,13 @@ const Store = (function () {
                     '<td class="cms-table__cell-check">' +
                     '<span class="cms-cat-depth" style="--depth:' + c.depth + '" aria-hidden="true">' +
                     '<i class="fa-solid ' + (c.depth ? 'fa-reply fa-flip-horizontal' : 'fa-folder') + '"></i></span></td>' +
-                    '<td data-label="Tên chuyên mục"><div class="cms-table__title-text">' +
+                    '<td data-label="Tên chuyên mục"><div class="cms-category-row">' +
+                    '<label class="cms-check cms-category-select"><input type="checkbox" data-category-select value="' +
+                    util.escape(c.id) + '" aria-label="Chọn chuyên mục ' + util.escape(c.name) + '"' +
+                    (manage ? '' : ' disabled') + (state.selected.has(c.id) ? ' checked' : '') + '></label>' +
+                    '<div class="cms-table__title-text">' +
                     '<span class="cms-table__link">' + util.escape(c.name) + '</span>' +
-                    '<span class="cms-table__slug">/' + util.escape(c.slug) + '</span></div></td>' +
+                    '<span class="cms-table__slug">/' + util.escape(c.slug) + '</span></div></div></td>' +
                     '<td data-label="Chuyên mục cha">' + (parent
                         ? '<span class="cms-u-text-sm">' + util.escape(parent.name) + '</span>'
                         : '<span class="cms-badge cms-badge--neutral cms-badge--no-dot">Cấp 1</span>') + '</td>' +
@@ -3254,6 +3299,7 @@ const Store = (function () {
                     '<i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>' +
                     '</div></td></tr>';
             }).join('');
+            renderBulkBar(list);
         };
 
         /* ---------- Form tạo / sửa ---------- */
@@ -3404,18 +3450,30 @@ const Store = (function () {
                 return;
             }
 
+            if (children > 0) {
+                ui.modal({
+                    title: 'Không thể xóa chuyên mục',
+                    content: '<div class="cms-confirm"><span class="cms-confirm__icon cms-confirm__icon--danger">' +
+                        '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>' +
+                        '<div class="cms-confirm__body"><p class="cms-confirm__title">Chuyên mục còn chuyên mục con</p>' +
+                        '<p class="cms-confirm__text">Hãy xóa hoặc chuyển ' + children +
+                        ' chuyên mục con trước khi xóa chuyên mục này.</p></div></div>',
+                    footer: '<button type="button" class="cms-btn" data-modal-close>Đóng</button>'
+                });
+                return;
+            }
+
             ui.confirm({
                 tone: 'danger',
                 heading: 'Xóa chuyên mục này?',
-                message: children
-                    ? children + ' chuyên mục con sẽ được chuyển thành chuyên mục cấp 1.'
-                    : 'Chuyên mục chưa có bài viết nào nên có thể xóa an toàn.',
+                message: 'Chuyên mục chưa có bài viết hoặc chuyên mục con nào nên có thể xóa.',
                 detail: '<span class="cms-confirm__highlight">' + util.escape(category.name) + '</span>',
                 confirmText: 'Xóa chuyên mục'
             }).then(async (ok) => {
                 if (!ok) return;
                 try {
                     await Store.deleteCategory(category.id);
+                    state.selected.delete(category.id);
                     render();
                     ui.toast('Đã xóa chuyên mục.', 'success');
                 } catch (err) {
@@ -3424,11 +3482,62 @@ const Store = (function () {
             });
         };
 
+        const clearSelection = () => {
+            state.selected.clear();
+            renderBulkBar(filtered());
+        };
+
+        const bulkDelete = () => {
+            if (!canManage()) {
+                ui.toast('Vai trò hiện tại không có quyền xóa chuyên mục.', 'error');
+                return;
+            }
+            const targets = filtered()
+                .filter((category) => state.selected.has(category.id))
+                .sort((a, b) => b.depth - a.depth);
+            if (!targets.length) return;
+
+            ui.confirm({
+                tone: 'danger',
+                heading: 'Xóa các chuyên mục đã chọn?',
+                message: 'Chỉ các chuyên mục đã chọn được xử lý. Chuyên mục đang được bài viết sử dụng hoặc còn chuyên mục con sẽ được giữ lại.',
+                detail: '<span class="cms-confirm__highlight">' + util.formatNumber(targets.length) + ' chuyên mục</span>',
+                confirmText: 'Xóa chuyên mục đã chọn'
+            }).then(async (ok) => {
+                if (!ok) return;
+                let deleted = 0;
+                const failures = [];
+                for (const category of targets) {
+                    try {
+                        await Store.deleteCategory(category.id, false);
+                        state.selected.delete(category.id);
+                        deleted += 1;
+                    } catch (err) {
+                        failures.push({ name: category.name, message: err.message || 'Không xóa được chuyên mục.' });
+                    }
+                }
+
+                let refreshError = '';
+                try {
+                    await Store.refreshCategories();
+                } catch (err) {
+                    refreshError = err.message || 'Không tải lại được danh sách chuyên mục.';
+                }
+                render();
+
+                const message = 'Đã xóa ' + deleted + ' chuyên mục; ' + failures.length + ' mục không xóa được.' +
+                    (failures.length ? ' ' + failures[0].name + ': ' + failures[0].message : '') +
+                    (refreshError ? ' ' + refreshError : '');
+                ui.toast(message, failures.length || refreshError ? 'warning' : 'success');
+            });
+        };
+
         const bind = () => {
             const search = document.getElementById('category-q');
             if (search) {
                 search.addEventListener('input', util.debounce(() => {
                     state.q = search.value;
+                    clearSelection();
                     render();
                 }, 220));
             }
@@ -3436,7 +3545,34 @@ const Store = (function () {
             if (status) {
                 status.addEventListener('change', () => {
                     state.status = status.value;
+                    clearSelection();
                     render();
+                });
+            }
+            if (el.selectAll) {
+                el.selectAll.addEventListener('change', () => {
+                    filtered().forEach((category) => {
+                        if (el.selectAll.checked) state.selected.add(category.id);
+                        else state.selected.delete(category.id);
+                    });
+                    renderBulkBar(filtered());
+                });
+            }
+            if (el.tbody) {
+                el.tbody.addEventListener('change', (e) => {
+                    const checkbox = e.target.closest('[data-category-select]');
+                    if (!checkbox) return;
+                    if (checkbox.checked) state.selected.add(checkbox.value);
+                    else state.selected.delete(checkbox.value);
+                    renderBulkBar(filtered());
+                });
+            }
+            if (el.bulkBar) {
+                el.bulkBar.addEventListener('click', (e) => {
+                    const button = e.target.closest('[data-category-bulk-action]');
+                    if (!button) return;
+                    if (button.dataset.categoryBulkAction === 'delete') bulkDelete();
+                    else if (button.dataset.categoryBulkAction === 'clear') clearSelection();
                 });
             }
             const create = document.getElementById('category-create');
@@ -3475,6 +3611,8 @@ const Store = (function () {
             if (!document.getElementById('category-tbody')) return;
             el.tbody = document.getElementById('category-tbody');
             el.summary = document.getElementById('category-summary');
+            el.bulkBar = document.getElementById('category-bulkbar');
+            el.selectAll = document.getElementById('category-select-all');
             if (!canManage()) {
                 const create = document.getElementById('category-create');
                 if (create) {
@@ -3498,7 +3636,9 @@ const Store = (function () {
        ========================================================================== */
 
     const Media = (function () {
-        const state = { q: '', type: '', date: '', view: 'grid', selected: null, page: 1, pageSize: 24 };
+        const state = {
+            q: '', type: '', date: '', view: 'grid', selected: null, bulkSelected: new Set(), page: 1, pageSize: 24
+        };
         const el = {};
 
         const filtered = () => {
@@ -3530,15 +3670,53 @@ const Store = (function () {
             return 'fa-file';
         };
 
+        const currentPageRows = () => {
+            const list = filtered();
+            return list.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
+        };
+
+        const renderBulkBar = (rows) => {
+            if (el.bulkBar) {
+                const count = state.bulkSelected.size;
+                el.bulkBar.classList.toggle('is-visible', count > 0);
+                const countEl = el.bulkBar.querySelector('[data-media-bulk-count]');
+                if (countEl) countEl.textContent = util.formatNumber(count);
+                const deleteButton = el.bulkBar.querySelector('[data-media-bulk-action="delete"]');
+                if (deleteButton) deleteButton.classList.toggle('cms-u-hidden', !Store.can('media.delete'));
+            }
+
+            if (el.selectAll) {
+                const selectedCount = rows.filter((item) => state.bulkSelected.has(item.id)).length;
+                el.selectAll.checked = rows.length > 0 && selectedCount === rows.length;
+                el.selectAll.indeterminate = selectedCount > 0 && selectedCount < rows.length;
+                el.selectAll.disabled = !Store.can('media.delete') || rows.length === 0;
+            }
+
+            [el.grid, el.list].forEach((host) => {
+                if (!host) return;
+                host.querySelectorAll('[data-media-bulk-select]').forEach((checkbox) => {
+                    checkbox.checked = state.bulkSelected.has(checkbox.value);
+                });
+            });
+        };
+
         /* ---------- Render ---------- */
 
         const render = () => {
             const list = filtered();
+            const mediaIds = new Set(Store.media().map((item) => item.id));
+            state.bulkSelected.forEach((id) => {
+                if (!mediaIds.has(id)) state.bulkSelected.delete(id);
+            });
             const totalPages = Math.max(1, Math.ceil(list.length / state.pageSize));
             state.page = util.clamp(state.page, 1, totalPages);
             const rows = list.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
             const canDelete = Store.can('media.delete');
 
+            if (el.used) {
+                const totalBytes = Store.media().reduce((sum, item) => sum + (item.size || 0), 0);
+                el.used.textContent = util.formatBytes(totalBytes);
+            }
             if (el.summary) {
                 const size = list.reduce((s, m) => s + (m.size || 0), 0);
                 el.summary.innerHTML = '<strong>' + util.formatNumber(list.length) + '</strong> tệp · ' + util.formatBytes(size);
@@ -3559,7 +3737,8 @@ const Store = (function () {
                         : m.type === 'video'
                             ? '<video src="' + util.escape(m.url) + '" muted preload="metadata"></video>'
                             : '<i class="fa-solid ' + fileIcon(m) + ' cms-media-card__fileicon" aria-hidden="true"></i>';
-                    return '<article class="cms-media-card' + (state.selected === m.id ? ' is-selected' : '') + '" data-id="' +
+                    return '<div class="cms-media-card-wrap"><article class="cms-media-card' +
+                        (state.selected === m.id ? ' is-selected' : '') + '" data-id="' +
                         util.escape(m.id) + '" tabindex="0" role="button" aria-label="Xem thông tin ' + util.escape(m.name) + '">' +
                         '<div class="cms-media-card__thumb">' + thumb +
                         '<span class="cms-media-card__badge">' + util.escape(m.ext) + '</span>' +
@@ -3567,7 +3746,10 @@ const Store = (function () {
                         '<div class="cms-media-card__info">' +
                         '<p class="cms-media-card__name" title="' + util.escape(m.name) + '">' + util.escape(m.name) + '</p>' +
                         '<p class="cms-media-card__meta">' + util.formatBytes(m.size) + ' · ' + util.escape(util.formatDate(m.uploadedAt)) + '</p>' +
-                        '</div></article>';
+                        '</div></article><label class="cms-media-card-wrap__select">' +
+                        '<input type="checkbox" data-media-bulk-select value="' + util.escape(m.id) + '"' +
+                        (state.bulkSelected.has(m.id) ? ' checked' : '') + (canDelete ? '' : ' disabled') +
+                        ' aria-label="Chọn tệp ' + util.escape(m.name) + '"></label></div>';
                 }).join('');
             }
 
@@ -3578,7 +3760,10 @@ const Store = (function () {
                         : '<i class="fa-solid ' + fileIcon(m) + '" style="font-size:1rem;color:var(--color-primary)" aria-hidden="true"></i>';
                     return '<div class="cms-media-row' + (state.selected === m.id ? ' is-selected' : '') + '" data-id="' +
                         util.escape(m.id) + '" tabindex="0">' +
-                        '<span class="cms-media-card__check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>' +
+                        '<label class="cms-media-row__select"><input type="checkbox" data-media-bulk-select value="' +
+                        util.escape(m.id) + '"' + (state.bulkSelected.has(m.id) ? ' checked' : '') +
+                        (canDelete ? '' : ' disabled') +
+                        ' aria-label="Chọn tệp ' + util.escape(m.name) + '"></label>' +
                         '<span class="cms-media-row__thumb cms-u-flex cms-u-items-center">' + thumb + '</span>' +
                         '<span class="cms-media-row__name" title="' + util.escape(m.name) + '">' + util.escape(m.name) + '</span>' +
                         '<span class="cms-media-row__meta">' + util.escape(m.ext.toUpperCase()) + '</span>' +
@@ -3605,9 +3790,11 @@ const Store = (function () {
 
             ui.renderPagination(el.pagination, { total: list.length, page: state.page, pageSize: state.pageSize }, (p) => {
                 state.page = p;
+                state.bulkSelected.clear();
                 render();
             });
 
+            renderBulkBar(rows);
             renderDetail(state.selected ? Store.mediaById(state.selected) : null);
         };
 
@@ -3814,12 +4001,57 @@ const Store = (function () {
                 if (!ok) return;
                 try {
                     await Store.deleteMedia(m.id);
+                    state.bulkSelected.delete(m.id);
                     if (state.selected === m.id) state.selected = null;
                     render();
                     ui.toast('Đã xóa tệp khỏi thư viện.', 'success');
                 } catch (err) {
                     ui.toast(err.message || 'Không xóa được tệp.', { type: 'error', duration: 6000 });
                 }
+            });
+        };
+
+        const bulkDelete = () => {
+            if (!Store.can('media.delete')) {
+                ui.toast('Vai trò hiện tại không có quyền xóa tài nguyên.', 'error');
+                return;
+            }
+            const targets = currentPageRows().filter((item) => state.bulkSelected.has(item.id));
+            if (!targets.length) return;
+
+            ui.confirm({
+                tone: 'danger',
+                heading: 'Xóa các tệp đã chọn?',
+                message: 'Tệp đang được bài viết sử dụng sẽ được giữ lại. Chỉ các tệp đã chọn trên trang hiện tại được xử lý.',
+                detail: '<span class="cms-confirm__highlight">' + util.formatNumber(targets.length) + ' tệp</span>',
+                confirmText: 'Xóa tệp đã chọn'
+            }).then(async (ok) => {
+                if (!ok) return;
+                let deleted = 0;
+                const failures = [];
+                for (const item of targets) {
+                    try {
+                        await Store.deleteMedia(item.id, false);
+                        state.bulkSelected.delete(item.id);
+                        if (state.selected === item.id) state.selected = null;
+                        deleted += 1;
+                    } catch (err) {
+                        failures.push({ name: item.name, message: err.message || 'Không xóa được tệp.' });
+                    }
+                }
+
+                let refreshError = '';
+                try {
+                    await Store.refreshMedia();
+                } catch (err) {
+                    refreshError = err.message || 'Không tải lại được thư viện tài nguyên.';
+                }
+                render();
+
+                const message = 'Đã xóa ' + deleted + ' tệp; ' + failures.length + ' tệp không xóa được.' +
+                    (failures.length ? ' ' + failures[0].name + ': ' + failures[0].message : '') +
+                    (refreshError ? ' ' + refreshError : '');
+                ui.toast(message, failures.length || refreshError ? 'warning' : 'success');
             });
         };
 
@@ -3855,6 +4087,7 @@ const Store = (function () {
                 search.addEventListener('input', util.debounce(() => {
                     state.q = search.value;
                     state.page = 1;
+                    state.bulkSelected.clear();
                     syncClearIcon(search);
                     render();
                 }, 220));
@@ -3865,6 +4098,7 @@ const Store = (function () {
                     search.value = '';
                     state.q = '';
                     state.page = 1;
+                    state.bulkSelected.clear();
                     syncClearIcon(search);
                     search.focus();
                     render();
@@ -3872,9 +4106,40 @@ const Store = (function () {
             }
 
             const type = document.getElementById('media-type');
-            if (type) type.addEventListener('change', () => { state.type = type.value; state.page = 1; render(); });
+            if (type) type.addEventListener('change', () => {
+                state.type = type.value;
+                state.page = 1;
+                state.bulkSelected.clear();
+                render();
+            });
             const date = document.getElementById('media-date');
-            if (date) date.addEventListener('change', () => { state.date = date.value; state.page = 1; render(); });
+            if (date) date.addEventListener('change', () => {
+                state.date = date.value;
+                state.page = 1;
+                state.bulkSelected.clear();
+                render();
+            });
+
+            if (el.selectAll) {
+                el.selectAll.addEventListener('change', () => {
+                    currentPageRows().forEach((item) => {
+                        if (el.selectAll.checked) state.bulkSelected.add(item.id);
+                        else state.bulkSelected.delete(item.id);
+                    });
+                    renderBulkBar(currentPageRows());
+                });
+            }
+            if (el.bulkBar) {
+                el.bulkBar.addEventListener('click', (e) => {
+                    const button = e.target.closest('[data-media-bulk-action]');
+                    if (!button) return;
+                    if (button.dataset.mediaBulkAction === 'delete') bulkDelete();
+                    else if (button.dataset.mediaBulkAction === 'clear') {
+                        state.bulkSelected.clear();
+                        renderBulkBar(currentPageRows());
+                    }
+                });
+            }
 
             document.querySelectorAll('[data-view]').forEach((btn) => {
                 btn.addEventListener('click', () => {
@@ -3894,6 +4159,7 @@ const Store = (function () {
 
             if (el.area) {
                 el.area.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-media-bulk-select]')) return;
                     if (e.target.closest('[data-media-action]')) {
                         handleMediaAction(e);
                         return;
@@ -3905,6 +4171,7 @@ const Store = (function () {
                 });
                 el.area.addEventListener('keydown', (e) => {
                     if (e.key !== 'Enter' && e.key !== ' ') return;
+                    if (e.target.closest('[data-media-bulk-select]')) return;
                     const card = e.target.closest('[data-id]');
                     if (!card) return;
                     e.preventDefault();
@@ -3958,6 +4225,8 @@ const Store = (function () {
             el.pagination = document.getElementById('media-pagination');
             el.summary = document.getElementById('media-summary');
             el.used = document.getElementById('media-used');
+            el.bulkBar = document.getElementById('media-bulkbar');
+            el.selectAll = document.getElementById('media-select-all');
 
             if (el.used) {
                 const totalBytes = Store.media().reduce((s, m) => s + (m.size || 0), 0);
@@ -3992,6 +4261,8 @@ const Store = (function () {
         let kind = 'legal-documents';
         let rows = [];
         const categoryCache = new Map();
+        const selected = new Set();
+        const el = {};
 
         const TITLES = {
             'legal-documents': 'Văn bản pháp luật',
@@ -4250,6 +4521,27 @@ const Store = (function () {
                 <input type="${inputType}" class="cms-input" id="${id}" value="${util.escape(value)}"${req}></div>`;
         };
 
+        const renderBulkBar = (visible) => {
+            if (el.bulkBar) {
+                el.bulkBar.classList.toggle('is-visible', selected.size > 0);
+                const countEl = el.bulkBar.querySelector('[data-catalog-bulk-count]');
+                if (countEl) countEl.textContent = util.formatNumber(selected.size);
+                const deleteButton = el.bulkBar.querySelector('[data-catalog-bulk-action="delete"]');
+                if (deleteButton) deleteButton.classList.toggle('cms-u-hidden', !Store.can('catalog.manage'));
+            }
+            if (el.selectAll) {
+                const selectedCount = visible.filter((row) => selected.has(row.id)).length;
+                el.selectAll.checked = visible.length > 0 && selectedCount === visible.length;
+                el.selectAll.indeterminate = selectedCount > 0 && selectedCount < visible.length;
+                el.selectAll.disabled = !Store.can('catalog.manage') || visible.length === 0;
+            }
+            if (el.host) {
+                el.host.querySelectorAll('[data-catalog-bulk-select]').forEach((checkbox) => {
+                    checkbox.checked = selected.has(checkbox.value);
+                });
+            }
+        };
+
         const openForm = async (item) => {
             const values = {
                 docTypes: [], legalFields: [], agencyTypes: [], managementLevels: [], facilityTypes: [], eventStatuses: {},
@@ -4369,9 +4661,14 @@ const Store = (function () {
             try {
                 rows = await Store.listCatalog(kind);
                 if (!Array.isArray(rows)) rows = [];
+                const rowIds = new Set(rows.map((row) => row.id));
+                selected.forEach((id) => {
+                    if (!rowIds.has(id)) selected.delete(id);
+                });
                 if (!host) return;
                 if (!rows.length) {
                     host.innerHTML = ui.emptyState({ icon: 'fa-folder-open', title: 'Chưa có dữ liệu', text: 'Nhấn “Thêm mới” để nhập bản ghi đầu tiên.' });
+                    renderBulkBar([]);
                     return;
                 }
                 host.innerHTML = `<div class="cms-table-wrap"><table class="cms-table cms-table--stack"><thead><tr><th>Ảnh</th><th>Tên / tiêu đề</th><th>Thông tin</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>` +
@@ -4385,7 +4682,9 @@ const Store = (function () {
                             ? `<img class="catalog-thumb" src="${util.escape(thumb)}" alt="" loading="lazy">`
                             : '<span class="catalog-thumb catalog-thumb--none"><i class="fa-regular fa-image" aria-hidden="true"></i></span>';
                         return `<tr>
-                            <td data-label="Ảnh">${thumbHtml}</td>
+                            <td data-label="Ảnh"><label class="cms-check"><input type="checkbox" data-catalog-bulk-select
+                                value="${util.escape(r.id)}" aria-label="Chọn ${util.escape(name)}"${Store.can('catalog.manage') ? '' : ' disabled'}>
+                                <span class="cms-u-sr-only">Chọn ${util.escape(name)}</span></label>${thumbHtml}</td>
                             <td data-label="Tên / tiêu đề"><strong>${util.escape(name)}</strong></td>
                             <td data-label="Thông tin">${util.escape(detail)}</td>
                             <td data-label="Trạng thái"><span class="cms-badge cms-badge--${status === 'active' || status === 'verified' ? 'success' : 'muted'}">${util.escape(label)}</span></td>
@@ -4394,15 +4693,64 @@ const Store = (function () {
                                 <button type="button" class="cms-btn cms-btn--sm cms-btn--danger" data-catalog-delete="${util.escape(r.id)}"><i class="fa-solid fa-trash"></i> Xóa</button>
                             </div></td></tr>`;
                     }).join('') + '</tbody></table></div>';
+                renderBulkBar(rows);
             } catch (err) {
+                selected.clear();
                 if (host) host.innerHTML = ui.emptyState({ icon: 'fa-triangle-exclamation', tone: 'danger', title: 'Không tải được dữ liệu', text: err.message || '' });
+                renderBulkBar([]);
             }
+        };
+
+        const clearSelection = () => {
+            selected.clear();
+            renderBulkBar(rows);
+        };
+
+        const bulkDelete = () => {
+            if (!Store.can('catalog.manage')) {
+                ui.toast('Vai trò của bạn không có quyền quản lý dữ liệu công khai.', 'error');
+                return;
+            }
+            const targets = rows.filter((row) => selected.has(row.id));
+            if (!targets.length) return;
+            const message = kind === 'statistics'
+                ? 'Mỗi kỳ số liệu đã chọn sẽ bị xóa cùng toàn bộ chỉ số bên trong.'
+                : 'Các bản ghi đã chọn sẽ bị gỡ khỏi Cổng thông tin công khai.';
+            ui.confirm({
+                tone: 'danger',
+                heading: 'Xóa các bản ghi đã chọn?',
+                message,
+                detail: '<span class="cms-confirm__highlight">' + util.formatNumber(targets.length) + ' bản ghi</span>',
+                confirmText: 'Xóa đã chọn'
+            }).then(async (ok) => {
+                if (!ok) return;
+                let deleted = 0;
+                const failures = [];
+                for (const row of targets) {
+                    try {
+                        await Store.deleteCatalog(kind, row.id);
+                        selected.delete(row.id);
+                        deleted += 1;
+                    } catch (err) {
+                        failures.push({ name: row.title || row.name || row.label || row.code || row.id,
+                            message: err.message || 'Không xóa được bản ghi.' });
+                    }
+                }
+                await render();
+                const result = 'Đã xóa ' + deleted + ' bản ghi; ' + failures.length + ' bản ghi không xóa được.' +
+                    (failures.length ? ' ' + failures[0].name + ': ' + failures[0].message : '');
+                ui.toast(result, failures.length ? 'warning' : 'success');
+            });
         };
 
         const init = () => {
             if (!document.getElementById('public-catalog-content')) return;
+            el.host = document.getElementById('public-catalog-content');
+            el.selectAll = document.getElementById('public-catalog-select-all');
+            el.bulkBar = document.getElementById('public-catalog-bulkbar');
             document.querySelectorAll('[data-kind]').forEach((btn) => btn.addEventListener('click', async () => {
                 kind = btn.dataset.kind;
+                selected.clear();
                 document.querySelectorAll('[data-kind]').forEach((b) => b.classList.toggle('is-active', b === btn));
                 await render();
             }));
@@ -4427,6 +4775,26 @@ const Store = (function () {
                     try { await Store.deleteCatalog(kind, del.dataset.catalogDelete); ui.toast('Đã xóa bản ghi.', 'success'); await render(); }
                     catch (err) { ui.toast(err.message || 'Không xóa được bản ghi.', 'error'); }
                 }
+            });
+            if (el.selectAll) el.selectAll.addEventListener('change', () => {
+                rows.forEach((row) => {
+                    if (el.selectAll.checked) selected.add(row.id);
+                    else selected.delete(row.id);
+                });
+                renderBulkBar(rows);
+            });
+            if (el.host) el.host.addEventListener('change', (e) => {
+                const checkbox = e.target.closest('[data-catalog-bulk-select]');
+                if (!checkbox) return;
+                if (checkbox.checked) selected.add(checkbox.value);
+                else selected.delete(checkbox.value);
+                renderBulkBar(rows);
+            });
+            if (el.bulkBar) el.bulkBar.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-catalog-bulk-action]');
+                if (!button) return;
+                if (button.dataset.catalogBulkAction === 'delete') bulkDelete();
+                else if (button.dataset.catalogBulkAction === 'clear') clearSelection();
             });
             render();
         };

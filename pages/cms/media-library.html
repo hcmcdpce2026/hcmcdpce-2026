@@ -131,6 +131,26 @@
                         <p class="cms-filters__summary" id="media-summary" aria-live="polite"></p>
                     </section>
 
+                    <div class="cms-selection-toolbar">
+                        <label class="cms-check cms-selection-toolbar__select-all">
+                            <input type="checkbox" id="media-select-all"
+                                aria-label="Chọn tất cả tài nguyên trên trang hiện tại">
+                            <span>Chọn tất cả tài nguyên trên trang hiện tại</span>
+                        </label>
+                        <div class="cms-bulkbar" id="media-bulkbar" role="region"
+                            aria-label="Thao tác hàng loạt với tài nguyên">
+                            <span class="cms-bulkbar__count">Đã chọn <strong data-media-bulk-count>0</strong> tệp</span>
+                            <div class="cms-bulkbar__actions">
+                                <button type="button" class="cms-btn cms-btn--sm cms-btn--danger"
+                                    data-media-bulk-action="delete">
+                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Xóa đã chọn
+                                </button>
+                                <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                    data-media-bulk-action="clear">Bỏ chọn</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="cms-media-layout">
                         <!-- Vùng tài nguyên -->
                         <div class="cms-media-main">

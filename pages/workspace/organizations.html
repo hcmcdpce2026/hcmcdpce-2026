@@ -118,12 +118,26 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="ws-org-bulkbar" id="ws-org-bulkbar" hidden aria-live="polite">
+                            <span>Đã chọn <strong id="ws-org-selected-count">0</strong> đơn vị trên trang này</span>
+                            <div class="ws-card__tools">
+                                <button type="button" class="ws-btn ws-btn--sm ws-btn--danger"
+                                    data-org-bulk-delete data-perm="org.manage" disabled>
+                                    <i class="fa-solid fa-trash" aria-hidden="true"></i> Xóa đã chọn
+                                </button>
+                                <button type="button" class="ws-btn ws-btn--sm" data-org-clear-selection>Bỏ chọn</button>
+                            </div>
+                        </div>
                         <div class="ws-card__body ws-card__body--flush">
                             <div class="ws-table-wrap">
                                 <table class="ws-table ws-table--stack">
                                     <caption class="ws-u-sr">Danh sách cơ quan, đơn vị</caption>
                                     <thead>
                                         <tr>
+                                            <th scope="col" class="ws-org-select-col">
+                                                <input type="checkbox" class="ws-org-check" id="ws-org-select-all"
+                                                    data-perm="org.manage" aria-label="Chọn tất cả đơn vị trên trang này">
+                                            </th>
                                             <th scope="col" data-sort="code">Mã</th>
                                             <th scope="col" data-sort="name">Tên đơn vị</th>
                                             <th scope="col">Loại hình</th>

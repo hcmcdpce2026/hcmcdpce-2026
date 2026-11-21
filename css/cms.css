@@ -1688,6 +1688,56 @@
   margin-left: auto;
 }
 
+.cms-selection-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.cms-selection-toolbar__select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.cms-selection-toolbar__select-all input,
+.cms-category-select input,
+.cms-media-card-wrap__select input,
+.cms-media-row__select input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.cms-selection-toolbar__select-all input:disabled,
+.cms-category-select input:disabled,
+.cms-media-card-wrap__select input:disabled,
+.cms-media-row__select input:disabled {
+  cursor: not-allowed;
+}
+
+.cms-category-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.cms-category-row .cms-table__title-text {
+  min-width: 0;
+}
+
+.cms-category-select {
+  flex: 0 0 auto;
+  padding-top: 0.1rem;
+}
+
 /* --- Avatar chữ cái nhỏ dùng trong bảng --- */
 
 .cms-mini-user {
@@ -3221,6 +3271,32 @@
   transition: var(--transition);
 }
 
+.cms-media-card-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.cms-media-card-wrap > .cms-media-card {
+  height: 100%;
+}
+
+.cms-media-card-wrap__select {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.45rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--cms-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
 .cms-media-card:hover {
   border-color: var(--color-primary-light);
   box-shadow: var(--shadow-md);
@@ -3393,6 +3469,13 @@
   display: flex;
   gap: 0.1rem;
   justify-self: end;
+}
+
+.cms-media-row__select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
 }
 
 /* Chi tiết tệp trong aside */

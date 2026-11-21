@@ -77,6 +77,25 @@
                                 </label>
                             </div>
                             <div id="system-category-summary" class="cms-u-text-muted cms-u-mb-md" aria-live="polite"></div>
+                            <div class="cms-selection-toolbar">
+                                <label class="cms-check cms-selection-toolbar__select-all">
+                                    <input type="checkbox" id="system-category-select-all"
+                                        aria-label="Chọn tất cả danh mục đang hiển thị">
+                                    <span>Chọn tất cả danh mục đang hiển thị</span>
+                                </label>
+                                <div class="cms-bulkbar" id="system-category-bulkbar" role="region"
+                                    aria-label="Thao tác hàng loạt với danh mục">
+                                    <span class="cms-bulkbar__count">Đã chọn <strong data-system-category-bulk-count>0</strong> danh mục</span>
+                                    <div class="cms-bulkbar__actions">
+                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--danger"
+                                            data-system-category-bulk-action="delete">
+                                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Xóa đã chọn
+                                        </button>
+                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                            data-system-category-bulk-action="clear">Bỏ chọn</button>
+                                    </div>
+                                </div>
+                            </div>
                             <div id="system-category-table"><div class="cms-state">Đang tải danh mục…</div></div>
                         </div>
                     </section>
