@@ -13,6 +13,7 @@ const { getDb } = require('../lib/db');
 const http = require('../lib/http');
 const auth = require('../lib/auth');
 const m = require('../lib/mapper');
+const { isSystemCategoryType, listSystemCategoryTypes } = require('../lib/system-category-types');
 
 const nowIso = () => new Date().toISOString();
 
@@ -45,12 +46,20 @@ async function systemCategories(req, res, ctx) {
   const s = auth.requireAuth(req, res);
   if (!s) return;
   const categoryType = ctx.query.type || '';
-  if (!['organization_type', 'management_level'].includes(categoryType)) {
+  if (!isSystemCategoryType(categoryType)) {
     return http.badRequest(res, 'Loại danh mục không hợp lệ.');
   }
-  const rows = getDb().prepare(`SELECT code, name, category_type AS categoryType, status
-    FROM system_categories WHERE category_type = ? ORDER BY sort_order, name`).all(categoryType);
+  const rows = getDb().prepare(`SELECT id, code, name, category_type AS categoryType, status, sort_order AS sortOrder
+    FROM system_categories WHERE category_type = ? AND status = 'active'
+    ORDER BY sort_order, name`).all(categoryType);
   return http.ok(res, rows);
+}
+
+/** Danh sách loại danh mục hệ thống — dùng cho dropdown quản trị đơn vị. */
+async function systemCategoryTypes(req, res) {
+  const s = auth.requireAuth(req, res);
+  if (!s) return;
+  return http.ok(res, listSystemCategoryTypes());
 }
 
 async function notifications(req, res) {
@@ -123,4 +132,4 @@ async function summary(req, res) {
   });
 }
 
-module.exports = { users, organizations, systemCategories, notifications, markRead, settings, summary };
+module.exports = { users, organizations, systemCategories, systemCategoryTypes, notifications, markRead, settings, summary };

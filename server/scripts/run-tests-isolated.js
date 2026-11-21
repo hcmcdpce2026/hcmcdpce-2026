@@ -35,6 +35,9 @@ const env = {
   /* Mật khẩu cố định chỉ tồn tại trong tiến trình con của lần chạy này */
   SEED_PASSWORD_CMS_ADMIN: 'test-cms-password',
   SEED_PASSWORD_WS_ADMIN: 'test-ws-password',
+  /* Bỏ riêng giới hạn từng tệp để test upload 26 MB chạy được cả khi
+     máy chủ đang giữ MAX_UPLOAD_MB nhỏ trong .env của người phát triển. */
+  MAX_UPLOAD_MB: '0',
 };
 
 function log(msg) { console.log(`[isolated] ${msg}`); }

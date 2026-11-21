@@ -332,6 +332,111 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id6)) {
   console.log('  • Migration', id6, 'đã áp dụng trước đó');
 }
 
+/**
+ * Bảo đảm mọi loại danh mục hệ thống đã được đăng ký có ít nhất các mã mà
+ * dữ liệu thực tế đang dùng, để bộ lọc ở CMS/PUBLIC không bao giờ rỗng vì
+ * danh mục chưa được nạp. Chỉ thêm, không sửa/xóa danh mục người dùng đã tạo.
+ */
+function ensureCatalogueBaseline() {
+  const BASELINE = {
+    category_group: [
+      ['tin-tuc', 'Tin tức'], ['tuyen-truyen-giao-duc', 'Tuyên truyền - Giáo dục'],
+      ['phap-luat', 'Pháp luật'], ['su-kien', 'Sự kiện'],
+    ],
+    doc_type: [
+      ['luat', 'Luật'], ['nghi-quyet', 'Nghị quyết'], ['nghi-dinh', 'Nghị định'],
+      ['quyet-dinh', 'Quyết định'], ['thong-tu', 'Thông tư'],
+    ],
+    legal_field: [['phong-chong-toi-pham-ve-ma-tuy', 'Phòng, chống tội phạm về ma túy']],
+    agency_type: [
+      ['co-quan-hanh-chinh-nha-nuoc', 'Cơ quan hành chính nhà nước'],
+      ['co-quan-cong-an', 'Cơ quan Công an'], ['co-quan-y-te', 'Cơ quan Y tế'],
+    ],
+    management_level: [
+      ['trung-uong', 'Trung ương'], ['cap-tinh-thanh-pho', 'Cấp tỉnh, thành phố'],
+      ['cap-xa-phuong-dac-khu', 'Cấp xã, phường, đặc khu'],
+    ],
+    facility_type: [
+      ['co-so-cai-nghien-ma-tuy-cong-lap', 'Cơ sở cai nghiện ma túy công lập'],
+      ['co-so-dieu-tri-nghien-cac-chat-dang-thuoc-phien-bang-thuoc-thay-the',
+        'Cơ sở điều trị nghiện các chất dạng thuốc phiện bằng thuốc thay thế'],
+      ['co-so-tu-van-ho-tro-cai-nghien-ma-tuy', 'Cơ sở tư vấn, hỗ trợ cai nghiện ma túy'],
+    ],
+    organization_type: [
+      ['co-quan-nha-nuoc', 'Cơ quan nhà nước'], ['to-chuc-chinh-tri-xa-hoi', 'Tổ chức chính trị - xã hội'],
+      ['doanh-nghiep', 'Doanh nghiệp'],
+    ],
+    contact_topic: [],
+    /* Mã phải khớp CHECK của public_events.status; nhãn sửa được trong CMS */
+    event_status: [
+      ['upcoming', 'Sắp diễn ra'], ['ongoing', 'Đang triển khai'], ['past', 'Đã tổ chức'],
+    ],
+  };
+  const ts = new Date().toISOString();
+  const insert = db.prepare(`INSERT OR IGNORE INTO system_categories
+    (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
+    VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'migration')`);
+  let added = 0;
+  Object.entries(BASELINE).forEach(([type, rows]) => {
+    rows.forEach(([code, name], index) => {
+      const idHash = crypto.createHash('sha1').update(`baseline:${type}:${code}`).digest('hex').slice(0, 20);
+      added += Number(insert.run(`sc-${idHash}`, type, code, name, index, ts, ts).changes || 0);
+    });
+  });
+  return added;
+}
+
+const ensured = ensureCatalogueBaseline();
+if (ensured > 0) console.log(`  ✓ Bổ sung ${ensured} mã danh mục cơ sở còn thiếu`);
+
+/* ---------------------------------------------------------------------------
+ * 007 – Trạng thái hoạt động/sự kiện do CMS quản lý (category_type = event_status)
+ * Thêm vào CHECK constraint để danh mục này lưu được trong system_categories.
+ * ------------------------------------------------------------------------- */
+const id7 = '007-event-status-category';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id7)) {
+  const tableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'system_categories'").get();
+  if (tableSql && !tableSql.sql.includes("'event_status'")) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.exec(`CREATE TABLE system_categories_new (
+        id              TEXT PRIMARY KEY,
+        category_type   TEXT NOT NULL CHECK (category_type IN (
+          'category_group', 'doc_type', 'legal_field', 'agency_type',
+          'management_level', 'facility_type', 'organization_type', 'contact_topic', 'event_status'
+        )),
+        code            TEXT NOT NULL,
+        name            TEXT NOT NULL,
+        description     TEXT,
+        sort_order      INTEGER NOT NULL DEFAULT 0,
+        status          TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+        created_at      TEXT NOT NULL,
+        updated_at      TEXT NOT NULL,
+        created_by      TEXT,
+        updated_by      TEXT,
+        UNIQUE (category_type, code)
+      )`);
+      db.exec(`INSERT INTO system_categories_new
+        (id, category_type, code, name, description, sort_order, status, created_at, updated_at, created_by, updated_by)
+        SELECT id, category_type, code, name, description, sort_order, status, created_at, updated_at, created_by, updated_by
+        FROM system_categories`);
+      db.exec('DROP TABLE system_categories');
+      db.exec('ALTER TABLE system_categories_new RENAME TO system_categories');
+      db.exec('CREATE UNIQUE INDEX uq_system_categories_type_name\n        ON system_categories(category_type, name COLLATE NOCASE)');
+      db.exec('CREATE INDEX idx_system_categories_status_order\n        ON system_categories(category_type, status, sort_order, name)');
+      db.exec('COMMIT');
+      console.log('  ✓ Mở rộng nhóm danh mục hệ thống event_status');
+    } catch (err) {
+      try { db.exec('ROLLBACK'); } catch (_) { /* bỏ qua */ }
+      throw err;
+    }
+  }
+  ensureCatalogueBaseline();
+  db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id7, new Date().toISOString());
+} else {
+  console.log('  • Migration', id7, 'đã áp dụng trước đó');
+}
+
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();
 console.log(`  ✓ Tổng số bảng: ${tables.length}`);
 console.log('═══════════════════════════════');

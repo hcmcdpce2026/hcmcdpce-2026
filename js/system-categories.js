@@ -2,17 +2,15 @@
     'use strict';
 
     const api = window.PortalAPI;
-    const types = [
-        ['category_group', 'Nhóm chuyên mục'],
-        ['doc_type', 'Loại văn bản'],
-        ['legal_field', 'Lĩnh vực pháp luật'],
-        ['agency_type', 'Loại hình cơ quan'],
-        ['management_level', 'Cấp quản lý'],
-        ['facility_type', 'Loại hình cơ sở'],
-        ['organization_type', 'Loại hình tổ chức'],
-        ['contact_topic', 'Nhóm nội dung liên hệ'],
-    ];
-    const state = { type: types[0][0], status: '', query: '', rows: [], editing: null };
+    const TYPES_ENDPOINT = '/api/cms/system-category-types';
+    /** Nạp danh sách loại danh mục từ máy chủ (server/lib/system-category-types.js). */
+    let types = [];
+    const loadTypes = async () => {
+        types = await api.get(TYPES_ENDPOINT);
+        if (!Array.isArray(types) || !types.length) throw new Error('Máy chủ chưa khai báo loại danh mục nào.');
+        return types;
+    };
+    const state = { type: '', status: '', query: '', rows: [], editing: null };
     const el = {};
 
     const escape = (value) => String(value == null ? '' : value)
@@ -29,9 +27,13 @@
 
     const setTypeOptions = (select) => {
         const options = document.createDocumentFragment();
-        types.forEach(([value, label]) => {
+        const all = document.createElement('option');
+        all.value = '';
+        all.textContent = 'Tất cả loại danh mục';
+        options.appendChild(all);
+        types.forEach(({ type, label }) => {
             const option = document.createElement('option');
-            option.value = value;
+            option.value = type;
             option.textContent = label;
             options.appendChild(option);
         });
@@ -52,6 +54,7 @@
     const render = async () => {
         el.table.innerHTML = '<div class="cms-state">Đang tải danh mục…</div>';
         try {
+            if (!types.length) await loadTypes();
             const query = state.type ? `?type=${encodeURIComponent(state.type)}` : '';
             const rows = await api.get(`/api/cms/system-categories${query}`);
             state.rows = Array.isArray(rows) ? rows : [];
@@ -158,7 +161,7 @@
         });
     };
 
-    const init = () => {
+    const init = async () => {
         if (!api || !document.getElementById('system-category-table')) return;
         el.type = document.getElementById('system-category-type');
         el.status = document.getElementById('system-category-status');
@@ -177,6 +180,12 @@
         el.formStatus = document.getElementById('system-category-form-status');
         el.close = document.getElementById('system-category-close');
         el.cancel = document.getElementById('system-category-cancel');
+        try {
+            await loadTypes();
+        } catch (error) {
+            showError(error);
+            return;
+        }
         bind();
         render();
     };

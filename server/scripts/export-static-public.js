@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { getDb } = require('../lib/db');
 const mapper = require('../lib/mapper');
+const sysCategories = require('../lib/system-category-types');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const UPLOADS_DIR = path.join(ROOT, 'uploads');
@@ -204,10 +205,19 @@ function collectPublicData() {
   return {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    /* Số liệu đếm dùng cho khối thống kê trang chủ — cùng nguồn với /api/public/summary */
+    summary: {
+      lawDocuments: legalDocuments.length,
+      articles: articles.length,
+      agencies: agencies.length,
+      educationTopics: new Set(categories.filter((c) => Number(c.articleCount || 0) > 0).map((c) => c.group).filter(Boolean)).size,
+    },
     articles,
     categories,
     legalDocuments,
     systemCategories: categoryRows,
+    systemCategoryTypes: sysCategories.listSystemCategoryTypes(),
+    eventStatuses: sysCategories.listEventStatuses(db),
     events,
     agencies,
     statistics,

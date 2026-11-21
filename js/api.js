@@ -147,6 +147,14 @@
             return (snapshot.systemCategories || []).filter((category) => !type || category.categoryType === type);
         }
 
+        if (pathname === '/api/public/system-category-types') {
+            return snapshot.systemCategoryTypes || [];
+        }
+
+        if (pathname === '/api/public/summary') return snapshot.summary || null;
+
+        if (pathname === '/api/public/event-statuses') return snapshot.eventStatuses || [];
+
         if (pathname === '/api/public/legal-documents') {
             const id = query.get('id');
             if (id) {
@@ -284,7 +292,10 @@
         }
 
         if (!response.ok) {
-            if (response.status === 404 && !payload && isPublicRead(method, path)) {
+            /* 404 JSON của chính API là câu trả lời thật (endpoint/bản ghi không tồn tại),
+               KHÔNG được thay bằng snapshot tĩnh — làm vậy lỗi thật bị che mất. */
+            const isApiError = response.headers.get('content-type')?.includes('application/json');
+            if (response.status === 404 && !isApiError && isPublicRead(method, path)) {
                 try {
                     const fallback = await tryStaticPublicRead(path);
                     if (fallback.matched) return fallback.data;

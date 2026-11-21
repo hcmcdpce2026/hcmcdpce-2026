@@ -15,10 +15,12 @@
         sessionKey: 'hcm-cms-session',
         preferenceKey: 'hcm-cms-prefs',
         /* Chính sách tải tệp phải khớp server/lib/upload.js (máy chủ là nơi quyết định
-           cuối cùng; danh sách ở đây chỉ để giao diện báo lỗi sớm). */
+           cuối cùng; danh sách ở đây chỉ để giao diện báo lỗi sớm).
+           `maxSize: 0` nghĩa là không chặn dung lượng ở trình duyệt; máy chủ vẫn áp
+           dụng trần của nó (MAX_UPLOAD_MB). */
         upload: {
-            maxSize: 25 * 1024 * 1024,
-            text: 'JPG, PNG, WEBP, GIF · PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX · MP4, WEBM · MP3, WAV · tối đa 25 MB/tệp',
+            maxSize: 200 * 1024 * 1024,
+            text: 'JPG, PNG, WEBP, GIF · PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX · MP4, WEBM · MP3, WAV · tối đa 200 MB/tệp',
             ext: [
                 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp', 'ico',
                 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'zip',
@@ -169,7 +171,8 @@
             const b = Number(bytes) || 0;
             if (b < 1024) return `${b} B`;
             if (b < 1024 * 1024) return `${(b / 1024).toFixed(b < 10240 ? 1 : 0)} KB`;
-            return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+            if (b < 1024 * 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(b < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+            return `${(b / (1024 * 1024 * 1024)).toFixed(2)} GB`;
         };
 
         const initials = (name) => {
@@ -3707,8 +3710,12 @@ const Store = (function () {
                     message: 'Định dạng .' + (ext || '?') + ' không được hỗ trợ. Chỉ nhận: ' + CONFIG.upload.text
                 };
             }
-            if (file.size > CONFIG.upload.maxSize) {
-                return { ok: false, message: 'Tệp vượt quá 25 MB. Vui lòng nén hoặc chọn tệp nhỏ hơn.' };
+            if (CONFIG.upload.maxSize > 0 && file.size > CONFIG.upload.maxSize) {
+                return {
+                    ok: false,
+                    message: 'Tệp vượt quá ' + util.formatBytes(CONFIG.upload.maxSize)
+                        + '. Vui lòng nén hoặc chọn tệp nhỏ hơn.'
+                };
             }
             return { ok: true };
         };
@@ -3968,6 +3975,7 @@ const Store = (function () {
             statistics: 'Số liệu thống kê',
         };
 
+        /* Nhãn dự phòng khi chưa tải được danh mục; nguồn chính là `event_status` trong CMS */
         const EVENT_STATUS = { upcoming: 'Sắp diễn ra', ongoing: 'Đang diễn ra', past: 'Đã kết thúc' };
         const PUBLISH_STATUS = { draft: 'Chưa công khai', published: 'Đã công khai', hidden: 'Tạm ẩn' };
         const EFFECT_STATUS = {
@@ -4070,7 +4078,8 @@ const Store = (function () {
                     ['summary', 'Mô tả', v.summary || '', 'textarea', false],
                     ['content', 'Nội dung chi tiết', v.content || '', 'textarea', false],
                     ['imageUrl', 'Ảnh sự kiện', v.imageUrl || v.image_url || v.image || '', { image: true }, false],
-                    ['status', 'Trạng thái sự kiện', v.status || 'upcoming', { select: EVENT_STATUS }, false],
+                    ['status', 'Trạng thái sự kiện', v.status || 'upcoming',
+                        { select: Object.keys(categories.eventStatuses || {}).length ? categories.eventStatuses : EVENT_STATUS }, false],
                     ['publishStatus', 'Trạng thái xuất bản', v.publishStatus || v.publish_status || 'published',
                         { select: PUBLISH_STATUS }, false],
                 ];
@@ -4217,7 +4226,7 @@ const Store = (function () {
 
         const openForm = async (item) => {
             const values = {
-                docTypes: [], legalFields: [], agencyTypes: [], managementLevels: [], facilityTypes: [],
+                docTypes: [], legalFields: [], agencyTypes: [], managementLevels: [], facilityTypes: [], eventStatuses: {},
             };
             try {
                 if (kind === 'legal-documents') {
@@ -4232,6 +4241,12 @@ const Store = (function () {
                     ]);
                 } else if (kind === 'support-facilities') {
                     values.facilityTypes = await getCategoryOptions('facility_type', item && item.type);
+                } else if (kind === 'events') {
+                    const statuses = await getCategoryOptions('event_status', item && item.status);
+                    values.eventStatuses = statuses.reduce((acc, option) => {
+                        acc[option.value] = option.label;
+                        return acc;
+                    }, {});
                 }
             } catch (err) {
                 ui.toast(err.message || 'Không tải được danh mục lựa chọn.', 'error');
@@ -5218,7 +5233,7 @@ const Store = (function () {
             let item = Store.submissions().find((s) => s.id === id);
             if (!item) return;
             let orgs = [];
-            try { orgs = await window.PortalAPI.get('/api/workspace/organizations'); } catch (e) { orgs = []; }
+            try { orgs = await window.PortalAPI.get('/api/shared/organizations'); } catch (e) { orgs = []; }
 
             const orgOptions = orgs.map((o) => `<option value="${util.escape(o.id)}" ${item.assignedOrgId === o.id ? 'selected' : ''}>${util.escape(o.name)}</option>`).join('');
             const dlg = ui.modal({

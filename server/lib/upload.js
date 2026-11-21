@@ -10,15 +10,46 @@
  */
 'use strict';
 
-/** Dung lượng tối đa của một tệp được lưu (byte) – 25 MB */
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
+/** Dung lượng mặc định tối đa của một tệp được lưu (byte) – 200 MB */
+const DEFAULT_MAX_FILE_BYTES = 200 * 1024 * 1024;
+
+/**
+ * Trần kỹ thuật cho MAX_UPLOAD_MB: toàn bộ body multipart được đọc vào bộ nhớ
+ * trước khi ghi tệp, nên phải chặn một giá trị cấu hình quá lớn làm cạn RAM.
+ */
+const MAX_CONFIGURED_FILE_BYTES = 1024 * 1024 * 1024;
+
+/**
+ * Đọc giới hạn dung lượng từ biến môi trường `MAX_UPLOAD_MB`.
+ * Trả về null nếu biến trống/không hợp lệ để dùng giá trị mặc định.
+ * Dùng 0 hoặc `none` để bỏ giới hạn từng tệp (vẫn còn trần body).
+ */
+function resolveMaxFileBytes(raw = process.env.MAX_UPLOAD_MB) {
+  const value = String(raw == null ? '' : raw).trim().toLowerCase();
+  if (!value) return null;
+  if (value === '0' || value === 'none' || value === 'unlimited') return 0;
+  const mb = Number(value);
+  if (!Number.isFinite(mb) || mb <= 0) return null;
+  return Math.min(Math.round(mb * 1024 * 1024), MAX_CONFIGURED_FILE_BYTES);
+}
+
+/** Dung lượng tối đa của một tệp được lưu (byte) – 0 nghĩa là không giới hạn. */
+let MAX_FILE_BYTES = resolveMaxFileBytes() ?? DEFAULT_MAX_FILE_BYTES;
 
 /**
  * Tổng dung lượng body multipart tối đa (byte).
  * Body có thể chứa nhiều tệp trong một lần gửi, nên trần này rộng hơn giới hạn
  * từng tệp; giới hạn từng tệp được kiểm tra riêng khi tách xong các phần.
  */
-const MAX_BODY_BYTES = 200 * 1024 * 1024;
+let MAX_BODY_BYTES = 200 * 1024 * 1024;
+
+/** Đặt lại hai trần dung lượng theo biến môi trường hiện tại (dùng cho kiểm thử). */
+function applyUploadLimits() {
+  MAX_FILE_BYTES = resolveMaxFileBytes() ?? DEFAULT_MAX_FILE_BYTES;
+  MAX_BODY_BYTES = Math.max(200 * 1024 * 1024, MAX_FILE_BYTES + 64 * 1024 * 1024);
+}
+
+applyUploadLimits();
 
 /**
  * Loại tệp được phép: phần mở rộng -> { type, mimes[] }
@@ -109,7 +140,7 @@ function checkFile(name, size) {
   }
   if (typeof size === 'number') {
     if (size <= 0) return { ok: false, message: 'Tệp rỗng hoặc không đọc được.' };
-    if (size > MAX_FILE_BYTES) {
+    if (MAX_FILE_BYTES > 0 && size > MAX_FILE_BYTES) {
       return { ok: false, message: `Tệp vượt quá dung lượng cho phép (${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB).` };
     }
   }
@@ -129,8 +160,10 @@ function normalizeMime(ext, declared) {
 }
 
 module.exports = {
-  MAX_FILE_BYTES,
-  MAX_BODY_BYTES,
+  get MAX_FILE_BYTES() { return MAX_FILE_BYTES; },
+  get MAX_BODY_BYTES() { return MAX_BODY_BYTES; },
+  MAX_FILE_LIMIT_BYTES: MAX_CONFIGURED_FILE_BYTES,
+  applyUploadLimits,
   ALLOWED,
   BLOCKED,
   acceptAttribute,

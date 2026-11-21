@@ -112,7 +112,10 @@ async function run() {
   r = await anon.request('GET', '/api/public/legal-documents');
   check('Văn bản pháp luật trả về mảng', r.status === 200 && Array.isArray(r.body.data));
   r = await anon.request('GET', '/api/public/system-categories?type=legal_field');
-  check('Lĩnh vực lọc pháp luật lấy từ danh mục CMS', r.status === 200 && r.body.data.length === 4);
+  check('Lĩnh vực lọc pháp luật lấy từ danh mục CMS',
+    r.status === 200 && Array.isArray(r.body.data) && r.body.data.length > 0
+      && r.body.data.every((row) => row.categoryType === 'legal_field' && !!row.code && !!row.name),
+    `${r.status} ${Array.isArray(r.body.data) ? r.body.data.length : 'n/a'}`);
   r = await anon.request('GET', '/api/public/statistics');
   check('Số liệu thống kê trả về mảng (rỗng khi chưa công bố)',
     r.status === 200 && Array.isArray(r.body.data) && r.body.data.every((p) => p.sourceType !== undefined));
@@ -125,6 +128,36 @@ async function run() {
     r.body.data.every((event) => ['upcoming', 'ongoing', 'past'].includes(event.status)));
   r = await anon.request('GET', '/api/public/support-facilities');
   check('Cơ sở hỗ trợ công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
+
+  /* Số liệu trang chủ: một endpoint, đếm bằng COUNT trên máy chủ */
+  const summary = await anon.request('GET', '/api/public/summary');
+  check('Số liệu tổng quan có đủ khoá đếm',
+    summary.status === 200 && ['articles', 'laws', 'agencies', 'educationTopics']
+      .every((key) => Number.isInteger(summary.body.data[key])),
+    `status=${summary.status} ${JSON.stringify(summary.body.data).slice(0, 120)}`);
+  const publicArticles = await anon.request('GET', '/api/public/articles?limit=50');
+  check('Số liệu tổng quan khớp danh sách thật',
+    summary.status === 200 && publicArticles.status === 200
+      && summary.body.data.articles === publicArticles.body.data.length,
+    `${summary.body.data && summary.body.data.articles} vs ${publicArticles.body.data && publicArticles.body.data.length}`);
+
+  /* Danh mục hệ thống: danh sách loại do máy chủ khai báo, không hardcode ở client */
+  const publicTypes = await anon.request('GET', '/api/public/system-category-types');
+  check('PUBLIC trả danh sách loại danh mục kèm nhãn',
+    publicTypes.status === 200 && Array.isArray(publicTypes.body.data) && publicTypes.body.data.length > 0
+      && publicTypes.body.data.every((t) => !!t.type && !!t.label),
+    `status=${publicTypes.status}`);
+
+  /* Bộ lọc trạng thái sự kiện do CMS quản lý, không hardcode trong HTML */
+  const eventStatuses = await anon.request('GET', '/api/public/event-statuses');
+  check('Trạng thái sự kiện lấy từ danh mục CMS',
+    eventStatuses.status === 200 && Array.isArray(eventStatuses.body.data) && eventStatuses.body.data.length > 0
+      && eventStatuses.body.data.every((row) => !!row.code && !!row.name),
+    `status=${eventStatuses.status}`);
+  const eventStatusCodes = (eventStatuses.body.data || []).map((row) => row.code);
+  check('Mọi mã trạng thái đều là trạng thái sự kiện hợp lệ',
+    eventStatusCodes.every((code) => code === 'upcoming' || code === 'ongoing' || code === 'past'),
+    eventStatusCodes.join(','));
 
   /* 2. Đăng nhập */
   console.log('\n[2] XÁC THỰC');
@@ -142,6 +175,16 @@ async function run() {
   if (process.env.TEST_DEBUG && r.status !== 200) console.log('[debug] raw =', JSON.stringify(r.body));
   check('Đăng nhập CMS admin thành công', r.status === 200 && !!cmsAdmin.csrf, `status=${r.status} ${r.status !== 200 ? JSON.stringify(r.body).slice(0, 120) : ''}`);
   check('Không trả mật khẩu/hash trong phản hồi', !JSON.stringify(r.body).includes('scrypt') && !JSON.stringify(r.body).includes('password_hash'));
+
+  r = await cmsAdmin.request('GET', '/api/cms/system-category-types');
+  check('CMS trả danh sách loại danh mục', r.status === 200 && Array.isArray(r.body.data) && r.body.data.length > 0, `status=${r.status}`);
+  r = await cmsAdmin.request('GET', '/api/shared/system-category-types');
+  check('SHARED trả danh sách loại danh mục', r.status === 200 && Array.isArray(r.body.data) && r.body.data.length > 0, `status=${r.status}`);
+  r = await cmsAdmin.request('GET', '/api/shared/system-categories?type=doc_type');
+  check('SHARED trả danh mục theo loại bất kỳ', r.status === 200 && Array.isArray(r.body.data)
+    && r.body.data.every((row) => row.categoryType === 'doc_type'), `status=${r.status}`);
+  r = await cmsAdmin.request('GET', '/api/shared/system-categories?type=khong_ton_tai');
+  check('SHARED từ chối loại danh mục không hợp lệ', r.status === 400, `status=${r.status}`);
 
   const statisticsKey = `test-stat-${Date.now()}`;
   r = await cmsAdmin.request('POST', '/api/cms/catalog/statistics', {
@@ -484,7 +527,12 @@ async function run() {
   r = await uploadFile('rong.pdf', 'application/pdf', Buffer.alloc(0));
   check('Từ chối tệp rỗng', r.status === 400);
   r = await uploadFile('qua-lon.mp4', 'video/mp4', Buffer.alloc(26 * 1024 * 1024, 1));
-  check('Từ chối tệp vượt 25 MB', r.status === 400 && /25 MB/.test(r.body.error || ''), `status=${r.status} ${r.body.error || ''}`);
+  check('Nhận tệp 26 MB (đã nâng trần 25 MB cũ)', r.status === 201, `status=${r.status} ${r.body.error || ''}`);
+  if (r.status === 201) {
+    const bigId = r.body.data.id;
+    check('Lưu đúng dung lượng tệp lớn', r.body.data.size === 26 * 1024 * 1024, `size=${r.body.data.size}`);
+    await cmsAdmin.request('DELETE', `/api/cms/media/${bigId}`);
+  }
 
   const staticImage = await fetch(`${BASE}/assets/images/1.jpg`);
   check('Ảnh tĩnh vẫn phục vụ đúng MIME',

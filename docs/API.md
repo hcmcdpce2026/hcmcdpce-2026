@@ -106,7 +106,8 @@ Ví dụ:
 ```powershell
 $body = @{
   username = "cms-admin"
-  password = "<mat-khau>"
+  # Không lưu mật khẩu dạng văn bản trong mã; nhập khi chạy
+  password = Read-Host "Mat khau CMS" -AsSecureString | ConvertFrom-SecureString -AsPlainText
   system = "cms"
 } | ConvertTo-Json
 
@@ -124,7 +125,10 @@ Các endpoint đọc không cần đăng nhập.
 | GET | `/api/public/articles` | `page`, `limit`, `categoryId/category`, `search/q`, `group`, `featured` |
 | GET | `/api/public/articles/:id` | Chi tiết theo ID hoặc slug |
 | GET | `/api/public/categories` | Chuyên mục đang hoạt động |
-| GET | `/api/public/system-categories` | Danh mục hệ thống theo `type` |
+| GET | `/api/public/system-categories` | Danh mục hệ thống theo `type` (chỉ bản ghi `active`) |
+| GET | `/api/public/system-category-types` | Danh sách loại danh mục `{ type, label }` do máy chủ khai báo |
+| GET | `/api/public/event-statuses` | Bộ lọc trạng thái sự kiện `{ code, name, role }` do CMS quản lý |
+| GET | `/api/public/summary` | Số liệu đếm cho trang chủ: `laws`, `articles`, `agencies`, `educationTopics` |
 | GET | `/api/public/legal-documents` | `id`, `type`, `field`, `issuer`, `year`, `effectStatus`, `search` |
 | GET | `/api/public/events` | `id`, `type`, `status`, `search` |
 | GET | `/api/public/agencies` | `id`, taxonomy loại hình/cấp quản lý |
@@ -173,7 +177,7 @@ Tất cả route yêu cầu phiên CMS.
 | Bài viết | `GET/POST /api/cms/articles`, `GET/PUT/DELETE /api/cms/articles/:id` |
 | Quy trình bài | `POST /api/cms/articles/:id/:action` |
 | Chuyên mục | `GET/POST /api/cms/categories`, `PUT/DELETE /api/cms/categories/:id`, `POST /api/cms/categories/:id/reorder` |
-| Danh mục hệ thống | `GET/POST /api/cms/system-categories`, `PUT/DELETE/PATCH /api/cms/system-categories/:id` |
+| Danh mục hệ thống | `GET/POST /api/cms/system-categories`, `PUT/DELETE/PATCH /api/cms/system-categories/:id`, `GET /api/cms/system-category-types` |
 | Media | `GET/POST /api/cms/media`, `DELETE /api/cms/media/:id` |
 | Danh mục PUBLIC | `GET/POST/PUT/DELETE /api/cms/catalog/:kind...` |
 | Quy trình | `GET /api/cms/workflow` |
@@ -238,7 +242,8 @@ Yêu cầu phiên hợp lệ của CMS hoặc Workspace.
 |---|---|---|
 | GET | `/api/shared/users` | Danh bạ người dùng |
 | GET | `/api/shared/organizations` | Danh sách đơn vị |
-| GET | `/api/shared/system-categories` | Danh mục nghiệp vụ |
+| GET | `/api/shared/system-categories` | Danh mục nghiệp vụ theo `type` (mọi loại đã đăng ký, chỉ `active`) |
+| GET | `/api/shared/system-category-types` | Danh sách loại danh mục `{ type, label }` |
 | GET | `/api/shared/notifications` | Thông báo và unread count |
 | POST | `/api/shared/notifications/read` | Đánh dấu đã đọc |
 | GET | `/api/shared/settings` | Cấu hình |
@@ -248,7 +253,7 @@ Yêu cầu phiên hợp lệ của CMS hoặc Workspace.
 
 Upload đi qua `server/lib/upload.js`. Chính sách mặc định:
 
-- tối đa 25 MB/tệp;
+- tối đa 200 MB/tệp (đổi bằng biến `MAX_UPLOAD_MB`; `0` = không giới hạn, trần 1024 MB);
 - cho phép ảnh JPG/JPEG/PNG/WEBP/GIF/AVIF/BMP/ICO;
 - cho phép tài liệu PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX/CSV/TXT/ZIP;
 - cho phép media MP4/WEBM/M4V/OGV/MP3/WAV/OGG;

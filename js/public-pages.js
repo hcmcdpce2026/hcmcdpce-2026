@@ -1298,16 +1298,28 @@
         const countEl = document.getElementById('ev-result-count');
         if (!host && !spotlight) return;
 
-        const STATUS = {
-            upcoming: { label: 'Sắp diễn ra', cls: 'ev-card__status--upcoming' },
-            ongoing: { label: 'Đang triển khai', cls: 'ev-card__status--ongoing' },
-            past: { label: 'Đã tổ chức', cls: 'ev-card__status--past' },
-        };
+        /*
+         * Nhãn, thứ tự và sự tồn tại của trạng thái do CMS quản lý
+         * (danh mục `event_status`). Mã vẫn phải khớp cột public_events.status,
+         * nhưng người biên tập có thể đổi tên hiển thị, ẩn bớt hoặc sắp lại.
+         * Nếu chưa tải được danh mục thì vẫn tính trạng thái theo mã + ngày.
+         */
+        const TRANG_THAI_MAC_DINH = { upcoming: 'Sắp diễn ra', ongoing: 'Đang triển khai', past: 'Đã tổ chức' };
+        const statusOptions = await api.get('/api/public/event-statuses').catch(() => null);
+        const statusLabels = Object.assign({}, TRANG_THAI_MAC_DINH);
+        const statusRoles = {};
+        (Array.isArray(statusOptions) ? statusOptions : []).forEach((row) => {
+            if (!row || !row.code) return;
+            statusLabels[row.code] = row.name || statusLabels[row.code] || row.code;
+            statusRoles[row.code] = row.role || '';
+        });
+        const roleOfStatus = (code) => statusRoles[code] || '';
+        const statusClass = (code) => 'ev-card__status--' + String(code || 'past').replace(/[^a-z0-9-]/gi, '');
         const statusOf = (e) => {
             const now = Date.now();
             const start = e.start ? Date.parse(e.start) : NaN;
             const end = e.end ? Date.parse(e.end) : NaN;
-            const declaredStatus = STATUS[e.status] ? e.status : null;
+            const declaredStatus = statusLabels[e.status] ? e.status : null;
             if (Number.isFinite(start) && now < start) return 'upcoming';
             if (Number.isFinite(end)) return now <= end ? 'ongoing' : 'past';
             if (Number.isFinite(start)) return declaredStatus === 'ongoing' ? 'ongoing' : 'past';
@@ -1345,7 +1357,7 @@
                         <div class="ev-spotlight__content">
                             <span class="ev-spotlight__status">
                                 <i class="fa-solid fa-circle-dot" aria-hidden="true"></i>
-                                ${esc(STATUS[statusOf(lead)].label)}
+                                ${esc(statusLabels[statusOf(lead)] || statusOf(lead))}
                             </span>
                             <h2 class="ev-spotlight__title">${esc(lead.title)}</h2>
                             <p class="ev-spotlight__desc">${esc(lead.summary || '')}</p>
@@ -1409,7 +1421,7 @@
                                 <span class="ev-card__date-day">${day}</span>
                                 <span class="ev-card__date-month">${month}</span>
                             </div>
-                            <span class="ev-card__status ${STATUS[st].cls}">${STATUS[st].label}</span>
+                            <span class="ev-card__status ${statusClass(st)}">${esc(statusLabels[st] || st)}</span>
                         </div>
                         <div class="ev-card__body">
                             <span class="ev-card__cat">${esc(eventType || 'Hoạt động')}</span>
@@ -1453,6 +1465,24 @@
             const statusSelect = document.getElementById('ev-status-select');
             const resetButton = document.getElementById('ev-reset-btn');
             const emptyResetButton = document.getElementById('ev-empty-reset');
+
+            /* Lựa chọn trạng thái dựng từ danh mục CMS (event_status) thay vì HTML tĩnh */
+            if (statusSelect) {
+                const current = statusSelect.value || 'all';
+                statusSelect.textContent = '';
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = 'Tất cả trạng thái';
+                statusSelect.appendChild(allOption);
+                (Array.isArray(statusOptions) ? statusOptions : []).forEach((row) => {
+                    if (!row || !row.code) return;
+                    const option = document.createElement('option');
+                    option.value = row.code;
+                    option.textContent = row.name || row.code;
+                    statusSelect.appendChild(option);
+                });
+                statusSelect.value = [...statusSelect.options].some((o) => o.value === current) ? current : 'all';
+            }
             const normalize = (value) => String(value || '').toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
             let selectedCategory = 'all';
@@ -1702,7 +1732,7 @@
      * nào được khai báo tĩnh trong HTML hay JavaScript.
      */
     async function initSupport() {
-        const host = document.querySelector('[data-support-list]') || document.getElementById('sup-centers-list');
+        const host = document.getElementById('sup-centers-list') || document.querySelector('[data-support-list]');
         if (!host) return;
         const input = document.getElementById('sup-search-input');
         const typeSelect = document.getElementById('sup-type-select');

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -19,8 +19,8 @@
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="stylesheet" href="../../css/main.css">
     <link rel="stylesheet" href="../../css/responsive.css">
-    <script src="../../js/main.js" defer></script>
     <script src="../../js/api.js" defer></script>
+    <script src="../../js/main.js" defer></script>
     <script src="../../js/public-pages.js" defer></script>
 </head>
 <body>
@@ -193,11 +193,10 @@
                                    aria-label="Tìm kiếm sự kiện">
                         </div>
 
+                        <!-- Lựa chọn trạng thái được dựng từ danh mục CMS (event_status);
+                             giữ "Tất cả trạng thái" làm mặc định khi chưa tải xong. -->
                         <select id="ev-status-select" class="ev-select" aria-label="Lọc theo trạng thái">
                             <option value="all">Tất cả trạng thái</option>
-                            <option value="upcoming">Sắp diễn ra</option>
-                            <option value="ongoing">Đang triển khai</option>
-                            <option value="past">Đã tổ chức</option>
                         </select>
 
                         <button type="button" id="ev-reset-btn" class="ev-reset-btn">

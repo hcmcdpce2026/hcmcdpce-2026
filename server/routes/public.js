@@ -20,6 +20,7 @@ const { getDb } = require('../lib/db');
 const http = require('../lib/http');
 const sec = require('../lib/security');
 const m = require('../lib/mapper');
+const sysCategories = require('../lib/system-category-types');
 
 const nowIso = () => new Date().toISOString();
 const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -113,6 +114,36 @@ async function listSystemCategories(req, res, ctx) {
     : db.prepare(`SELECT category_type AS categoryType, code, name, description, sort_order AS sortOrder
         FROM system_categories WHERE status = 'active' ORDER BY category_type, sort_order, name`).all();
   return http.ok(res, rows);
+}
+
+/** Danh sách loại danh mục hệ thống + nhãn, để PUBLIC không phải khai báo lại. */
+async function listSystemCategoryTypes(req, res) {
+  return http.ok(res, sysCategories.listSystemCategoryTypes());
+}
+
+/** Bộ lọc trạng thái hoạt động/sự kiện, do CMS quản lý (danh mục event_status). */
+async function listEventStatuses(req, res) {
+  return http.ok(res, sysCategories.listEventStatuses(getDb()));
+}
+
+/**
+ * Số liệu đếm dùng cho khối thống kê trên trang chủ.
+ * Một truy vấn duy nhất thay cho 4 lần gọi API riêng, và không lấy danh sách
+ * đầy đủ (mỗi danh sách bị giới hạn 50 bản ghi nên đếm sẽ sai khi dữ liệu lớn).
+ */
+async function listSummary(req, res) {
+  const db = getDb();
+  const one = (sql) => db.prepare(sql).get().c;
+  return http.ok(res, {
+    articles: one("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'"),
+    laws: one("SELECT COUNT(*) AS c FROM legal_documents WHERE is_public <> 0 AND status <> 'inactive'"),
+    agencies: one("SELECT COUNT(*) AS c FROM public_agencies WHERE status <> 'inactive'"),
+    /* Chuyên đề = số nhóm chuyên mục khác nhau đang có ít nhất một bài đã xuất bản */
+    educationTopics: one(`SELECT COUNT(DISTINCT c.group_key) AS c FROM articles a
+        JOIN categories c ON c.id = a.category_id
+        WHERE a.status = 'published' AND c.status = 'active' AND c.group_key IS NOT NULL AND c.group_key <> ''`),
+    generatedAt: nowIso(),
+  });
 }
 
 /**
@@ -418,6 +449,6 @@ async function lookupSubmission(req, res, ctx) {
 }
 
 module.exports = {
-  health, listArticles, getArticle, listCategories, listSystemCategories, listLegal, listEvents, listAgencies,
+  health, listArticles, getArticle, listCategories, listSystemCategories, listSystemCategoryTypes, listEventStatuses, listSummary, listLegal, listEvents, listAgencies,
   listStatistics, listSupport, listBanners, listNotifications, createSubmission, lookupSubmission,
 };

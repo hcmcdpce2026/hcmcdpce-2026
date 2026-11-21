@@ -1,4 +1,4 @@
-/**
+﻿/**
  * main.js - Xử lý tương tác dùng chung cho Header và Footer
  * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  */
@@ -221,43 +221,41 @@ function initFooterYear() {
 
 /* ==========================================================================
    7. SỐ LIỆU TỔNG QUAN TRÊN TRANG CHỦ (.site-main__stat-value[data-stat])
-   Số liệu được đếm từ dữ liệu thật do API công khai (đã xuất bản/xuất bản từ CMS).
-   Khi chưa có bản ghi, thẻ tương ứng giữ trạng thái "Đang cập nhật" thay vì
-   hiển thị số 0 gây hiểu nhầm.
+   Một lần gọi /api/public/summary trả về mọi con số (server tự đếm bằng COUNT).
+   Khi tải lỗi, thẻ giữ trạng thái "Đang cập nhật" kèm thông báo — không hiển
+   thị số 0 hay dữ liệu giả để lấp chỗ.
    ========================================================================== */
 function initHomepageStats() {
     const nodes = document.querySelectorAll('.site-main__stat-value[data-stat]');
     if (!nodes.length || !window.PortalAPI) return;
 
     const api = window.PortalAPI;
+    const MAP = { laws: 'laws', articles: 'articles', agencies: 'agencies', educationTopics: 'education' };
 
     const setValue = (key, total) => {
-        if (!(total > 0)) return;
+        const value = Number(total);
+        if (!Number.isFinite(value) || value <= 0) return;
         nodes.forEach((el) => {
             if (el.getAttribute('data-stat') !== key) return;
-            el.textContent = String(total);
+            el.textContent = value.toLocaleString('vi-VN');
             el.classList.add('is-available');
             el.closest('.site-main__stat-card')?.classList.add('is-available');
         });
     };
 
-    api.get('/api/public/legal-documents')
-        .then((rows) => setValue('laws', Array.isArray(rows) ? rows.length : 0))
-        .catch(() => {});
-    api.get('/api/public/articles' + api.qs({ limit: 50 }))
-        .then((rows) => setValue('articles', Array.isArray(rows) ? rows.length : 0))
-        .catch(() => {});
-    api.get('/api/public/agencies')
-        .then((rows) => setValue('agencies', Array.isArray(rows) ? rows.length : 0))
-        .catch(() => {});
-    /* Chuyên đề tuyên truyền: số nhóm chuyên mục có nội dung đã xuất bản */
-    api.get('/api/public/categories')
-        .then((rows) => {
-            const withContent = (rows || []).filter((c) => Number(c.articleCount || 0) > 0);
-            const groups = new Set(withContent.map((c) => c.group || '').filter(Boolean));
-            setValue('education', groups.size);
+    api.get('/api/public/summary')
+        .then((data) => {
+            if (!data) return;
+            Object.keys(MAP).forEach((field) => setValue(MAP[field], data[field]));
         })
-        .catch(() => {});
+        .catch((error) => {
+            /* Giữ "Đang cập nhật" nhưng nêu lý do để người dùng không hiểu sai */
+            nodes.forEach((el) => {
+                el.textContent = error && error.isNetwork ? 'Mất kết nối' : 'Tạm thời không có số liệu';
+                el.classList.add('is-unavailable');
+            });
+            if (window.console && console.warn) console.warn('[Public] Không tải được số liệu trang chủ:', error.message);
+        });
 }
 
 
@@ -2011,42 +2009,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         searchInput.addEventListener('input', filterCenters);
     }
-});
-
-
-
-
-
-/**
- * events.js - Xử lý bộ lọc, tìm kiếm thời gian thực, điều hướng trang chi tiết và Modal sự kiện
- * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
- */
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    /* Nội dung demo đã loại bỏ: dữ liệu do public-pages.js tải từ API. */
-});
-
-
-
-
-
-/**
- * event-detail.js - Xử lý hiển thị nội dung động, lịch trình, danh sách liên quan và form đăng ký sự kiện
- * Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
- */
-
-/* (khối dữ liệu demo đã loại bỏ: nội dung lấy từ API) */;
-
-/* ==========================================================================
-   Đồng bộ ID giữa trang danh sách sự kiện (events.html) và trang chi tiết.
-   events.html mở modal theo các khóa slug (data-event-id), vì vậy khi người
-   dùng bấm "Xem trang chi tiết" thì event-detail.html?id=<slug> phải hiển thị
-   đúng nội dung. Các slug chưa có bản ghi đầy đủ sẽ được ánh xạ sang bản ghi
-   gần nhất để không bao giờ rơi vào trạng thái trắng trang.
-   ========================================================================== */
-/* (khối dữ liệu demo đã loại bỏ: nội dung lấy từ API) */;
-
-document.addEventListener('DOMContentLoaded', () => {
-    /* Nội dung demo đã loại bỏ: dữ liệu do public-pages.js tải từ API. */
 });

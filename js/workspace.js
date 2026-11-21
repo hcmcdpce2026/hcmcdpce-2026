@@ -1,4 +1,4 @@
-/**
+﻿/**
  * workspace.js - Khu vực làm việc nội bộ (Workspace)
  * Cổng thông tin điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh
  * --------------------------------------------------------------------------
@@ -325,6 +325,25 @@
             };
         };
 
+        /**
+         * Gỡ mọi listener đã gắn trong một lần `init()` trước đó.
+         * Các trang Workspace dùng lại DOM khi chuyển trang, nên nếu không gỡ thì
+         * mỗi lần quay lại trang sẽ cộng thêm một listener → render/toast lặp.
+         * Mỗi listener đã đăng ký qua `bind()` sẽ được ghi vào `bound`.
+         */
+        const bound = [];
+        const bind = (target, type, handler, options) => {
+            if (!target || !type || !handler) return;
+            target.addEventListener(type, handler, options);
+            bound.push({ target, type, handler, options });
+        };
+        const unbindAll = () => {
+            while (bound.length) {
+                const entry = bound.pop();
+                try { entry.target.removeEventListener(entry.type, entry.handler, entry.options); } catch (_) { /* bỏ qua */ }
+            }
+        };
+
         const uid = (prefix) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
         const initials = (name) => String(name || '?')
@@ -379,7 +398,7 @@
         return {
             pad, normalize, escape, stripTags, parseDate, formatDate, formatDateTime, isoDate,
             today, addDays, timeAgo, daysLeft, debounce, uid, initials, fileSize, countWords,
-            matchText, sortBy
+            matchText, sortBy, bind, unbindAll
         };
     })();
 
@@ -416,6 +435,7 @@ const Store = (function () {
         proposals: [],
         collaborations: [],
         stats: null,
+        errors: [],
         loaded: false,
     };
 
@@ -442,14 +462,20 @@ const Store = (function () {
             ['collaborations', '/api/workspace/collaborations'],
             ['stats', '/api/workspace/stats'],
         ];
-        const results = await Promise.all(jobs.map(([, url]) =>
-            api.get(url).catch(() => (url.includes('logs') || url.includes('roles') || url.includes('permissions') ? [] : null))));
-
-        jobs.forEach(([key], i) => {
-            const value = results[i];
-            cache[key] = Array.isArray(value) ? value : (value || (typeof cache[key] === 'object' && !Array.isArray(cache[key]) ? cache[key] : []));
-            if (key === 'tasks' && !Array.isArray(value)) cache.tasks = [];
-        });
+        /*
+         * Một nguồn bị lỗi không được kéo theo cả phân hệ, nhưng cũng không được
+         * âm thầm biến thành `[]` (giao diện sẽ hiểu "chưa có dữ liệu" thay vì
+         * "tải lỗi"). Giữ nguyên giá trị cache cũ và ghi lại lỗi để màn hình báo.
+         */
+        cache.errors = [];
+        await Promise.all(jobs.map(async ([key, url]) => {
+            try {
+                cache[key] = await api.get(url);
+            } catch (error) {
+                cache.errors.push({ key, url, message: error.message || 'Không tải được dữ liệu.' });
+            }
+        }));
+        if (!Array.isArray(cache.tasks)) cache.tasks = [];
         cache.loaded = true;
         return cache;
     };
@@ -2207,9 +2233,16 @@ const Store = (function () {
     const TasksPage = (function () {
         const state = { q: '', org: '', assignee: '', status: '', priority: '', due: '', sort: 'dueDate', dir: 'asc', page: 1, pageSize: 10, view: 'table' };
 
+        let bound = false;
+
         const init = () => {
             const root = document.getElementById('ws-tasks');
             if (!root) return;
+
+            /* init() chạy mỗi lần trang được hiển thị: chỉ gắn listener một lần,
+               nếu không sẽ nhân đôi render/toast khi người dùng quay lại trang. */
+            if (bound) return;
+            bound = true;
 
             state.q = ui.query('q') || '';
             state.status = ui.query('status') || '';
@@ -4975,6 +5008,7 @@ const Store = (function () {
 
             await Store.load();
             hideLoading();
+            reportLoadErrors(Store.all().errors);
             Shell.renderSidebar();
             Shell.renderHeader();
             Shell.applyPermissions();
@@ -5027,6 +5061,20 @@ const Store = (function () {
                         : (err && err.message) || 'Máy chủ gặp sự cố. Vui lòng thử lại sau.'
                 });
             }
+        }
+    };
+
+    /**
+     * Báo rõ nguồn dữ liệu nào tải lỗi thay vì hiển thị như một danh sách rỗng.
+     * Dùng thông báo của Workspace (không chặn người dùng) và ghi log để gỡ lỗi.
+     */
+    const reportLoadErrors = (errors) => {
+        if (!Array.isArray(errors) || !errors.length) return;
+        if (window.console && console.error) console.error('[Workspace] Nguồn dữ liệu lỗi:', errors);
+        if (ui && typeof ui.toast === 'function') {
+            ui.toast(errors.length === 1
+                ? `Không tải được dữ liệu: ${errors[0].message}`
+                : `${errors.length} nguồn dữ liệu không tải được. Một số số liệu có thể chưa đầy đủ.`, 'warning');
         }
     };
 

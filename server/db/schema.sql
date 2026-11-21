@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS system_categories (
     id              TEXT PRIMARY KEY,
     category_type   TEXT NOT NULL CHECK (category_type IN (
         'category_group', 'doc_type', 'legal_field', 'agency_type',
-        'management_level', 'facility_type', 'organization_type', 'contact_topic'
+        'management_level', 'facility_type', 'organization_type', 'contact_topic', 'event_status'
     )),
     code            TEXT NOT NULL,
     name            TEXT NOT NULL,

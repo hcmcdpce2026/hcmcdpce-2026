@@ -20,6 +20,7 @@ const sec = require('../lib/security');
 const uploadPolicy = require('../lib/upload');
 const m = require('../lib/mapper');
 const { normalizeCategoryGroupCode } = require('../lib/category-groups');
+const sysCategories = require('../lib/system-category-types');
 
 const nowIso = () => new Date().toISOString();
 
@@ -1134,21 +1135,19 @@ async function deleteCatalog(req, res, ctx) {
   return http.ok(res, { id });
 }
 
-const SYSTEM_CATEGORY_TYPES = new Set([
-  'category_group', 'doc_type', 'legal_field', 'agency_type',
-  'management_level', 'facility_type', 'organization_type', 'contact_topic',
-]);
+const SYSTEM_CATEGORY_TYPES = new Set(sysCategories.SYSTEM_CATEGORY_TYPES);
 
-const SYSTEM_CATEGORY_REFERENCES = {
-  category_group: [['categories', 'group_key']],
-  doc_type: [['legal_documents', 'doc_type']],
-  legal_field: [['legal_documents', 'legal_field']],
-  agency_type: [['public_agencies', 'role_type']],
-  management_level: [['public_agencies', 'management_level'], ['organizations', 'management_level']],
-  facility_type: [['support_facilities', 'type']],
-  organization_type: [['organizations', 'type']],
-  contact_topic: [['submissions', 'topic_code']],
-};
+const SYSTEM_CATEGORY_REFERENCES = Object.freeze(
+  sysCategories.SYSTEM_CATEGORY_TYPES
+    .reduce((acc, type) => { acc[type] = sysCategories.referencesOf(type); return acc; }, {}),
+);
+
+/** Danh sách loại danh mục + nhãn, để giao diện không phải khai báo lại. */
+async function listSystemCategoryTypes(req, res) {
+  const s = auth.requireAuth(req, res);
+  if (!s) return;
+  return http.ok(res, sysCategories.listSystemCategoryTypes());
+}
 
 async function listSystemCategories(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'cms' });
@@ -1181,8 +1180,15 @@ async function saveSystemCategory(req, res, ctx) {
   }
 
   const name = sec.cleanText(body.name, 200);
-  const rawCode = sec.cleanText(body.code, 100) || name;
-  const rawGeneratedCode = existing && rawCode === existing.code ? existing.code : slugify(rawCode);
+  /*
+   * Chỉ đổi mã khi người dùng chủ động gửi `code` khác. Trước đây mã được sinh
+   * lại từ TÊN mỗi lần lưu, nên chỉ sửa nhãn (ví dụ "Đã tổ chức" → "Đã hoàn thành")
+   * cũng làm đổi mã → mất liên kết với dữ liệu đang dùng mã đó.
+   */
+  const requestedCode = sec.cleanText(body.code, 100);
+  const rawGeneratedCode = requestedCode
+    ? slugify(requestedCode)
+    : (existing ? existing.code : slugify(name));
   const code = type === 'category_group' ? normalizeCategoryGroupCode(rawGeneratedCode) : rawGeneratedCode;
   if (!name) return http.badRequest(res, 'Tên danh mục là bắt buộc.');
   if (!code) return http.badRequest(res, 'Mã danh mục không hợp lệ.');
@@ -1254,6 +1260,7 @@ module.exports.listCatalog = listCatalog;
 module.exports.saveCatalog = saveCatalog;
 module.exports.deleteCatalog = deleteCatalog;
 module.exports.listSystemCategories = listSystemCategories;
+module.exports.listSystemCategoryTypes = listSystemCategoryTypes;
 module.exports.saveSystemCategory = saveSystemCategory;
 module.exports.setSystemCategoryStatus = setSystemCategoryStatus;
 module.exports.deleteSystemCategory = deleteSystemCategory;

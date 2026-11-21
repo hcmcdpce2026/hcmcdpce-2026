@@ -183,6 +183,7 @@ Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.
 | `SEED_PASSWORD_CMS_ADMIN` | trống | Mật khẩu seed CMS |
 | `SEED_PASSWORD_WS_ADMIN` | trống | Mật khẩu seed Workspace |
 | `RATE_LIMIT_DISABLED` | `false` | Chỉ dùng cho kiểm thử |
+| `MAX_UPLOAD_MB` | `200` | Giới hạn dung lượng mỗi tệp tải lên (MB); `0` = không giới hạn |
 
 Không commit `.env`. Trong production bật HTTPS và đặt `HOST=127.0.0.1` nếu reverse proxy là điểm truy cập duy nhất.
 
@@ -261,7 +262,7 @@ Chỉ chạy trên database thử nghiệm và đọc [docs/TESTING.md](docs/TES
 - Chạy HTTPS; dùng `COOKIE_SECURE=true`.
 - Giới hạn Node chỉ qua reverse proxy tin cậy khi có thể.
 - Không commit `.env`, SQLite, credential, log, backup và `uploads`.
-- Upload bị giới hạn 25 MB và danh sách định dạng; HTML/SVG/executable bị từ chối.
+- Upload bị giới hạn 200 MB/tệp (đổi bằng `MAX_UPLOAD_MB`) và danh sách định dạng; HTML/SVG/executable bị từ chối.
 - Session, password và CSRF được xử lý ở backend.
 - SQLite và rate limit trong bộ nhớ phù hợp một instance; không ghép nhiều instance ghi cùng database.
 - Bản sao SQLite phải nhất quán; không sao chép riêng `.sqlite` khi WAL đang hoạt động.
@@ -279,3 +280,5 @@ Xem [docs/SECURITY.md](docs/SECURITY.md) và [docs/DEPLOYMENT.md](docs/DEPLOYMEN
 - [Kiểm thử](docs/TESTING.md)
 - [Hướng dẫn người dùng](docs/USER-GUIDE.md)
 - [Đăng bài và GitHub Pages](docs/HUONG-DAN-UP-GITHUB-PAGES.md)
+- [Xóa dữ liệu PUBLIC đã xuất](docs/HUONG-DAN-XOA-DU-LIEU-PUBLIC.md)
+- [Báo cáo rà soát và chuẩn hóa](docs/RA-SOAT-CHUAN-HOA.md)
