@@ -1191,7 +1191,7 @@ async function saveSystemCategory(req, res, ctx) {
   const name = sec.cleanText(body.name, 200);
   /*
    * Chỉ đổi mã khi người dùng chủ động gửi `code` khác. Trước đây mã được sinh
-   * lại từ TÊN mỗi lần lưu, nên chỉ sửa nhãn (ví dụ "Đã tổ chức" → "Đã hoàn thành")
+   * lại từ TÊN mỗi lần lưu, nên chỉ sửa nhãn (ví dụ "Đã kết thúc" → "Hoàn thành")
    * cũng làm đổi mã → mất liên kết với dữ liệu đang dùng mã đó.
    */
   const requestedCode = sec.cleanText(body.code, 100);

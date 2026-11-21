@@ -125,7 +125,7 @@ async function run() {
   check('Sự kiện công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
   check('Sự kiện chỉ trả trạng thái được phép công khai',
     r.status === 200 && Array.isArray(r.body.data) &&
-    r.body.data.every((event) => ['upcoming', 'ongoing', 'past'].includes(event.status)));
+    r.body.data.every((event) => ['sap-dien-ra', 'dang-dien-ra', 'da-ket-thuc', 'tam-dung', 'da-huy'].includes(event.status)));
   r = await anon.request('GET', '/api/public/support-facilities');
   check('Cơ sở hỗ trợ công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
 
@@ -156,7 +156,8 @@ async function run() {
     `status=${eventStatuses.status}`);
   const eventStatusCodes = (eventStatuses.body.data || []).map((row) => row.code);
   check('Mọi mã trạng thái đều là trạng thái sự kiện hợp lệ',
-    eventStatusCodes.every((code) => code === 'upcoming' || code === 'ongoing' || code === 'past'),
+    ['sap-dien-ra', 'dang-dien-ra', 'da-ket-thuc', 'tam-dung', 'da-huy']
+      .every((code) => eventStatusCodes.includes(code)),
     eventStatusCodes.join(','));
 
   /* 2. Đăng nhập */

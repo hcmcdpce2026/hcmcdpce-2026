@@ -4273,7 +4273,13 @@ const Store = (function () {
         };
 
         /* Nhãn dự phòng khi chưa tải được danh mục; nguồn chính là `event_status` trong CMS */
-        const EVENT_STATUS = { upcoming: 'Sắp diễn ra', ongoing: 'Đang diễn ra', past: 'Đã kết thúc' };
+        const EVENT_STATUS = {
+            'sap-dien-ra': 'Sắp diễn ra',
+            'dang-dien-ra': 'Đang diễn ra',
+            'da-ket-thuc': 'Đã kết thúc',
+            'tam-dung': 'Tạm dừng',
+            'da-huy': 'Đã hủy',
+        };
         const PUBLISH_STATUS = { draft: 'Chưa công khai', published: 'Đã công khai', hidden: 'Tạm ẩn' };
         const EFFECT_STATUS = {
             in_effect: 'Còn hiệu lực', expired: 'Hết hiệu lực',
@@ -4375,7 +4381,7 @@ const Store = (function () {
                     ['summary', 'Mô tả', v.summary || '', 'textarea', false],
                     ['content', 'Nội dung chi tiết', v.content || '', 'textarea', false],
                     ['imageUrl', 'Ảnh sự kiện', v.imageUrl || v.image_url || v.image || '', { image: true }, false],
-                    ['status', 'Trạng thái sự kiện', v.status || 'upcoming',
+                    ['status', 'Trạng thái sự kiện', v.status || 'sap-dien-ra',
                         { select: Object.keys(categories.eventStatuses || {}).length ? categories.eventStatuses : EVENT_STATUS }, false],
                     ['publishStatus', 'Trạng thái xuất bản', v.publishStatus || v.publish_status || 'published',
                         { select: PUBLISH_STATUS }, false],

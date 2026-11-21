@@ -1122,6 +1122,34 @@
 
     /* --------------------------- Chi tiết sự kiện ---------------------------- */
 
+    const EVENT_STATUS_CODES = Object.freeze({
+        upcoming: 'sap-dien-ra',
+        ongoing: 'dang-dien-ra',
+        ended: 'da-ket-thuc',
+        paused: 'tam-dung',
+        cancelled: 'da-huy',
+    });
+    const EVENT_STATUS_DEFAULTS = Object.freeze({
+        'sap-dien-ra': 'Sắp diễn ra',
+        'dang-dien-ra': 'Đang diễn ra',
+        'da-ket-thuc': 'Đã kết thúc',
+        'tam-dung': 'Tạm dừng',
+        'da-huy': 'Đã hủy',
+    });
+    const eventStatusCode = (event, labels) => {
+        const declared = event && event.status;
+        if (declared === EVENT_STATUS_CODES.paused || declared === EVENT_STATUS_CODES.cancelled) return declared;
+        const now = Date.now();
+        const start = event && event.start ? Date.parse(event.start) : NaN;
+        const end = event && event.end ? Date.parse(event.end) : NaN;
+        if (Number.isFinite(start) && now < start) return EVENT_STATUS_CODES.upcoming;
+        if (Number.isFinite(end)) return now <= end ? EVENT_STATUS_CODES.ongoing : EVENT_STATUS_CODES.ended;
+        if (Number.isFinite(start)) {
+            return declared === EVENT_STATUS_CODES.ongoing ? EVENT_STATUS_CODES.ongoing : EVENT_STATUS_CODES.ended;
+        }
+        return labels[declared] ? declared : EVENT_STATUS_CODES.ended;
+    };
+
     async function initEventDetail() {
         const title = document.getElementById('evd-title');
         if (!title) return;
@@ -1154,18 +1182,19 @@
                 hero.alt = e.title;
             }
 
-            /* Trạng thái sự kiện theo thời gian thực */
+            const eventStatuses = await api.get('/api/public/event-statuses').catch(() => []);
+            const statusLabels = Object.assign({}, EVENT_STATUS_DEFAULTS);
+            if (Array.isArray(eventStatuses)) {
+                eventStatuses.forEach((status) => {
+                    if (status && status.code) statusLabels[status.code] = status.name || statusLabels[status.code] || status.code;
+                });
+            }
+
             const badge = document.getElementById('evd-status');
             if (badge) {
-                const now = Date.now();
-                const start = e.start ? new Date(e.start).getTime() : null;
-                const end = e.end ? new Date(e.end).getTime() : start;
-                let label = 'Sắp diễn ra';
-                let mod = 'upcoming';
-                if (start && now >= start && end && now <= end) { label = 'Đang triển khai'; mod = 'ongoing'; }
-                else if (start && now > end) { label = 'Đã tổ chức'; mod = 'past'; }
-                badge.textContent = label;
-                badge.className = `evd-badge-status evd-badge-status--${mod}`;
+                const status = eventStatusCode(e, statusLabels);
+                badge.textContent = statusLabels[status] || status;
+                badge.className = `evd-badge-status evd-badge-status--${status}`;
             }
 
             const overview = document.getElementById('evd-overview');
@@ -1304,30 +1333,18 @@
          * nhưng người biên tập có thể đổi tên hiển thị, ẩn bớt hoặc sắp lại.
          * Nếu chưa tải được danh mục thì vẫn tính trạng thái theo mã + ngày.
          */
-        const TRANG_THAI_MAC_DINH = { upcoming: 'Sắp diễn ra', ongoing: 'Đang triển khai', past: 'Đã tổ chức' };
+        const TRANG_THAI_MAC_DINH = EVENT_STATUS_DEFAULTS;
         const statusOptions = await api.get('/api/public/event-statuses').catch(() => null);
          const effectiveStatusOptions = Array.isArray(statusOptions) && statusOptions.length
              ? statusOptions
              : Object.entries(TRANG_THAI_MAC_DINH).map(([code, name]) => ({ code, name }));
         const statusLabels = Object.assign({}, TRANG_THAI_MAC_DINH);
-        const statusRoles = {};
          effectiveStatusOptions.forEach((row) => {
             if (!row || !row.code) return;
             statusLabels[row.code] = row.name || statusLabels[row.code] || row.code;
-            statusRoles[row.code] = row.role || '';
         });
-        const roleOfStatus = (code) => statusRoles[code] || '';
-        const statusClass = (code) => 'ev-card__status--' + String(code || 'past').replace(/[^a-z0-9-]/gi, '');
-        const statusOf = (e) => {
-            const now = Date.now();
-            const start = e.start ? Date.parse(e.start) : NaN;
-            const end = e.end ? Date.parse(e.end) : NaN;
-            const declaredStatus = statusLabels[e.status] ? e.status : null;
-            if (Number.isFinite(start) && now < start) return 'upcoming';
-            if (Number.isFinite(end)) return now <= end ? 'ongoing' : 'past';
-            if (Number.isFinite(start)) return declaredStatus === 'ongoing' ? 'ongoing' : 'past';
-            return declaredStatus || 'past';
-        };
+        const statusClass = (code) => 'ev-card__status--' + String(code || EVENT_STATUS_CODES.ended).replace(/[^a-z0-9-]/gi, '');
+        const statusOf = (event) => eventStatusCode(event, statusLabels);
         const eventTypeOf = (event) => String(event.eventType || event.category || '').trim();
         const eventImage = (event, index, prefix) => thumbOf({ thumbnail: event.image }, index, prefix);
 
@@ -1339,7 +1356,7 @@
             /* --- Sự kiện trọng điểm: sự kiện sắp/đang diễn ra gần nhất --- */
             if (spotlight) {
                 const eligible = list
-                    .filter((event) => ['upcoming', 'ongoing'].includes(statusOf(event)))
+                    .filter((event) => ['sap-dien-ra', 'dang-dien-ra'].includes(statusOf(event)))
                     .sort((a, b) => {
                         const aStart = Date.parse(a.start);
                         const bStart = Date.parse(b.start);
@@ -1392,7 +1409,8 @@
             }
 
             if (isHomepage) {
-                host.innerHTML = list.slice(0, 3).map((event, index) => `
+                host.innerHTML = list.filter((event) => ![EVENT_STATUS_CODES.paused, EVENT_STATUS_CODES.cancelled].includes(statusOf(event)))
+                    .slice(0, 3).map((event, index) => `
                     <article class="site-main__event-card">
                         <a href="pages/public/event-detail.html?id=${encodeURIComponent(event.id)}" class="site-main__event-image">
                             <img src="${eventImage(event, index, '')}" alt="${esc(event.title)}" loading="lazy">

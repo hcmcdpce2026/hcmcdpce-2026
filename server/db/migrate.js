@@ -367,9 +367,13 @@ function ensureCatalogueBaseline() {
       ['doanh-nghiep', 'Doanh nghiệp'],
     ],
     contact_topic: [],
-    /* Mã phải khớp CHECK của public_events.status; nhãn sửa được trong CMS */
+    /* Mã trạng thái được dùng trực tiếp trong public_events.status. */
     event_status: [
-      ['upcoming', 'Sắp diễn ra'], ['ongoing', 'Đang triển khai'], ['past', 'Đã tổ chức'],
+      ['sap-dien-ra', 'Sắp diễn ra'],
+      ['dang-dien-ra', 'Đang diễn ra'],
+      ['da-ket-thuc', 'Đã kết thúc'],
+      ['tam-dung', 'Tạm dừng'],
+      ['da-huy', 'Đã hủy'],
     ],
   };
   const ts = new Date().toISOString();
@@ -435,6 +439,142 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id7)) {
   db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id7, new Date().toISOString());
 } else {
   console.log('  • Migration', id7, 'đã áp dụng trước đó');
+}
+
+/* ---------------------------------------------------------------------------
+ * 008 – Dùng mã tiếng Việt không dấu cho trạng thái hoạt động/sự kiện.
+ * ------------------------------------------------------------------------- */
+const id8 = '008-vietnamese-event-status-codes';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id8)) {
+  const statuses = [
+    ['upcoming', 'sap-dien-ra'],
+    ['ongoing', 'dang-trien-khai'],
+    ['past', 'da-to-chuc'],
+  ];
+  const ts = new Date().toISOString();
+  const findCategory = db.prepare(`SELECT id FROM system_categories
+    WHERE category_type = 'event_status' AND code = ?`);
+  const updateEvents = db.prepare('UPDATE public_events SET status = ? WHERE status = ?');
+  const updateCategory = db.prepare(`UPDATE system_categories
+    SET code = ?, updated_at = ? WHERE id = ?`);
+  const deleteCategory = db.prepare('DELETE FROM system_categories WHERE id = ?');
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    statuses.forEach(([oldCode, newCode]) => {
+      updateEvents.run(newCode, oldCode);
+      const oldRow = findCategory.get(oldCode);
+      if (!oldRow) return;
+      const newRow = findCategory.get(newCode);
+      if (newRow) deleteCategory.run(oldRow.id);
+      else updateCategory.run(newCode, ts, oldRow.id);
+    });
+
+    const eventsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'public_events'").get();
+    if (eventsSql && eventsSql.sql.includes("DEFAULT 'upcoming'")) {
+      db.exec(`CREATE TABLE public_events_new (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT,
+        category TEXT,
+        event_type TEXT,
+        start_at TEXT,
+        end_at TEXT,
+        location TEXT,
+        organizer TEXT,
+        co_organizer TEXT,
+        summary TEXT,
+        content TEXT,
+        image_url TEXT,
+        status TEXT NOT NULL DEFAULT 'sap-dien-ra',
+        publish_status TEXT NOT NULL DEFAULT 'published',
+        data_source TEXT NOT NULL DEFAULT 'seed',
+        is_seed_data INTEGER NOT NULL DEFAULT 1,
+        environment TEXT NOT NULL DEFAULT 'development',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      db.exec(`INSERT INTO public_events_new
+        (id, title, slug, category, event_type, start_at, end_at, location, organizer,
+          co_organizer, summary, content, image_url, status, publish_status, data_source,
+          is_seed_data, environment, created_at, updated_at)
+        SELECT id, title, slug, category, event_type, start_at, end_at, location, organizer,
+          co_organizer, summary, content, image_url, status, publish_status, data_source,
+          is_seed_data, environment, created_at, updated_at
+        FROM public_events`);
+      db.exec('DROP TABLE public_events');
+      db.exec('ALTER TABLE public_events_new RENAME TO public_events');
+    }
+
+    db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id8, ts);
+    db.exec('COMMIT');
+    console.log('  ✓ Đổi mã trạng thái sự kiện sang tiếng Việt không dấu');
+  } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) { /* bỏ qua */ }
+    throw err;
+  }
+} else {
+  console.log('  • Migration', id8, 'đã áp dụng trước đó');
+}
+
+/* ---------------------------------------------------------------------------
+ * 009 – Chuẩn hóa danh mục trạng thái hoạt động/sự kiện theo 5 trạng thái.
+ * ------------------------------------------------------------------------- */
+const id9 = '009-event-status-lifecycle';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id9)) {
+  const statuses = [
+    ['sap-dien-ra', 'Sắp diễn ra'],
+    ['dang-dien-ra', 'Đang diễn ra'],
+    ['da-ket-thuc', 'Đã kết thúc'],
+    ['tam-dung', 'Tạm dừng'],
+    ['da-huy', 'Đã hủy'],
+  ];
+  const replacements = [
+    ['dang-trien-khai', 'dang-dien-ra'],
+    ['da-to-chuc', 'da-ket-thuc'],
+  ];
+  const ts = new Date().toISOString();
+  const findCategory = db.prepare(`SELECT id FROM system_categories
+    WHERE category_type = 'event_status' AND code = ?`);
+  const updateEvents = db.prepare('UPDATE public_events SET status = ? WHERE status = ?');
+  const updateCategory = db.prepare(`UPDATE system_categories
+    SET code = ?, name = ?, updated_at = ? WHERE id = ?`);
+  const deleteCategory = db.prepare('DELETE FROM system_categories WHERE id = ?');
+  const updateStatusCategory = db.prepare(`UPDATE system_categories
+    SET name = ?, sort_order = ?, status = 'active', updated_at = ?
+    WHERE category_type = 'event_status' AND code = ?`);
+  const insertStatusCategory = db.prepare(`INSERT OR IGNORE INTO system_categories
+    (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
+    VALUES (?, 'event_status', ?, ?, ?, 'active', ?, ?, 'migration')`);
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    replacements.forEach(([oldCode, newCode]) => {
+      updateEvents.run(newCode, oldCode);
+      const oldRow = findCategory.get(oldCode);
+      if (!oldRow) return;
+      const newRow = findCategory.get(newCode);
+      if (newRow) deleteCategory.run(oldRow.id);
+      else {
+        const status = statuses.find(([code]) => code === newCode);
+        updateCategory.run(newCode, status[1], ts, oldRow.id);
+      }
+    });
+
+    statuses.forEach(([code, name], index) => {
+      const idHash = crypto.createHash('sha1').update(`baseline:event_status:${code}`).digest('hex').slice(0, 20);
+      insertStatusCategory.run(`sc-${idHash}`, code, name, index, ts, ts);
+      updateStatusCategory.run(name, index, ts, code);
+    });
+    db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id9, ts);
+    db.exec('COMMIT');
+    console.log('  ✓ Cập nhật đủ 5 trạng thái hoạt động/sự kiện');
+  } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) { /* bỏ qua */ }
+    throw err;
+  }
+} else {
+  console.log('  • Migration', id9, 'đã áp dụng trước đó');
 }
 
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();

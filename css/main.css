@@ -3628,19 +3628,29 @@
     font-weight: 700;
 }
 
-.evd-badge-status--upcoming {
+.evd-badge-status--sap-dien-ra {
     background: var(--color-success-soft);
     color: var(--color-success-dark);
 }
 
-.evd-badge-status--ongoing {
+.evd-badge-status--dang-dien-ra {
     background: var(--color-secondary-soft);
     color: var(--color-teal-deep);
 }
 
-.evd-badge-status--past {
+.evd-badge-status--da-ket-thuc {
     background: var(--border-color);
     color: var(--text-secondary);
+}
+
+.evd-badge-status--tam-dung {
+    background: var(--color-accent-soft);
+    color: var(--color-warning-text);
+}
+
+.evd-badge-status--da-huy {
+    background: var(--color-danger-soft-strong);
+    color: var(--color-danger);
 }
 
 .evd-hero__title {
@@ -4383,19 +4393,29 @@
     white-space: nowrap;
 }
 
-.ev-card__status--upcoming {
+.ev-card__status--sap-dien-ra {
     background: var(--color-success-soft);
     color: var(--color-success-dark);
 }
 
-.ev-card__status--ongoing {
+.ev-card__status--dang-dien-ra {
     background: var(--color-primary-soft);
     color: var(--color-primary-dark);
 }
 
-.ev-card__status--past {
+.ev-card__status--da-ket-thuc {
     background: var(--bg-muted);
     color: var(--text-secondary);
+}
+
+.ev-card__status--tam-dung {
+    background: var(--color-accent-soft);
+    color: var(--color-warning-text);
+}
+
+.ev-card__status--da-huy {
+    background: var(--color-danger-soft-strong);
+    color: var(--color-danger);
 }
 
 .ev-card__body {

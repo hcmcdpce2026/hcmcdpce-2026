@@ -140,17 +140,25 @@ async function waitForServer(timeoutMs = 30000) {
           id: 'test-event-upcoming', title: 'Sự kiện kiểm thử sắp diễn ra', slug: 'test-event-upcoming',
           event_type: 'truyen-thong', start_at: new Date(Date.now() + 86400000).toISOString(),
           end_at: new Date(Date.now() + 90000000).toISOString(), location: 'Địa điểm kiểm thử',
-          status: 'upcoming', publish_status: 'published',
+          status: 'sap-dien-ra', publish_status: 'published',
         });
         insert('public_events', {
           id: 'test-event-past', title: 'Sự kiện kiểm thử đã kết thúc', slug: 'test-event-past',
           event_type: 'hoi-thao', start_at: '2020-01-01T09:00:00.000Z',
           end_at: '2020-01-01T11:00:00.000Z', location: 'Địa điểm kiểm thử',
-          status: 'past', publish_status: 'published',
+          status: 'da-ket-thuc', publish_status: 'published',
+        });
+        insert('public_events', {
+          id: 'test-event-paused', title: 'Sự kiện kiểm thử tạm dừng', slug: 'test-event-paused',
+          status: 'tam-dung', publish_status: 'published',
+        });
+        insert('public_events', {
+          id: 'test-event-cancelled', title: 'Sự kiện kiểm thử đã hủy', slug: 'test-event-cancelled',
+          status: 'da-huy', publish_status: 'published',
         });
         insert('public_events', {
           id: 'test-event-hidden', title: 'Sự kiện Chưa công khai kiểm thử', slug: 'test-event-hidden',
-          event_type: 'truyen-thong', start_at: ts, status: 'upcoming', publish_status: 'draft',
+          event_type: 'truyen-thong', start_at: ts, status: 'sap-dien-ra', publish_status: 'draft',
         });
 
         insert('public_agencies', {

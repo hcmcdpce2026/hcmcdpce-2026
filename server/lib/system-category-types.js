@@ -31,7 +31,13 @@ const SYSTEM_CATEGORY_TYPES = Object.freeze({
   event_status: {
     label: 'Trạng thái hoạt động, sự kiện',
     references: [['public_events', 'status']],
-    roles: { upcoming: 'open', ongoing: 'open', past: 'closed' },
+    roles: {
+      'sap-dien-ra': 'open',
+      'dang-dien-ra': 'open',
+      'da-ket-thuc': 'closed',
+      'tam-dung': 'closed',
+      'da-huy': 'closed',
+    },
   },
 });
 

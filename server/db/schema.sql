@@ -608,7 +608,7 @@ CREATE TABLE IF NOT EXISTS public_events (
     summary     TEXT,
     content     TEXT,
     image_url   TEXT,
-    status      TEXT NOT NULL DEFAULT 'upcoming',         -- upcoming | ongoing | past | inactive
+    status      TEXT NOT NULL DEFAULT 'sap-dien-ra',      -- sap-dien-ra | dang-dien-ra | da-ket-thuc | tam-dung | da-huy | inactive
     publish_status TEXT NOT NULL DEFAULT 'published',    -- draft | published | hidden
     data_source TEXT NOT NULL DEFAULT 'seed',
     is_seed_data INTEGER NOT NULL DEFAULT 1,

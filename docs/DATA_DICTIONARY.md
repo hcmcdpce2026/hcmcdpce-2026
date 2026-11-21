@@ -393,7 +393,7 @@ Sự kiện công khai.
 | `summary` | TEXT | Không | - | - |
 | `content` | TEXT | Không | - | - |
 | `image_url` | TEXT | Không | - | - |
-| `status` | TEXT | Có | - | 'upcoming' |
+| `status` | TEXT | Có | - | 'sap-dien-ra' (các giá trị khác: 'dang-dien-ra', 'da-ket-thuc', 'tam-dung', 'da-huy') |
 | `data_source` | TEXT | Có | - | 'seed' |
 | `is_seed_data` | INTEGER | Có | - | 1 |
 | `environment` | TEXT | Có | - | 'development' |

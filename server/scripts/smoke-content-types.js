@@ -87,7 +87,9 @@ async function req(path, options) {
   check('Không lộ sự kiện chưa công khai',
     !evRows.some((e) => /Chưa công khai/.test(e.title)));
   check('Sự kiện có đủ trạng thái thời gian',
-    evRows.some((e) => e.status === 'upcoming') && evRows.some((e) => e.status === 'past'));
+    evRows.some((e) => e.status === 'sap-dien-ra') && evRows.some((e) => e.status === 'da-ket-thuc'));
+  check('Sự kiện tạm dừng và đã hủy vẫn giữ đúng trạng thái',
+    evRows.some((e) => e.status === 'tam-dung') && evRows.some((e) => e.status === 'da-huy'));
   check('Sự kiện có trường địa điểm và thời gian',
     evRows.every((e) => 'location' in e && 'start' in e));
 
