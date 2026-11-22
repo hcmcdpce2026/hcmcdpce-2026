@@ -10,14 +10,16 @@
  */
 'use strict';
 
-/** Dung lượng mặc định tối đa của một tệp được lưu (byte) – 200 MB */
-const DEFAULT_MAX_FILE_BYTES = 200 * 1024 * 1024;
+/** Dung lượng mặc định tối đa của một tệp được lưu (byte) – 100 MB
+ *  Khớp giới hạn tệp trực tiếp của GitHub và GitHub Pages.
+ */
+const DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024;
 
 /**
  * Trần kỹ thuật cho MAX_UPLOAD_MB: toàn bộ body multipart được đọc vào bộ nhớ
  * trước khi ghi tệp, nên phải chặn một giá trị cấu hình quá lớn làm cạn RAM.
  */
-const MAX_CONFIGURED_FILE_BYTES = 1024 * 1024 * 1024;
+const MAX_CONFIGURED_FILE_BYTES = 100 * 1024 * 1024;
 
 /**
  * Đọc giới hạn dung lượng từ biến môi trường `MAX_UPLOAD_MB`.

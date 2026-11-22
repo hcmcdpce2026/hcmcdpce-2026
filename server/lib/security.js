@@ -89,10 +89,15 @@ function resetRateLimits() {
 
 /** Áp dụng Rate limit theo IP */
 function clientIp(req) {
+  const socketIp = String((req.socket && req.socket.remoteAddress) || '').replace(/^::ffff:/, '');
+  const trusted = String(process.env.TRUSTED_PROXY_IPS || '')
+    .split(',')
+    .map((value) => value.trim().replace(/^::ffff:/, ''))
+    .filter(Boolean);
+  if (!trusted.includes(socketIp)) return socketIp;
   const fwd = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(fwd) ? fwd[0] : fwd || '').split(',')[0].trim()
-    || (req.socket && req.socket.remoteAddress) || '';
-  return ip.replace(/^::ffff:/, '');
+  const ip = (Array.isArray(fwd) ? fwd[0] : fwd || '').split(',')[0].trim();
+  return (ip || socketIp).replace(/^::ffff:/, '');
 }
 
 /* ------------------------------- Làm sạch dữ liệu ---------------------------- */

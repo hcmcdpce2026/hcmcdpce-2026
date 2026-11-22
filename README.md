@@ -153,7 +153,7 @@ Lệnh ghi/cập nhật:
 - `public-data/public.json`;
 - `public-data/media/*` cho media công khai còn tồn tại trong `uploads`.
 
-Exporter chỉ lấy bài `published`, danh mục hoạt động và danh mục công khai được phép. Nó không xuất tài khoản, phiên, nhật ký, submission cá nhân hoặc dữ liệu Workspace. Lệnh export tự kiểm tra snapshot và mọi media được tham chiếu; sau `git add public-data/`, chạy `npm.cmd run check:static-public:git` để xác nhận chúng nằm trong Git index. GitHub Actions sẽ báo lỗi nếu snapshot hoặc media được tham chiếu chưa có trong commit.
+Exporter chỉ lấy bài `published`, danh mục hoạt động và danh mục công khai được phép. Nó không xuất tài khoản, phiên, nhật ký, submission cá nhân hoặc dữ liệu Workspace. Lệnh export tự kiểm tra snapshot và mọi media được tham chiếu, đồng thời chặn tệp công khai >100 MB; sau `git add public-data/`, chạy `npm.cmd run check:static-public:git` để xác nhận chúng nằm trong Git index. GitHub Actions sẽ báo lỗi nếu snapshot/media chưa có trong commit hoặc vượt giới hạn GitHub.
 
 Kiểm tra trước khi commit:
 
@@ -167,6 +167,14 @@ git diff --cached --name-only
 git commit -m "Cap nhat noi dung cong khai"
 git push origin main
 ```
+
+Workflow `.github/workflows/deploy-github-pages.yml` deploy artifact public-only. Có thể kiểm tra và tạo artifact local bằng:
+
+```powershell
+npm.cmd run prepare:github-pages
+```
+
+Artifact `github-pages/` được `.gitignore`, không được commit; nó không chứa CMS, Workspace, server, database, `.env`, credential, `uploads/` hoặc `backups/`. Thư mục này chỉ dùng cho GitHub Pages Actions.
 
 Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.env`, `.sqlite`, credential, `uploads`, `backups`, thông tin cá nhân hoặc nội dung chưa phê duyệt. Hướng dẫn chi tiết: [docs/PUBLIC-PUBLISHING.md](docs/PUBLIC-PUBLISHING.md).
 
@@ -184,11 +192,12 @@ Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.
 | `MAX_LOGIN_ATTEMPTS` | `5` | Số lần đăng nhập sai |
 | `LOCK_MINUTES` | `15` | Thời gian khóa tạm |
 | `COOKIE_SECURE` | `false` | Bật `true` sau HTTPS |
+| `TRUSTED_PROXY_IPS` | trống | IP reverse proxy tin cậy, phân cách bằng dấu phẩy |
 | `CORS_ORIGIN` | trống | Origin cho API cross-origin |
 | `SEED_PASSWORD_CMS_ADMIN` | trống | Mật khẩu seed CMS |
 | `SEED_PASSWORD_WS_ADMIN` | trống | Mật khẩu seed Workspace |
 | `RATE_LIMIT_DISABLED` | `false` | Chỉ dùng cho kiểm thử |
-| `MAX_UPLOAD_MB` | `200` | Giới hạn dung lượng mỗi tệp tải lên (MB); `0` = không giới hạn |
+| `MAX_UPLOAD_MB` | `100` | Giới hạn dung lượng mỗi tệp tải lên (MB), phù hợp GitHub/GitHub Pages |
 
 Không commit `.env`. Trong production bật HTTPS và đặt `HOST=127.0.0.1` nếu reverse proxy là điểm truy cập duy nhất.
 
@@ -211,6 +220,8 @@ Lệnh dữ liệu:
 | `npm.cmd run db:migrate` | Tạo/cập nhật schema |
 | `npm.cmd run db:seed` | Bổ sung tài khoản/quyền/cấu hình |
 | `npm.cmd run db:reset` | **Xóa và tạo lại database** |
+| `npm.cmd run db:backup` | Tạo bản sao SQLite nhất quán |
+| `npm.cmd run db:restore -- <tệp.sqlite>` | Phục hồi database sau khi dừng server |
 | `npm.cmd run data` | Export/import thống kê dữ liệu |
 | `npm.cmd run export:static-public` | Xuất snapshot PUBLIC |
 
@@ -267,7 +278,7 @@ Chỉ chạy trên database thử nghiệm và đọc [docs/TESTING.md](docs/TES
 - Chạy HTTPS; dùng `COOKIE_SECURE=true`.
 - Giới hạn Node chỉ qua reverse proxy tin cậy khi có thể.
 - Không commit `.env`, SQLite, credential, log, backup và `uploads`.
-- Upload bị giới hạn 200 MB/tệp (đổi bằng `MAX_UPLOAD_MB`) và danh sách định dạng; HTML/SVG/executable bị từ chối.
+- Upload công khai bị giới hạn 100 MB/tệp để phù hợp GitHub; HTML/SVG/executable bị từ chối.
 - Session, password và CSRF được xử lý ở backend.
 - SQLite và rate limit trong bộ nhớ phù hợp một instance; không ghép nhiều instance ghi cùng database.
 - Bản sao SQLite phải nhất quán; không sao chép riêng `.sqlite` khi WAL đang hoạt động.

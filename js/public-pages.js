@@ -31,7 +31,21 @@
         return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     };
 
-    const detailUrl = (a) => `news-detail.html?id=${encodeURIComponent(a.id)}`;
+    const isEducationArticle = (a) => a && (
+        a.categoryGroup === 'tuyen-truyen-giao-duc' ||
+        a.categoryGroup === 'education'
+    );
+    const isNewsArticle = (a) => a && (
+        a.categoryGroup === 'tin-tuc' ||
+        (!a.categoryGroup && !isEducationArticle(a))
+    );
+    const articleCategoryLabel = (a) => isEducationArticle(a)
+        ? 'Tuyên truyền - Giáo dục'
+        : (a.categoryName || 'Tin tức');
+    const detailUrl = (a) => {
+        const isEducation = isEducationArticle(a);
+        return `${isEducation ? 'education-detail' : 'news-detail'}.html?id=${encodeURIComponent(a.id)}`;
+    };
 
     /**
      * Đường dẫn ảnh đại diện, luôn tính từ GỐC dự án để không bị lặp tiền tố.
@@ -150,7 +164,8 @@
              * Trang Tin tức chỉ lấy bài thuộc nhóm chuyên mục "tin-tuc".
              * Trước đây truy vấn không kèm `group` nên nội dung Tuyên truyền -
              * Giáo dục (nhóm education) cũng lọt vào khối tin tiêu điểm và danh sách.
-             * Trang chủ thì lấy toàn bộ bài đã xuất bản vì cần hiển thị đa nhóm.
+             * Trang chủ lấy toàn bộ bài đã xuất bản để hai khối tin có thể hiển
+             * thị đồng thời Tin tức và Tuyên truyền - Giáo dục.
              */
             const params = { limit: 50, search: keyword };
             if (list) params.group = 'tin-tuc';
@@ -349,20 +364,40 @@
     function renderHomepageNews(articles) {
         const featured = document.querySelector('.site-main__featured-grid');
         const latest = document.querySelector('.site-main__latest-list');
+        const newestFirst = (a, b) => {
+            const dateA = new Date(a.publishedAt || a.createdAt || 0).getTime();
+            const dateB = new Date(b.publishedAt || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        };
+        const news = [...articles]
+            .filter(isNewsArticle)
+            .sort(newestFirst);
+        const education = [...articles]
+            .filter(isEducationArticle)
+            .sort(newestFirst);
+
+        /* Xen kẽ hai nhóm theo thứ tự mới nhất để nổi bật không bị toàn bộ là Education. */
+        const mixed = [];
+        const maxLength = Math.max(news.length, education.length);
+        for (let i = 0; i < maxLength; i += 1) {
+            if (news[i]) mixed.push(news[i]);
+            if (education[i]) mixed.push(education[i]);
+        }
+
         if (featured && !articles.length) {
             featured.innerHTML = `<div class="pub-state" style="grid-column:1/-1">
                 <i class="fa-regular fa-newspaper" aria-hidden="true"></i>
                 <span>Chưa có tin tức được xuất bản.</span></div>`;
         }
         if (latest && !articles.length) latest.innerHTML = '';
-        if (featured && articles.length) {
-            featured.innerHTML = articles.slice(0, 3).map((a, i) => `
-                <article class="site-main__featured-card">
+        if (featured && mixed.length) {
+            featured.innerHTML = mixed.slice(0, 3).map((a, i) => `
+                <article class="site-main__featured-card${isEducationArticle(a) ? ' site-main__featured-card--education' : ''}" data-article-group="${isEducationArticle(a) ? 'education' : 'news'}">
                     <a href="pages/public/${detailUrl(a)}" class="site-main__featured-image">
                         <img src="${thumbOf(a, i, '')}" alt="${esc(a.title)}" loading="lazy">
                     </a>
                     <div class="site-main__featured-content">
-                        <span class="site-main__category">${esc(a.categoryName || 'Tin tức')}</span>
+                        <span class="site-main__category">${esc(articleCategoryLabel(a))}</span>
                         <h3 class="site-main__featured-title">
                             <a href="pages/public/${detailUrl(a)}">${esc(a.title)}</a>
                         </h3>
@@ -371,14 +406,14 @@
                     </div>
                 </article>`).join('');
         }
-        if (latest && articles.length) {
-            latest.innerHTML = articles.slice(3, 6).map((a, i) => `
-                <article class="site-main__latest-item">
+        if (latest && mixed.length) {
+            latest.innerHTML = mixed.slice(3, 6).map((a, i) => `
+                <article class="site-main__latest-item${isEducationArticle(a) ? ' site-main__latest-item--education' : ''}" data-article-group="${isEducationArticle(a) ? 'education' : 'news'}">
                     <a href="pages/public/${detailUrl(a)}" class="site-main__latest-image">
                         <img src="${thumbOf(a, i + 3, '')}" alt="${esc(a.title)}" loading="lazy">
                     </a>
                     <div class="site-main__latest-content">
-                        <span class="site-main__category">${esc(a.categoryName || 'Tin tức')}</span>
+                        <span class="site-main__category">${esc(articleCategoryLabel(a))}</span>
                         <h3 class="site-main__latest-title">
                             <a href="pages/public/${detailUrl(a)}">${esc(a.title)}</a>
                         </h3>
@@ -397,10 +432,6 @@
     async function initHomeEducation() {
         const grid = document.getElementById('home-education-grid');
         if (!grid) return;
-        const ICONS = [
-            'fa-shield-heart', 'fa-triangle-exclamation', 'fa-people-group',
-            'fa-book-open-reader', 'fa-graduation-cap', 'fa-house-chimney-user',
-        ];
         setLoading(grid, 'Đang tải chuyên đề tuyên truyền - giáo dục…');
         try {
             const rows = asList(
@@ -419,18 +450,20 @@
 
             grid.innerHTML = rows.slice(0, 3).map((a, i) => `
                 <article class="site-main__education-card">
-                    <div class="site-main__education-icon">
-                        <i class="fa-solid ${ICONS[i % ICONS.length]}" aria-hidden="true"></i>
-                    </div>
-                    <h3 class="site-main__education-title">
-                        <a href="pages/public/education-detail.html?id=${encodeURIComponent(a.id)}">${esc(a.title)}</a>
-                    </h3>
-                    <p class="site-main__education-description">${esc(a.excerpt || '')}</p>
                     <a href="pages/public/education-detail.html?id=${encodeURIComponent(a.id)}"
-                        class="site-main__education-link">
-                        Tìm hiểu thêm
-                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        class="site-main__education-thumb">
+                        <img src="${thumbOf(a, i, '')}" alt="${esc(a.title)}" loading="lazy">
                     </a>
+                    <div class="site-main__education-body">
+                        <span class="site-main__education-category">${esc(a.categoryName || 'Tuyên truyền - Giáo dục')}</span>
+                        <h3 class="site-main__education-title">
+                            <a href="pages/public/education-detail.html?id=${encodeURIComponent(a.id)}">${esc(a.title)}</a>
+                        </h3>
+                        <p class="site-main__education-description">${esc(a.excerpt || '')}</p>
+                        <div class="site-main__education-footer">
+                            <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> ${fmtDate(a.publishedAt)}</span>
+                        </div>
+                    </div>
                 </article>`).join('');
             grid.removeAttribute('aria-busy');
         } catch (err) {
@@ -552,6 +585,7 @@
             setText('edd-title', a.title);
             setText('edd-audience', a.source || 'Dành cho cộng đồng');
             setText('edd-sapo', a.excerpt || '');
+            setText('edd-published', fmtDate(a.publishedAt));
 
             const words = String(a.body || '').replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
             setText('edd-readtime', `Thời lượng đọc: ${Math.max(1, Math.round(words / 200))} phút`);
@@ -567,11 +601,11 @@
             if (body) body.innerHTML = a.body || `<p>${esc(a.excerpt || '')}</p>`;
 
             const tags = Array.isArray(a.tags) ? a.tags : [];
-            const takeaways = document.getElementById('edd-takeaways');
-            if (takeaways) {
-                takeaways.innerHTML = tags.length
-                    ? tags.map((t) => `<li>${esc(t)}</li>`).join('')
-                    : '<li>Nội dung đang được ban biên tập cập nhật.</li>';
+            const takeaway = document.getElementById('edd-takeaway-text');
+            if (takeaway) {
+                takeaway.textContent = String(a.takeaway || '').trim()
+                    || tags.join(' ').trim()
+                    || 'Nội dung đang được ban biên tập cập nhật.';
             }
 
             const relatedHost = document.getElementById('edd-related-list');
@@ -803,9 +837,9 @@
                 <article class="ed-card" data-topic="${esc(topicOf(a))}">
                     <a href="education-detail.html?id=${encodeURIComponent(a.id)}" class="ed-card__thumb">
                         <img src="${thumbOf(a, i, '../../')}" alt="${esc(a.title)}" loading="lazy">
-                        <span class="ed-card__tag">${esc(a.categoryName || 'Tuyên truyền')}</span>
                     </a>
                     <div class="ed-card__body">
+                        <span class="ed-card__tag">${esc(a.categoryName || 'Tuyên truyền')}</span>
                         <span class="ed-card__audience">
                             <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
                             ${esc(a.source || 'Ban Biên tập')}
@@ -815,7 +849,7 @@
                         </h2>
                         <p class="ed-card__desc">${esc(a.excerpt || '')}</p>
                         <div class="ed-card__footer">
-                            <span>${fmtDate(a.publishedAt)}</span>
+                            <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> ${fmtDate(a.publishedAt)}</span>
                             <a href="education-detail.html?id=${encodeURIComponent(a.id)}" class="ed-card__link">
                                 Đọc chuyên đề <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                             </a>
@@ -1288,14 +1322,47 @@
             const hotline = document.getElementById('agd-hotline');
             if (hotline && o.phone) hotline.href = `tel:${String(o.phone).replace(/\s/g, '')}`;
 
-            /* Chỉ giữ các khối mà CMS thực sự cung cấp dữ liệu */
-            ['agd-duties', 'agd-steps', 'agd-notes'].forEach((hostId) => {
-                const host = document.getElementById(hostId);
-                if (!host) return;
-                host.innerHTML = '';
-                const section = host.closest('section, .agd-section, .agd-block');
-                if (section) section.hidden = true;
-            });
+            const agencyBlocks = {
+                duties: document.getElementById('agd-duties'),
+                steps: document.getElementById('agd-steps'),
+                notes: document.getElementById('agd-notes')
+            };
+            const asTextList = (value) => (Array.isArray(value) ? value : typeof value === 'string'
+                ? value.split(/\r?\n/)
+                : [])
+                .map((item) => (item && typeof item === 'object'
+                    ? (item.title || item.name || item.content || item.description || '')
+                    : item))
+                .map((item) => String(item || '').replace(/^\s*(?:[-*•]\s*)?(?:\d+[.)]\s*)?/, '').trim())
+                .filter(Boolean);
+            const duties = asTextList(o.duties || o.functions || o.tasks);
+            if (agencyBlocks.duties) {
+                agencyBlocks.duties.closest('.agd-section').hidden = duties.length === 0;
+                agencyBlocks.duties.innerHTML = duties.map((item) => `
+                    <li>
+                        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        <span>${esc(item)}</span>
+                    </li>`).join('');
+            }
+            const steps = Array.isArray(o.procedure) ? o.procedure : asTextList(o.procedure || o.steps);
+            if (agencyBlocks.steps) {
+                agencyBlocks.steps.closest('.agd-section').hidden = steps.length === 0;
+                agencyBlocks.steps.innerHTML = steps.map((item, index) => `
+                    <div class="agd-step-card">
+                        <span class="agd-step-card__num">${index + 1}</span>
+                        <h4>${esc((item && (item.title || item.name)) || `Bước ${index + 1}`)}</h4>
+                        <p>${esc((item && (item.description || item.content)) || (typeof item === 'string' ? item : ''))}</p>
+                    </div>`).join('');
+            }
+            const notes = asTextList(o.notes || o.guidelines);
+            if (agencyBlocks.notes) {
+                agencyBlocks.notes.closest('.agd-section').hidden = notes.length === 0;
+                agencyBlocks.notes.innerHTML = notes.map((item) => `
+                    <li>
+                        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                        <span>${esc(item)}</span>
+                    </li>`).join('');
+            }
 
             const relatedHost = document.getElementById('agd-related-list');
             if (relatedHost) {
@@ -1421,6 +1488,10 @@
                                 <a href="pages/public/event-detail.html?id=${encodeURIComponent(event.id)}">${esc(event.title)}</a>
                             </h3>
                             <p class="site-main__event-description">${esc(event.summary || '')}</p>
+                            <span class="site-main__event-date">
+                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                ${fmtDate(event.start)}
+                            </span>
                         </div>
                     </article>`).join('');
                 host.removeAttribute('aria-busy');
@@ -1836,6 +1907,160 @@
         }
     }
 
+    async function initMediaLibrary() {
+        const grid = document.getElementById('media-library-grid');
+        const count = document.getElementById('media-library-count');
+        const search = document.getElementById('media-library-search');
+        const resetButton = document.getElementById('media-library-reset');
+        const typeFilters = document.getElementById('media-library-types');
+        const folderSelect = document.getElementById('media-library-folder');
+        if (!grid) return;
+        setLoading(grid, 'Đang tải thư viện…');
+
+        try {
+            const [items, configuredFolders] = await Promise.all([
+                api.get('/api/public/media-library'),
+                api.get('/api/public/media-library-folders'),
+            ]);
+            const rows = Array.isArray(items) ? items : [];
+            const folders = Array.isArray(configuredFolders) ? configuredFolders : [];
+            let activeType = 'all';
+            const normalize = (value) => String(value || '').normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+            const typeInfo = {
+                image: { label: 'Hình ảnh / infographic', icon: 'fa-file-image' },
+                video: { label: 'Video', icon: 'fa-file-video' },
+                audio: { label: 'Âm thanh', icon: 'fa-file-audio' },
+                document: { label: 'Tài liệu', icon: 'fa-file-lines' },
+            };
+            const formatSize = (bytes) => {
+                const size = Number(bytes) || 0;
+                if (size < 1024) return `${size} B`;
+                const units = ['KB', 'MB', 'GB'];
+                let value = size / 1024;
+                let unit = 0;
+                while (value >= 1024 && unit < units.length - 1) {
+                    value /= 1024;
+                    unit += 1;
+                }
+                return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`;
+            };
+
+            const render = () => {
+                const query = normalize(search ? search.value.trim() : '');
+                const visible = rows.filter((item) => {
+                    if (activeType !== 'all' && item.type !== activeType) return false;
+                    if (folderSelect && folderSelect.value !== '__all_folders__' && item.folder !== folderSelect.value) return false;
+                    const haystack = normalize(`${item.name} ${item.description} ${item.folder} ${item.ext}`);
+                    return !query || haystack.includes(query);
+                });
+                if (count) count.textContent = visible.length ? `${visible.length} tài nguyên` : '';
+                grid.innerHTML = visible.length ? visible.map((item) => {
+                    const url = new URL(item.url, window.location.href);
+                    const safeUrl = ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+                    const type = typeInfo[item.type] || typeInfo.document;
+                    const extension = String(item.ext || '').toUpperCase();
+                    let preview;
+                    if (item.type === 'image') {
+                        preview = `<img src="${esc(safeUrl)}" alt="${esc(item.description || item.name || 'Tài nguyên hình ảnh')}" loading="lazy">`;
+                    } else if (item.type === 'video' && safeUrl) {
+                        preview = `<video controls preload="metadata" aria-label="${esc(item.name)}"><source src="${esc(safeUrl)}" type="${esc(item.mime || '')}"></video>`;
+                    } else if (item.type === 'audio' && safeUrl) {
+                        preview = `<div class="ml-audio-preview"><i class="fa-solid ${type.icon}" aria-hidden="true"></i><audio controls preload="none" aria-label="${esc(item.name)}"><source src="${esc(safeUrl)}" type="${esc(item.mime || '')}"></audio></div>`;
+                    } else {
+                        preview = `<div class="ml-resource-icon"><i class="fa-solid ${type.icon}" aria-hidden="true"></i><span>${esc(extension || type.label)}</span></div>`;
+                    }
+                    return `<article class="ed-card ml-card">
+                        <div class="ed-card__thumb ml-card__thumb">${preview}</div>
+                        <div class="ed-card__body">
+                            <span class="ed-card__tag">${esc(type.label)}${extension ? ` · ${esc(extension)}` : ''}</span>
+                            <h2 class="ed-card__title">${esc(item.name)}</h2>
+                            ${item.description ? `<p class="ed-card__desc">${esc(item.description)}</p>` : '<p class="ed-card__desc"></p>'}
+                            <div class="ed-card__footer">
+                                <span>${esc(item.folder || type.label)}<br>${esc(fmtDate(item.uploadedAt))} · ${esc(formatSize(item.size))}</span>
+                                <a class="ed-card__link" href="${esc(safeUrl)}" download="${esc(item.name)}">
+                                    <i class="fa-solid fa-download" aria-hidden="true"></i> Tải xuống
+                                </a>
+                            </div>
+                        </div>
+                    </article>`;
+                }).join('') : `<div class="pub-state ml-empty">
+                    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+                    <span>${rows.length ? 'Không tìm thấy tài nguyên phù hợp.' : 'Hiện chưa có tài nguyên được công khai trong thư viện.'}</span>
+                </div>`;
+                grid.setAttribute('aria-busy', 'false');
+            };
+
+            if (typeFilters) {
+                const counts = rows.reduce((result, item) => {
+                    result[item.type] = (result[item.type] || 0) + 1;
+                    return result;
+                }, {});
+                const tabs = [
+                    ['all', 'Tất cả tài nguyên', rows.length],
+                    ['image', 'Hình ảnh / infographic', counts.image || 0],
+                    ['video', 'Video', counts.video || 0],
+                    ['audio', 'Âm thanh', counts.audio || 0],
+                    ['document', 'Tài liệu', counts.document || 0],
+                ].filter(([value, , total]) => value === 'all' || total > 0);
+                typeFilters.hidden = false;
+                typeFilters.innerHTML = tabs.map(([value, label, total]) => `
+                    <button type="button" class="lw-tab-btn${value === 'all' ? ' is-active' : ''}"
+                        data-resource-type="${value}" aria-selected="${value === 'all'}">
+                        ${esc(label)}${total > 0 ? ` (${total})` : ''}
+                    </button>`).join('');
+                typeFilters.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-resource-type]');
+                    if (!button) return;
+                    activeType = button.dataset.resourceType;
+                    typeFilters.querySelectorAll('[data-resource-type]').forEach((item) => {
+                        const active = item === button;
+                        item.classList.toggle('is-active', active);
+                        item.setAttribute('aria-selected', String(active));
+                    });
+                    render();
+                });
+            }
+            if (folderSelect) {
+                folderSelect.textContent = '';
+                const allFolders = document.createElement('option');
+                allFolders.value = '__all_folders__';
+                allFolders.textContent = 'Tất cả thư mục';
+                folderSelect.appendChild(allFolders);
+                folders.forEach((folder) => {
+                    if (typeof folder !== 'string' || !folder) return;
+                    const option = document.createElement('option');
+                    option.value = folder;
+                    option.textContent = folder;
+                    folderSelect.appendChild(option);
+                });
+                folderSelect.disabled = false;
+                folderSelect.addEventListener('change', render);
+            }
+            if (search) search.addEventListener('input', render);
+            if (resetButton) {
+                resetButton.addEventListener('click', () => {
+                    if (search) search.value = '';
+                    activeType = 'all';
+                    if (folderSelect) folderSelect.value = '__all_folders__';
+                    if (typeFilters) {
+                        typeFilters.querySelectorAll('[data-resource-type]').forEach((item) => {
+                            const active = item.dataset.resourceType === 'all';
+                            item.classList.toggle('is-active', active);
+                            item.setAttribute('aria-selected', String(active));
+                        });
+                    }
+                    render();
+                });
+            }
+            render();
+        } catch (error) {
+            grid.setAttribute('aria-busy', 'false');
+            if (count) count.textContent = 'Không tải được thư viện';
+            setError(grid, error.message || 'Không thể tải thư viện.');
+        }
+    }
+
     /* ------------------------------- FAQ ------------------------------------ */
 
     /**
@@ -1877,6 +2102,7 @@
 
     const run = () => {
         initFaqAccordion();
+        initMediaLibraryNav();
         if (isHome) {
             initNewsList();
             initHomeEducation();
@@ -1895,7 +2121,28 @@
         if (page === 'agency-detail.html') initAgencyDetail();
         if (page === 'support.html') initSupport();
         if (page === 'contact.html') initContactTopics();
+        if (page === 'media-library.html') initMediaLibrary();
     };
+
+    function initMediaLibraryNav() {
+        const list = document.querySelector('.site-header__nav-list');
+        if (!list || list.querySelector('[data-media-library-nav]')) return;
+        const item = document.createElement('li');
+        item.className = 'site-header__nav-item';
+        item.dataset.mediaLibraryNav = '1';
+        const isCurrent = page === 'media-library.html';
+        const link = document.createElement('a');
+        link.href = isHome ? 'pages/public/media-library.html' : 'media-library.html';
+        link.className = `site-header__nav-link${isCurrent ? ' site-header__nav-link--active' : ''}`;
+        link.textContent = 'Thư viện';
+        if (isCurrent) {
+            link.setAttribute('aria-current', 'page');
+        }
+        item.appendChild(link);
+        const agencies = Array.from(list.querySelectorAll('a')).find((anchor) => /(?:^|\/)agencies\.html$/.test(anchor.getAttribute('href') || ''));
+        if (agencies && agencies.parentElement) list.insertBefore(item, agencies.parentElement);
+        else list.appendChild(item);
+    }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
@@ -1903,6 +2150,6 @@
     window.PublicPages = {
         initNewsList, initNewsDetail, initEducation, initEducationDetail, initHomeEducation,
         initStatistics, initLaws, initLawDetail, initEvents, initEventDetail, initAgencies, initAgencyDetail, initSupport, initContactTopics,
-        initFaqAccordion,
+        initMediaLibrary, initFaqAccordion,
     };
 })();

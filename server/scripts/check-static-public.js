@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const SNAPSHOT_PATH = path.join(ROOT, 'public-data', 'public.json');
 const MEDIA_DIR = path.join(ROOT, 'public-data', 'media');
 const MEDIA_REFERENCE_PATTERN = /public-data\/media\/([^"'`\s?#)<>]+)/g;
+const GITHUB_MAX_FILE_BYTES = 100 * 1024 * 1024;
 const COLLECTIONS = [
   'articles',
   'categories',
@@ -61,6 +62,20 @@ function readAndValidateSnapshot() {
   const references = new Set();
   collectMediaReferences(snapshot, references);
   const invalidFiles = [];
+  if (fs.existsSync(MEDIA_DIR)) {
+    const orphanOrOversized = [];
+    const walkMedia = (dir) => {
+      fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return walkMedia(full);
+        const stat = fs.statSync(full);
+        if (stat.size === 0) orphanOrOversized.push(path.relative(ROOT, full).replace(/\\/g, '/') + ' (tệp rỗng)');
+        if (stat.size > GITHUB_MAX_FILE_BYTES) orphanOrOversized.push(path.relative(ROOT, full).replace(/\\/g, '/') + ' (vượt 100 MB)');
+      });
+    };
+    walkMedia(MEDIA_DIR);
+    invalidFiles.push(...orphanOrOversized);
+  }
   for (const reference of references) {
     const filePath = path.resolve(ROOT, ...reference.split('/'));
     const mediaRelativePath = path.relative(MEDIA_DIR, filePath);
@@ -72,6 +87,7 @@ function readAndValidateSnapshot() {
     try {
       const stat = fs.statSync(filePath);
       if (!stat.isFile() || stat.size === 0) invalidFiles.push(`${reference} (không phải tệp hoặc tệp rỗng)`);
+      if (stat.isFile() && stat.size > GITHUB_MAX_FILE_BYTES) invalidFiles.push(`${reference} (vượt 100 MB; GitHub không nhận file trực tiếp)`);
     } catch {
       invalidFiles.push(`${reference} (không tồn tại)`);
     }

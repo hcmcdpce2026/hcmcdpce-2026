@@ -45,6 +45,12 @@ function getDb() {
 function ensureContentTypeColumns() {
   const db = getDb();
   const columns = {
+    articles: [
+      ['takeaway', 'TEXT'],
+    ],
+    media: [
+      ['is_public', 'INTEGER NOT NULL DEFAULT 0'],
+    ],
     legal_documents: [
       ['slug', 'TEXT'], ['legal_field', 'TEXT'], ['expiry_at', 'TEXT'],
       ['effect_status', "TEXT NOT NULL DEFAULT 'in_effect'"],
@@ -56,6 +62,7 @@ function ensureContentTypeColumns() {
     ],
     public_agencies: [
       ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],
+      ['procedure_text', 'TEXT'], ['notes_text', 'TEXT'],
       ['structure', 'TEXT'], ['head_name', 'TEXT'],
     ],
     support_facilities: [

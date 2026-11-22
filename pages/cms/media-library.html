@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Thư viện tài nguyên Chuyên trang điện tử về phòng, chống ma túy tại Thành phố Hồ Chí Minh">
+    <meta name="description" content="Quản lý ảnh, video, infographic, âm thanh và tài liệu trên Cổng thông tin">
     <meta name="robots" content="noindex, nofollow">
     <title>THƯ VIỆN TÀI NGUYÊN | CHUYÊN TRANG ĐIỆN TỬ VỀ PHÒNG, CHỐNG MA TÚY TẠI THÀNH PHỐ HỒ CHÍ MINH</title>
 
@@ -39,7 +39,7 @@
                     <nav aria-label="Đường dẫn">
                         <ol class="cms-breadcrumb" id="cms-breadcrumb"></ol>
                     </nav>
-                    <p class="cms-header__title" id="cms-page-title">Thư viện tài nguyên</p>
+                    <p class="cms-header__title" id="cms-page-title">Thư viện</p>
                 </div>
 
                 <div class="cms-header__right">
@@ -56,10 +56,9 @@
                 <div class="cms-main__inner">
                     <div class="cms-page-head">
                         <div class="cms-page-head__text">
-                            <h1 class="cms-page-head__title">Quản lý tài nguyên</h1>
+                            <h1 class="cms-page-head__title">Quản lý thư viện</h1>
                             <p class="cms-page-head__desc">
-                                Hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin. Hỗ trợ JPG, PNG,
-                                WEBP, GIF, PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, MP4, WEBM, MP3, WAV; tối đa 200 MB mỗi tệp.
+                                Hình ảnh, infographic, video, âm thanh và tài liệu dùng trên Cổng thông tin. Tối đa 100 MB mỗi tệp.
                             </p>
                         </div>
                         <div class="cms-page-head__actions">
@@ -70,6 +69,25 @@
                             </button>
                         </div>
                     </div>
+
+                    <section class="cms-card cms-media-folder-manager" id="media-folder-manager" aria-labelledby="media-folder-title">
+                        <div class="cms-card__head">
+                            <h2 class="cms-card__title" id="media-folder-title">
+                                <i class="fa-solid fa-folder" aria-hidden="true"></i> Thư mục hiển thị trên trang công khai
+                            </h2>
+                        </div>
+                        <div class="cms-card__body">
+                            <form id="media-folder-form" class="cms-media-folder-form">
+                                <label class="cms-u-sr-only" for="media-folder-name">Tên thư mục mới</label>
+                                <input class="cms-input" id="media-folder-name" name="name" maxlength="80"
+                                    placeholder="Tên thư mục mới" required>
+                                <button type="submit" class="cms-btn cms-btn--primary">
+                                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thư mục
+                                </button>
+                            </form>
+                            <div id="media-folder-list" class="cms-media-folder-list" aria-live="polite"></div>
+                        </div>
+                    </section>
 
                     <!-- Bộ lọc -->
                     <section class="cms-filters" aria-labelledby="media-filter-title">
@@ -98,6 +116,8 @@
                             <select class="cms-select" id="media-type">
                                 <option value="">Tất cả định dạng</option>
                                 <option value="image">Hình ảnh</option>
+                                <option value="video">Video</option>
+                                <option value="audio">Âm thanh</option>
                                 <option value="document">Tài liệu</option>
                                 <option value="pdf">PDF</option>
                                 <option value="docx">Word (.docx)</option>
@@ -172,13 +192,19 @@
                                     </h2>
                                 </div>
                                 <div class="cms-card__body">
+                                    <div class="cms-filters__field">
+                                        <label class="cms-label" for="media-upload-folder">Thư mục</label>
+                                        <select class="cms-select" id="media-upload-folder">
+                                            <option value="">Dùng thư mục mặc định theo loại tệp</option>
+                                        </select>
+                                    </div>
                                     <div class="cms-dropzone" id="media-dropzone" role="button" tabindex="0"
                                         aria-label="Chọn hoặc kéo thả tệp để tải lên">
                                         <i class="fa-solid fa-cloud-arrow-up cms-dropzone__icon" aria-hidden="true"></i>
                                         <span class="cms-dropzone__title">Kéo thả tệp vào đây</span>
                                         <span class="cms-dropzone__hint">
                                             hoặc bấm để chọn tệp từ máy tính<br>
-                                            Ảnh, tài liệu, video, âm thanh · tối đa 200 MB/tệp
+                                            Ảnh, tài liệu, video, âm thanh · tối đa 100 MB/tệp
                                         </span>
                                     </div>
                                     <div class="cms-upload-queue" id="media-queue" aria-live="polite"></div>
@@ -207,7 +233,7 @@
                                             <span>Thư viện</span>
                                         </div>
                                         <p class="cms-help">
-                                            Giới hạn 200 MB mỗi tệp. Dung lượng trên là tổng các tệp đang lưu
+                                            Giới hạn 100 MB mỗi tệp. Dung lượng trên là tổng các tệp đang lưu
                                             trong thư viện; sao lưu thư mục <code>uploads/</code> cùng cơ sở dữ liệu.
                                         </p>
                                     </div>

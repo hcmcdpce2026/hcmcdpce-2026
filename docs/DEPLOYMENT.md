@@ -199,13 +199,16 @@ Không để thư mục backup trong web root.
 
 ## 12. GitHub Pages
 
-Pages không chạy backend. Quy trình:
+Pages không chạy backend. Repository có workflow `deploy-github-pages.yml`:
 
 1. CMS local nhập và xuất bản;
 2. chạy `npm run export:static-public`;
 3. kiểm tra `public-data/public.json` và media;
-4. commit/push;
-5. GitHub Pages deploy snapshot.
+4. chạy `npm run prepare:github-pages`;
+5. commit/push `public-data/` cùng mã public;
+6. GitHub Actions build artifact public-only và deploy Pages.
+
+Artifact không chứa `server/`, `pages/cms/`, `pages/workspace/`, database, `.env`, credential, `uploads/`, `backups/` hoặc API ghi dữ liệu.
 
 Trang tĩnh không có đăng nhập, submit, CMS, Workspace hoặc API ghi.
 

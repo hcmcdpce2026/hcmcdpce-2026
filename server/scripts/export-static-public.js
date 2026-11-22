@@ -15,6 +15,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const UPLOADS_DIR = path.join(ROOT, 'uploads');
 const outputDir = path.join(ROOT, 'public-data');
 const mediaDir = path.join(outputDir, 'media');
+const GITHUB_MAX_FILE_BYTES = 100 * 1024 * 1024;
 const db = getDb();
 
 function mapArticle(row) {
@@ -34,6 +35,7 @@ function mapArticle(row) {
     categoryGroup: article.categoryGroup,
     status: article.status,
     tags: article.tags,
+    takeaway: article.takeaway,
     authorName: article.authorName,
     source: article.source,
     seoTitle: article.seoTitle,
@@ -88,6 +90,10 @@ function mapEvent(row) {
 }
 
 function mapAgency(row, labels) {
+  const textLines = (value) => String(value || '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]\s*)?(?:\d+[.)]\s*)?/, '').trim())
+    .filter(Boolean);
   return {
     id: row.id,
     slug: row.slug || '',
@@ -103,7 +109,11 @@ function mapAgency(row, labels) {
     email: row.email,
     website: row.website,
     description: row.description,
-    functions: row.functions_text || '',
+    functions: textLines(row.functions_text),
+    duties: textLines(row.functions_text),
+    procedure: textLines(row.procedure_text),
+    steps: textLines(row.procedure_text),
+    notes: textLines(row.notes_text),
     headName: row.head_name || '',
     orgId: row.org_id || null,
     sortOrder: row.sort_order || 0,
@@ -186,6 +196,24 @@ function collectPublicData() {
     WHERE s.status <> 'inactive'
     ORDER BY s.name`).all().filter((row) => (row.publish_status || 'published') === 'published').map((row) => mapSupport(row, labels));
 
+  const mediaLibrary = db.prepare(`SELECT id, name, url, type, ext, mime, size, folder, alt, created_at
+    FROM media
+    WHERE is_public = 1
+    ORDER BY created_at DESC, name COLLATE NOCASE`).all().map((row) => ({
+    id: row.id,
+    name: row.name,
+    url: row.url,
+    type: row.type,
+    ext: row.ext || '',
+    mime: row.mime || '',
+    size: row.size || 0,
+    folder: row.folder || '',
+    description: row.alt || '',
+    uploadedAt: row.created_at,
+  }));
+  const mediaFolders = db.prepare(`SELECT name FROM system_categories
+    WHERE category_type = 'media_folder' AND status = 'active'
+    ORDER BY sort_order, name COLLATE NOCASE`).all().map((row) => row.name);
 
   const banners = db.prepare(`SELECT * FROM banners
     WHERE status = 'active'
@@ -208,10 +236,15 @@ function collectPublicData() {
     /* Số liệu đếm dùng cho khối thống kê trang chủ — cùng nguồn với /api/public/summary */
     summary: {
       laws: legalDocuments.length,
-      articles: articles.length,
+      articles: articles.filter((article) => article.categoryGroup === 'tin-tuc'
+        || article.categoryGroup === 'tuyen-truyen-giao-duc').length + events.length,
+      news: articles.filter((article) => article.categoryGroup === 'tin-tuc').length,
+      educationArticles: articles.filter((article) => article.categoryGroup === 'tuyen-truyen-giao-duc').length,
+      events: events.length,
       agencies: agencies.length,
       educationTopics: categories.filter((c) => c.group === 'tuyen-truyen-giao-duc'
         && Number(c.articleCount || 0) > 0).length,
+      supportFacilities: supportFacilities.length,
     },
     articles,
     categories,
@@ -221,6 +254,8 @@ function collectPublicData() {
     eventStatuses: sysCategories.listEventStatuses(db),
     events,
     agencies,
+    mediaLibrary,
+    mediaFolders,
     statistics,
     supportFacilities,
     banners,
@@ -228,11 +263,11 @@ function collectPublicData() {
   };
 }
 
-function copyAndRewriteUploads(value, copied) {
-  if (Array.isArray(value)) return value.map((item) => copyAndRewriteUploads(item, copied));
+function copyAndRewriteUploads(value, copied, allowedMediaNames) {
+  if (Array.isArray(value)) return value.map((item) => copyAndRewriteUploads(item, copied, allowedMediaNames));
   if (value && typeof value === 'object') {
     const result = {};
-    Object.keys(value).forEach((key) => { result[key] = copyAndRewriteUploads(value[key], copied); });
+    Object.keys(value).forEach((key) => { result[key] = copyAndRewriteUploads(value[key], copied, allowedMediaNames); });
     return result;
   }
   if (typeof value !== 'string') return value;
@@ -242,9 +277,15 @@ function copyAndRewriteUploads(value, copied) {
     if (!name || name !== rawName || name === '.' || name === '..') {
       throw new Error(`Đường dẫn tệp tải lên không hợp lệ: ${match}`);
     }
+    if (!allowedMediaNames.has(name)) {
+      return `${prefix}assets/images/article-placeholder.svg`;
+    }
     const source = path.join(UPLOADS_DIR, name);
     if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
       throw new Error(`Không tìm thấy tệp được nội dung công khai tham chiếu: ${source}`);
+    }
+    if (fs.statSync(source).size > GITHUB_MAX_FILE_BYTES) {
+      throw new Error(`Tệp công khai vượt 100 MB: ${name}`);
     }
     if (!copied.has(name)) {
       fs.copyFileSync(source, path.join(mediaDir, name));
@@ -255,10 +296,25 @@ function copyAndRewriteUploads(value, copied) {
 }
 
 function main() {
+  fs.rmSync(mediaDir, { recursive: true, force: true });
   fs.mkdirSync(mediaDir, { recursive: true });
+  const publicData = collectPublicData();
+  const allowedMediaNames = new Set(db.prepare(`SELECT url FROM media WHERE is_public = 1`)
+    .all()
+    .map((row) => path.basename(row.url || ''))
+    .filter(Boolean));
+  const publicJsonText = JSON.stringify(publicData);
+  for (const match of publicJsonText.matchAll(/\/uploads\/([^"'`\\\s?#)<>]+)/g)) {
+    const name = path.basename(decodeURIComponent(match[1]));
+    if (name && name !== '.' && name !== '..') allowedMediaNames.add(name);
+  }
   const copied = new Set();
-  const data = copyAndRewriteUploads(collectPublicData(), copied);
-  fs.writeFileSync(path.join(outputDir, 'public.json'), `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  const data = copyAndRewriteUploads(publicData, copied, allowedMediaNames);
+  const snapshotPath = path.join(outputDir, 'public.json');
+  const tempSnapshotPath = `${snapshotPath}.tmp-${process.pid}`;
+  fs.writeFileSync(tempSnapshotPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  if (fs.existsSync(snapshotPath)) fs.rmSync(snapshotPath, { force: true });
+  fs.renameSync(tempSnapshotPath, snapshotPath);
 
   console.log(`Đã xuất dữ liệu PUBLIC tĩnh: ${path.relative(ROOT, path.join(outputDir, 'public.json'))}`);
   console.log(`  Bài viết đã xuất bản: ${data.articles.length}`);

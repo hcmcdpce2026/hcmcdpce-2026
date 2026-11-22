@@ -144,6 +144,10 @@
                                 <span id="edd-audience"></span>
                             </span>
                             <span>
+                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                <span id="edd-published"></span>
+                            </span>
+                            <span>
                                 <i class="fa-regular fa-clock" aria-hidden="true"></i>
                                 <span id="edd-readtime"></span>
                             </span>
@@ -153,6 +157,12 @@
                             <button type="button" id="edd-font-dec" class="edd-font-btn" title="Thu nhỏ chữ">A-</button>
                             <button type="button" id="edd-font-reset" class="edd-font-btn" title="Cỡ chữ mặc định">A</button>
                             <button type="button" id="edd-font-inc" class="edd-font-btn" title="Phóng to chữ">A+</button>
+                            <button type="button" id="edd-copy-link" class="edd-tool-btn" title="Sao chép liên kết" aria-label="Sao chép liên kết">
+                                <i class="fa-solid fa-link" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" id="edd-print" class="edd-tool-btn" title="In chuyên đề" aria-label="In chuyên đề">
+                                <i class="fa-solid fa-print" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -170,7 +180,7 @@
                             <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
                             Thông điệp cốt lõi cần ghi nhớ
                         </h3>
-                        <ul id="edd-takeaways"></ul>
+                        <p id="edd-takeaway-text"></p>
                     </div>
 
                     <div class="edd-footer-nav">
@@ -185,6 +195,10 @@
                 </article>
 
                 <aside class="edd-sidebar" aria-label="Chuyên đề liên quan">
+                    <nav class="edd-toc" id="edd-toc" aria-label="Mục lục chuyên đề">
+                        <h3><i class="fa-solid fa-list-ul" aria-hidden="true"></i> Nội dung chuyên đề</h3>
+                        <ol id="edd-toc-list"></ol>
+                    </nav>
                     <div class="edd-help-box">
                         <h3>Cần tư vấn hoặc hỗ trợ khẩn cấp?</h3>
                         <p>
@@ -219,6 +233,9 @@
     <div class="article-copy-toast" id="copy-toast" role="status">
         Đã sao chép liên kết chuyên đề vào bộ nhớ tạm
     </div>
+    <button type="button" class="edd-back-to-top" id="edd-back-to-top" aria-label="Lên đầu trang">
+        <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+    </button>
 
     <footer class="site-footer">
         <div class="site-footer__main">
@@ -283,6 +300,5 @@
             </div>
         </div>
     </footer>
-</body>
 </body>
 </html>

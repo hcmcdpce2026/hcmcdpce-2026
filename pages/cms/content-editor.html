@@ -113,8 +113,7 @@
                                             Đường dẫn (slug) <span class="cms-label__hint">– tự tạo từ tiêu đề</span>
                                         </label>
                                         <div class="cms-u-flex cms-u-gap-sm cms-u-items-center">
-                                            <span
-                                                class="cms-u-text-sm cms-u-text-muted cms-u-nowrap">hcmdpp.gov.vn/tin-tuc/</span>
+                                            <span class="cms-u-text-sm cms-u-text-muted cms-u-nowrap" id="editor-slug-prefix">hcmdpp.gov.vn/tin-tuc/</span>
                                             <input type="text" class="cms-input" id="editor-slug"
                                                 placeholder="duong-dan-bai-viet">
                                         </div>
@@ -123,13 +122,13 @@
 
                                     <div class="cms-field cms-u-mt-md">
                                         <label class="cms-label" for="editor-excerpt">
-                                            Mô tả ngắn <span class="cms-label__hint">(hiển thị ở danh sách và
-                                                SEO)</span>
+                                            <span id="editor-excerpt-label">Mô tả ngắn</span>
+                                            <span class="cms-label__hint" id="editor-excerpt-hint">(hiển thị ở danh sách và SEO)</span>
                                         </label>
                                         <textarea class="cms-textarea" id="editor-excerpt" rows="3"
                                             placeholder="Tóm tắt nội dung trong 1–3 câu…"></textarea>
                                         <div class="cms-u-flex cms-u-justify-between cms-u-items-center">
-                                            <span class="cms-help">Nên dài 150–300 ký tự.</span>
+                                            <span class="cms-help" id="editor-excerpt-help">Nên dài 150–300 ký tự.</span>
                                             <span class="cms-counter" id="excerpt-count">0/300</span>
                                         </div>
                                         <span class="cms-error-text"></span>
@@ -141,13 +140,17 @@
                             <div class="cms-card">
                                 <div class="cms-card__head">
                                     <h2 class="cms-card__title">
-                                        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i> Nội dung chính
+                                        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+                                        <span id="editor-content-heading">Nội dung chính</span>
                                     </h2>
                                     <span class="cms-u-text-sm cms-u-text-muted">
                                         Phím tắt: <kbd>Ctrl</kbd> + <kbd>S</kbd> để lưu nháp
                                     </span>
                                 </div>
                                 <div class="cms-card__body">
+                                    <p class="cms-help cms-u-mb-md" id="editor-content-guide" aria-live="polite">
+                                        Viết nội dung bài viết theo các đoạn và tiêu đề phù hợp.
+                                    </p>
                                     <div class="cms-editor">
                                         <div class="cms-editor__toolbar" id="editor-toolbar" role="toolbar"
                                             aria-label="Định dạng văn bản">
@@ -377,18 +380,26 @@
 
                                     <div class="cms-aside-section">
                                         <h2 class="cms-aside-section__title">
-                                            <span><i class="fa-solid fa-tags" aria-hidden="true"></i>Thẻ nội
-                                                dung</span>
+                                            <span><i class="fa-solid fa-tags" aria-hidden="true"></i><span id="editor-tags-heading">Thẻ nội dung</span></span>
                                         </h2>
-                                        <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
-                                            id="editor-tags-auto">Gợi ý thẻ tự động</button>
-                                        <div class="cms-tag-input">
-                                            <span id="editor-tags" class="cms-u-flex cms-u-wrap cms-u-gap-sm"></span>
-                                            <input type="text" id="editor-tag-input" placeholder="Thêm thẻ thủ công rồi Enter…"
-                                                aria-label="Thêm thẻ nội dung">
+                                        <div id="editor-tags-fields">
+                                            <button type="button" class="cms-btn cms-btn--sm cms-btn--ghost"
+                                                id="editor-tags-auto">Gợi ý thẻ tự động</button>
+                                            <div class="cms-tag-input">
+                                                <span id="editor-tags" class="cms-u-flex cms-u-wrap cms-u-gap-sm"></span>
+                                                <input type="text" id="editor-tag-input" placeholder="Thêm thẻ thủ công rồi Enter…"
+                                                    aria-label="Thêm thẻ nội dung">
+                                            </div>
+                                            <p class="cms-help cms-u-mt-sm" id="editor-tags-help">Thẻ được gợi ý từ tiêu đề, mô tả và nội dung.
+                                                Bạn có thể thêm hoặc xóa thẻ thủ công; tối đa 8 thẻ.</p>
                                         </div>
-                                        <p class="cms-help cms-u-mt-sm">Thẻ được gợi ý từ tiêu đề, mô tả và nội dung.
-                                            Bạn có thể thêm hoặc xóa thẻ thủ công; tối đa 8 thẻ.</p>
+                                        <div class="cms-field cms-u-hidden" id="editor-takeaway-fields">
+                                            <label class="cms-label" for="editor-takeaway">Đoạn thông điệp</label>
+                                            <textarea class="cms-textarea" id="editor-takeaway" rows="5"
+                                                placeholder="Viết thông điệp cốt lõi thành một đoạn văn…"
+                                                aria-label="Thông điệp cốt lõi cần ghi nhớ"></textarea>
+                                            <p class="cms-help cms-u-mt-sm">Nội dung này sẽ hiển thị thành một đoạn văn riêng ở cuối chuyên đề.</p>
+                                        </div>
                                     </div>
 
                                     <div class="cms-aside-section">
@@ -398,7 +409,7 @@
                                         </h2>
                                         <div class="cms-aside-stack">
                                             <div class="cms-field">
-                                                <label class="cms-label" for="editor-source">Nguồn tin</label>
+                                                <label class="cms-label" for="editor-source" id="editor-source-label">Nguồn tin</label>
                                                 <input type="text" class="cms-input" id="editor-source"
                                                     placeholder="Ví dụ: Ban Chỉ đạo 138 TP.HCM">
                                             </div>

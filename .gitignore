@@ -25,6 +25,7 @@ server/data/*.png
 # Tệp tải lên của người dùng
 uploads/
 media/
+github-pages/
 
 # Version public media copied into the GitHub Pages snapshot.
 !public-data/media/

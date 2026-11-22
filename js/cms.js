@@ -19,8 +19,8 @@
            `maxSize: 0` nghĩa là không chặn dung lượng ở trình duyệt; máy chủ vẫn áp
            dụng trần của nó (MAX_UPLOAD_MB). */
         upload: {
-            maxSize: 200 * 1024 * 1024,
-            text: 'JPG, PNG, WEBP, GIF · PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX · MP4, WEBM · MP3, WAV · tối đa 200 MB/tệp',
+            maxSize: 100 * 1024 * 1024,
+            text: 'JPG, PNG, WEBP, GIF · PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX · MP4, WEBM · MP3, WAV · tối đa 100 MB/tệp',
             ext: [
                 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp', 'ico',
                 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'zip',
@@ -231,6 +231,7 @@ const Store = (function () {
         articles: [],
         categories: [],
         media: [],
+        mediaFolders: [],
         logs: [],
         notifications: [],
         stats: null,
@@ -317,10 +318,10 @@ const Store = (function () {
     const load = async (options) => {
         const opts = options || {};
         const tasks = [
-            api.get('/api/cms/articles?limit=200').then((rows) => { cache.articles = rows || []; }),
-            api.get('/api/cms/categories').then((rows) => { cache.categories = rows || []; }),
-            api.get('/api/cms/stats').then((data) => { cache.stats = data; }),
-            api.get('/api/cms/media').then((rows) => { cache.media = rows || []; }),
+            api.get('/api/cms/articles?limit=200').then((rows) => { cache.articles = rows || []; }).catch(() => { cache.articles = []; }),
+            api.get('/api/cms/categories').then((rows) => { cache.categories = rows || []; }).catch(() => { cache.categories = []; }),
+            api.get('/api/cms/stats').then((data) => { cache.stats = data; }).catch(() => { cache.stats = null; }),
+            api.get('/api/cms/media').then((rows) => { cache.media = rows || []; }).catch(() => { cache.media = []; }),
             api.get('/api/shared/users').then((rows) => {
                 cache.users = (rows || []).filter((u) => u.system === 'cms');
             }).catch(() => { cache.users = []; }),
@@ -356,6 +357,7 @@ const Store = (function () {
     const categoryChildren = (id) => cache.categories.filter((c) => c.parentId === id);
     const categoryArticleCount = (id) => cache.articles.filter((a) => a.categoryId === id && a.status !== 'archived').length;
     const media = () => cache.media.slice();
+    const mediaFolders = () => cache.mediaFolders.slice();
     const mediaById = (id) => cache.media.find((m) => m.id === id) || null;
     const logs = () => cache.logs.slice();
     const notifications = () => cache.notifications.slice();
@@ -404,6 +406,7 @@ const Store = (function () {
             categoryId: data.categoryId,
             source: data.source,
             tags: data.tags,
+            takeaway: data.takeaway,
             seoTitle: data.seoTitle,
             seoDescription: data.seoDescription,
         };
@@ -504,9 +507,31 @@ const Store = (function () {
         return saved;
     };
 
+    const refreshMediaFolders = async () => {
+        cache.mediaFolders = await api.get('/api/cms/media-folders');
+        return cache.mediaFolders;
+    };
+
+    const createMediaFolder = async (name) => {
+        const saved = await api.post('/api/cms/media-folders', { name });
+        await refreshMediaFolders();
+        return saved;
+    };
+
+    const deleteMediaFolder = async (id) => {
+        await api.del(`/api/cms/media-folders/${encodeURIComponent(id)}`);
+        cache.mediaFolders = cache.mediaFolders.filter((folder) => folder.id !== id);
+    };
+
     const refreshMedia = async () => {
         cache.media = await api.get('/api/cms/media');
         return cache.media;
+    };
+
+    const updateMedia = async (id, payload) => {
+        const saved = await api.put(`/api/cms/media/${encodeURIComponent(id)}`, payload);
+        cache.media = cache.media.map((item) => item.id === saved.id ? saved : item);
+        return saved;
     };
 
     const deleteMedia = async (id, refresh = true) => {
@@ -578,12 +603,13 @@ const Store = (function () {
         /* dữ liệu */
         get, load, reload, loadSession, setSession, clearSession, logout, getSession, currentUser, can, getContent,
         contents, contentById, categories, categoryById, categoryName, categoryGroup, categoryChildren, categoryArticleCount,
-        media, mediaById, logs, notifications, users, userById, workflow,
+        media, mediaById, mediaFolders, logs, notifications, users, userById, workflow,
         stats, monthlySeries,
         /* ghi */
         saveContent, setStatus, deleteContent, saveCategory, deleteCategory, refreshCategories, moveCategory,
         listCatalog, saveCatalog, deleteCatalog,
-        addMedia, deleteMedia, refreshMedia, markNotificationsRead, addLog,
+        addMedia, updateMedia, deleteMedia, refreshMedia, refreshMediaFolders, createMediaFolder, deleteMediaFolder,
+        markNotificationsRead, addLog,
         submissions, loadSubmissions, updateSubmission, assignSubmission,
         proposals, loadProposals, allProposals, reviewProposal, createCollaboration,
         /* tùy chọn */
@@ -976,7 +1002,7 @@ const Store = (function () {
         'public-catalog.html': { title: 'Nội dung công khai', icon: 'fa-building-columns', group: 'content', crumb: 'Nội dung công khai', desc: 'Quản lý văn bản, cơ quan, sự kiện, cơ sở hỗ trợ và số liệu công khai.' },
         'system-categories.html': { title: 'Quản lý danh mục', icon: 'fa-list-check', group: 'config', crumb: 'Quản lý danh mục', desc: 'Quản lý các lựa chọn nghiệp vụ dùng chung trong CMS, Workspace và Cổng thông tin.' },
         'publishing-workflow.html': { title: 'Quy trình xuất bản', icon: 'fa-code-branch', group: 'workflow', crumb: 'Quy trình xuất bản', desc: 'Theo dõi, kiểm duyệt và phát hành nội dung theo từng bước nghiệp vụ.' },
-        'media-library.html': { title: 'Thư viện tài nguyên', icon: 'fa-photo-film', group: 'media', crumb: 'Thư viện tài nguyên', desc: 'Quản lý hình ảnh, tài liệu và tệp đính kèm dùng cho nội dung Cổng thông tin.' },
+        'media-library.html': { title: 'Thư viện', icon: 'fa-photo-film', group: 'media', crumb: 'Thư viện', desc: 'Quản lý hình ảnh, infographic, video, âm thanh và tài liệu dùng trên Cổng thông tin.' },
         'activity-log.html': { title: 'Nhật ký hoạt động', icon: 'fa-clock-rotate-left', group: 'system', crumb: 'Nhật ký hoạt động', desc: 'Tra cứu lịch sử thao tác của người dùng trong khu vực quản trị.' },
         'submissions.html': { title: 'Tiếp nhận & xử lý yêu cầu', icon: 'fa-inbox', group: 'workflow', crumb: 'Tiếp nhận yêu cầu', desc: 'Tiếp nhận, phân công và phản hồi yêu cầu, phản ánh do công dân gửi qua Cổng thông tin.' },
         'login.html': { title: 'Đăng nhập quản trị', icon: 'fa-right-to-bracket', group: 'hidden', crumb: 'Đăng nhập', desc: '' }
@@ -1034,7 +1060,7 @@ const Store = (function () {
                 { group: 'config', file: 'system-categories.html', label: 'Quản lý danh mục' },
                 { group: 'workflow', file: 'publishing-workflow.html', label: 'Quy trình xuất bản', badge: badgeFor('pending') },
                 { group: 'workflow', file: 'submissions.html', label: 'Tiếp nhận yêu cầu', badge: stats.submissions && stats.submissions.new ? `<span class="cms-nav-link__badge">${stats.submissions.new}</span>` : '' },
-                { group: 'media', file: 'media-library.html', label: 'Thư viện tài nguyên' },
+                { group: 'media', file: 'media-library.html', label: 'Thư viện' },
                 { group: 'system', file: 'activity-log.html', label: 'Nhật ký hoạt động' }
             ];
 
@@ -2350,6 +2376,7 @@ const Store = (function () {
         let saving = false;
         let tags = [];
         let tagsManuallyEdited = false;
+        let currentArticleTypeIsEducation = null;
         let canvas = null;
         let savedRange = null;
 
@@ -2450,7 +2477,10 @@ const Store = (function () {
             body: canvas.innerHTML.trim(),
             thumbnail: el.thumbImage.getAttribute('data-value') || '',
             categoryId: el.category.value,
-            tags: tags.slice(),
+            tags: Store.categoryGroup(el.category.value) === 'tuyen-truyen-giao-duc' ? [] : tags.slice(),
+            takeaway: Store.categoryGroup(el.category.value) === 'tuyen-truyen-giao-duc'
+                ? el.takeaway.value.trim()
+                : '',
             source: el.source.value.trim(),
             publishedAt: el.date.value ? el.date.value + 'T' + (el.time.value || '00:00') + ':00' : null,
             seoTitle: el.seoTitle.value.trim(),
@@ -2516,6 +2546,7 @@ const Store = (function () {
                 thumbnail: data.thumbnail,
                 categoryId: data.categoryId,
                 tags: data.tags,
+                takeaway: data.takeaway,
                 source: data.source,
                 seoTitle: data.seoTitle,
                 seoDescription: data.seoDescription,
@@ -2594,6 +2625,7 @@ const Store = (function () {
             el.excerpt.value = record.excerpt || '';
             canvas.innerHTML = record.body || '';
             el.source.value = record.source || '';
+            el.takeaway.value = record.takeaway || '';
             el.seoTitle.value = record.seoTitle || record.title || '';
             el.seoDesc.value = record.seoDescription || record.excerpt || '';
             tags = (record.tags || []).slice();
@@ -2608,6 +2640,7 @@ const Store = (function () {
             }
 
             fillCategorySelect(record.categoryId);
+            updateArticleType();
 
             updateCounters();
             updateSeo();
@@ -2712,6 +2745,7 @@ const Store = (function () {
 
         const updateAutoTags = () => {
             if (tagsManuallyEdited || !window.PortalArticleTags) return;
+            if (Store.categoryGroup(el.category.value) === 'tuyen-truyen-giao-duc') return;
             const suggestions = window.PortalArticleTags.generateArticleTags({
                 title: el.title.value,
                 excerpt: el.excerpt.value,
@@ -2720,6 +2754,65 @@ const Store = (function () {
             if (suggestions.length === tags.length && suggestions.every((tag, index) => tag === tags[index])) return;
             tags = suggestions;
             renderTags();
+        };
+
+        const updateArticleType = () => {
+            const isEducation = Store.categoryGroup(el.category.value) === 'tuyen-truyen-giao-duc';
+            const contentHeading = document.getElementById('editor-content-heading');
+            const excerptLabel = document.getElementById('editor-excerpt-label');
+            const excerptHint = document.getElementById('editor-excerpt-hint');
+            const excerptHelp = document.getElementById('editor-excerpt-help');
+            const tagsHeading = document.getElementById('editor-tags-heading');
+            const tagsFields = document.getElementById('editor-tags-fields');
+            const takeawayFields = document.getElementById('editor-takeaway-fields');
+            const sourceLabel = document.getElementById('editor-source-label');
+            const slugPrefix = document.getElementById('editor-slug-prefix');
+            const contentGuide = document.getElementById('editor-content-guide');
+
+            if (contentHeading) contentHeading.textContent = isEducation ? 'Nội dung chuyên đề' : 'Nội dung tin tức';
+            if (contentGuide) {
+                contentGuide.textContent = isEducation
+                    ? 'Bố cục gợi ý: lời dẫn chuyên đề → các mục kiến thức (dùng Tiêu đề 2/3) → phần thông điệp cần ghi nhớ ở mục bên phải.'
+                    : 'Trình bày diễn biến chính, thông tin liên quan và kết quả hoặc hướng xử lý. Dùng Tiêu đề 2/3 để chia các phần khi cần.';
+            }
+            if (canvas) {
+                canvas.dataset.placeholder = isEducation
+                    ? 'Bắt đầu viết nội dung chuyên đề; dùng Tiêu đề 2/3 để chia các mục kiến thức…'
+                    : 'Bắt đầu viết nội dung tin tức tại đây…';
+            }
+            if (excerptLabel) excerptLabel.textContent = isEducation ? 'Tóm tắt chuyên đề' : 'Mô tả ngắn';
+            if (excerptHint) excerptHint.textContent = isEducation
+                ? '(hiển thị làm lời dẫn chuyên đề và trong SEO)'
+                : '(hiển thị ở danh sách và SEO)';
+            if (excerptHelp) excerptHelp.textContent = isEducation
+                ? 'Viết phần giới thiệu ngắn về chủ đề và nội dung người đọc sẽ tìm hiểu.'
+                : 'Nên dài 150–300 ký tự.';
+            if (sourceLabel) sourceLabel.textContent = isEducation ? 'Đối tượng hướng đến' : 'Nguồn tin';
+            if (el.source) el.source.placeholder = isEducation
+                ? 'Ví dụ: Thanh thiếu niên, phụ huynh, cộng đồng'
+                : 'Ví dụ: Ban Chỉ đạo 138 TP.HCM';
+            if (tagsHeading) tagsHeading.textContent = isEducation
+                ? 'Thông điệp cốt lõi cần ghi nhớ'
+                : 'Thẻ nội dung';
+            if (tagsFields) tagsFields.classList.toggle('cms-u-hidden', isEducation);
+            if (takeawayFields) takeawayFields.classList.toggle('cms-u-hidden', !isEducation);
+            if (el.tagsAuto) {
+                el.tagsAuto.classList.toggle('cms-u-hidden', isEducation);
+            }
+            if (slugPrefix) slugPrefix.textContent = isEducation
+                ? 'hcmdpp.gov.vn/chuyen-de/'
+                : 'hcmdpp.gov.vn/tin-tuc/';
+
+            if (currentArticleTypeIsEducation === null && isEducation && el.takeaway && !el.takeaway.value.trim()) {
+                el.takeaway.value = tags.join(' ');
+            } else if (currentArticleTypeIsEducation !== null && currentArticleTypeIsEducation !== isEducation) {
+                tags = [];
+                tagsManuallyEdited = false;
+                renderTags();
+            }
+            currentArticleTypeIsEducation = isEducation;
+            if (!isEducation) updateAutoTags();
+            updateSeo();
         };
 
         const addTag = (value) => {
@@ -2764,11 +2857,22 @@ const Store = (function () {
         const preview = () => {
             const data = readForm();
             const cat = Store.categoryName(el.category.value);
-            ui.modal({
-                title: 'Xem trước bài viết',
-                subtitle: 'Hiển thị theo bố cục trang công khai',
-                size: 'lg',
-                content: '<article class="cms-preview">' +
+            const isEducation = Store.categoryGroup(el.category.value) === 'tuyen-truyen-giao-duc';
+            const takeaway = data.takeaway;
+            const previewContent = isEducation
+                ? '<article class="cms-preview cms-preview--education">' +
+                    '<span class="cms-preview__tag">' + util.escape(cat) + '</span>' +
+                    '<h2 class="cms-preview__title">' + util.escape(data.title || 'Chưa có tiêu đề') + '</h2>' +
+                    '<div class="cms-preview__meta">' +
+                    '<span><i class="fa-solid fa-users" aria-hidden="true"></i> ' + util.escape(data.source || 'Dành cho cộng đồng') + '</span>' +
+                    '<span><i class="fa-regular fa-calendar" aria-hidden="true"></i> ' + util.escape(util.formatDate(el.date.value)) + '</span>' +
+                    '</div>' +
+                    (data.excerpt ? '<p class="cms-preview__lead">' + util.escape(data.excerpt) + '</p>' : '') +
+                    (data.thumbnail ? '<figure class="cms-preview__figure"><img class="cms-preview__hero" src="' + util.escape(data.thumbnail) + '" alt=""><figcaption>' + util.escape(data.title || '') + '</figcaption></figure>' : '') +
+                    '<div class="cms-preview__content">' + (data.body || '<p><em>Chưa có nội dung chuyên đề.</em></p>') + '</div>' +
+                    (takeaway ? '<section class="cms-preview__takeaways"><h3>Thông điệp cốt lõi cần ghi nhớ</h3><p>' + util.escape(takeaway) + '</p></section>' : '') +
+                    '</article>'
+                : '<article class="cms-preview">' +
                     '<span class="cms-preview__tag">' + util.escape(cat) + '</span>' +
                     '<h2 class="cms-preview__title">' + util.escape(data.title || 'Chưa có tiêu đề') + '</h2>' +
                     '<div class="cms-preview__meta">' +
@@ -2779,7 +2883,14 @@ const Store = (function () {
                     (data.thumbnail ? '<img class="cms-preview__hero" src="' + util.escape(data.thumbnail) + '" alt="">' : '') +
                     (data.excerpt ? '<p class="cms-u-text-muted cms-u-mb-lg"><em>' + util.escape(data.excerpt) + '</em></p>' : '') +
                     '<div class="cms-preview__content">' + (data.body || '<p><em>Chưa có nội dung.</em></p>') + '</div>' +
-                    '</article>'
+                    (data.source ? '<p class="cms-preview__source">Nguồn: ' + util.escape(data.source) + '</p>' : '') +
+                    (data.tags.length ? '<p class="cms-preview__tags">Thẻ: ' + data.tags.map((tag) => util.escape(tag)).join(', ') + '</p>' : '') +
+                    '</article>';
+            ui.modal({
+                title: isEducation ? 'Xem trước chuyên đề' : 'Xem trước tin tức',
+                subtitle: 'Hiển thị theo bố cục trang công khai',
+                size: 'lg',
+                content: previewContent
             });
         };
 
@@ -2965,6 +3076,10 @@ const Store = (function () {
         /* ---------- Thao tác tiêu đề trang ---------- */
 
         const bindActions = () => {
+            el.category.addEventListener('change', () => {
+                updateArticleType();
+                markDirty();
+            });
             el.btnSave.addEventListener('click', () => save('draft'));
             el.btnSubmit.addEventListener('click', async () => {
                 const saved = await save('pending');
@@ -3132,6 +3247,7 @@ const Store = (function () {
             el.excerpt = document.getElementById('editor-excerpt');
             el.category = document.getElementById('editor-category');
             el.source = document.getElementById('editor-source');
+            el.takeaway = document.getElementById('editor-takeaway');
             el.seoTitle = document.getElementById('editor-seo-title');
             el.seoDesc = document.getElementById('editor-seo-desc');
             el.excerptCount = document.getElementById('excerpt-count');
@@ -3637,16 +3753,42 @@ const Store = (function () {
 
     const Media = (function () {
         const state = {
-            q: '', type: '', date: '', view: 'grid', selected: null, bulkSelected: new Set(), page: 1, pageSize: 24
+            q: '', type: '', date: '', view: 'grid', selected: null, uploadFolder: '',
+            bulkSelected: new Set(), page: 1, pageSize: 24
         };
         const el = {};
+
+        const renderFolders = () => {
+            const folders = Store.mediaFolders();
+            if (el.folderList) {
+                el.folderList.innerHTML = folders.length
+                    ? folders.map((folder) => {
+                        const inUse = Number(folder.mediaCount) > 0;
+                        return '<span class="cms-chip">' + util.escape(folder.name) +
+                            (inUse ? '<span class="cms-chip__count">' + util.formatNumber(folder.mediaCount) + '</span>' : '') +
+                            '<button type="button" class="cms-chip__remove" data-media-folder-delete="' +
+                            util.escape(folder.id) + '" aria-label="Xóa thư mục ' + util.escape(folder.name) +
+                            '" title="' + (inUse ? 'Không thể xóa thư mục đang được sử dụng' : 'Xóa thư mục') +
+                            '"' + (inUse ? ' disabled' : '') + '><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+                            '</span>';
+                    }).join('')
+                    : '<p class="cms-filters__summary">Chưa có thư mục. Các thư mục được tạo tại đây sẽ xuất hiện trong bộ lọc trang công khai.</p>';
+            }
+            if (el.uploadFolder) {
+                const selected = state.uploadFolder;
+                el.uploadFolder.innerHTML = '<option value="">Dùng thư mục mặc định theo loại tệp</option>' +
+                    folders.map((folder) => '<option value="' + util.escape(folder.name) + '">' +
+                        util.escape(folder.name) + '</option>').join('');
+                el.uploadFolder.value = folders.some((folder) => folder.name === selected) ? selected : '';
+                state.uploadFolder = el.uploadFolder.value;
+            }
+        };
 
         const filtered = () => {
             const q = util.normalize(state.q);
             const now = new Date();
             return Store.media().filter((m) => {
-                if (state.type === 'image' && m.type !== 'image') return false;
-                if (state.type === 'document' && m.type !== 'document') return false;
+                if (['image', 'video', 'audio', 'document'].includes(state.type) && m.type !== state.type) return false;
                 if (['pdf', 'docx', 'xlsx'].indexOf(state.type) !== -1 && m.ext !== state.type) return false;
 
                 if (state.date) {
@@ -3664,6 +3806,7 @@ const Store = (function () {
         const fileIcon = (m) => {
             if (m.type === 'image') return 'fa-file-image';
             if (m.type === 'video') return 'fa-file-video';
+            if (m.type === 'audio') return 'fa-file-audio';
             if (m.ext === 'pdf') return 'fa-file-pdf';
             if (m.ext === 'doc' || m.ext === 'docx') return 'fa-file-word';
             if (m.ext === 'xls' || m.ext === 'xlsx') return 'fa-file-excel';
@@ -3703,6 +3846,7 @@ const Store = (function () {
         /* ---------- Render ---------- */
 
         const render = () => {
+            renderFolders();
             const list = filtered();
             const mediaIds = new Set(Store.media().map((item) => item.id));
             state.bulkSelected.forEach((id) => {
@@ -3816,6 +3960,22 @@ const Store = (function () {
                     ? '<video src="' + util.escape(m.url) + '" controls preload="metadata" style="width:100%;max-height:240px"></video>'
                     : '<i class="fa-solid ' + fileIcon(m) + ' cms-media-card__fileicon" style="font-size:2.5rem;padding:2rem" aria-hidden="true"></i>';
             const canDelete = Store.can('media.delete');
+            const canManage = Store.can('media.upload');
+            const librarySettings =
+                '<section class="cms-file-detail__library" aria-label="Công khai trong thư viện">' +
+                    '<label class="cms-check"><input type="checkbox" data-media-public' +
+                    (m.isPublic ? ' checked' : '') + (canManage ? '' : ' disabled') +
+                    '><span>Hiển thị tài nguyên trong thư viện công khai</span></label>' +
+                    '<label class="cms-label" for="media-public-alt">Mô tả tài nguyên</label>' +
+                    '<input class="cms-input" id="media-public-alt" type="text" maxlength="250" data-media-alt value="' +
+                    util.escape(m.alt || '') + '"' + (canManage ? '' : ' disabled') + '>' +
+                    '<p class="cms-help">Khi bật, người dùng có thể xem hoặc tải tệp từ trang thư viện.</p>' +
+                    (canManage
+                        ? '<button type="button" class="cms-btn cms-btn--sm cms-btn--primary" data-media-action="save" data-id="' +
+                            util.escape(m.id) + '"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu thiết lập</button>'
+                        : '') +
+                    '<a class="cms-link" href="../../pages/public/media-library.html" target="_blank" rel="noopener">Xem thư viện công khai</a>' +
+                    '</section>';
 
             host.innerHTML = '<div class="cms-file-detail">' +
                 '<div class="cms-file-detail__preview">' + preview + '</div>' +
@@ -3830,6 +3990,7 @@ const Store = (function () {
                 '<div class="cms-file-detail__row cms-file-detail__row--stack"><dt>Đường dẫn lưu trữ</dt><dd>' +
                 util.escape(m.url.length > 120 ? m.url.slice(0, 120) + '… [dữ liệu nhúng]' : m.url) + '</dd></div>' +
                 '</dl>' +
+                librarySettings +
                 '<div class="cms-u-flex cms-u-gap-sm cms-u-wrap">' +
                 '<button type="button" class="cms-btn cms-btn--sm cms-btn--primary" data-media-action="copy" data-id="' + util.escape(m.id) + '">' +
                 '<i class="fa-solid fa-link" aria-hidden="true"></i> Sao chép đường dẫn</button>' +
@@ -3969,7 +4130,7 @@ const Store = (function () {
                 Store.addMedia({
                     file,
                     alt: '',
-                    folder: isVideo ? 'Video' : isAudio ? 'Âm thanh' : isImage ? 'Hình ảnh hoạt động' : 'Tài liệu tải lên'
+                    folder: state.uploadFolder || (isVideo ? 'Video' : isAudio ? 'Âm thanh' : isImage ? 'Hình ảnh hoạt động' : 'Tài liệu tải lên')
                 }).then(() => {
                     clearInterval(timer);
                     showQueueItem(file, 'done', 100);
@@ -4068,11 +4229,30 @@ const Store = (function () {
             if (action === 'copy') copyUrl(m);
             else if (action === 'insert') insertIntoArticle(m);
             else if (action === 'delete') removeMedia(m);
+            else if (action === 'save') saveMediaSettings(m, btn);
             else if (action === 'info') {
                 state.selected = m.id;
                 render();
                 const aside = document.querySelector('.cms-media-aside');
                 if (aside && window.innerWidth < 1024) aside.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+
+        const saveMediaSettings = async (m, btn) => {
+            const detail = btn.closest('.cms-file-detail');
+            const isPublic = detail.querySelector('[data-media-public]');
+            const alt = detail.querySelector('[data-media-alt]');
+            btn.disabled = true;
+            try {
+                await Store.updateMedia(m.id, {
+                    isPublic: isPublic.checked,
+                    alt: alt.value,
+                });
+                render();
+                ui.toast('Đã lưu thiết lập tài nguyên trong thư viện công khai.', 'success');
+            } catch (error) {
+                btn.disabled = false;
+                ui.toast(error.message || 'Không thể lưu thiết lập ảnh.', 'error');
             }
         };
 
@@ -4082,6 +4262,40 @@ const Store = (function () {
         };
 
         const bind = () => {
+            if (el.folderForm) {
+                el.folderForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const input = document.getElementById('media-folder-name');
+                    if (!input || !input.value.trim()) return;
+                    try {
+                        await Store.createMediaFolder(input.value.trim());
+                        input.value = '';
+                        render();
+                        ui.toast('Đã tạo thư mục thư viện.', 'success');
+                    } catch (err) {
+                        ui.toast(err.message || 'Không tạo được thư mục.', { type: 'error' });
+                    }
+                });
+            }
+            if (el.folderList) {
+                el.folderList.addEventListener('click', async (event) => {
+                    const button = event.target.closest('[data-media-folder-delete]');
+                    if (!button || button.disabled) return;
+                    try {
+                        await Store.deleteMediaFolder(button.dataset.mediaFolderDelete);
+                        render();
+                        ui.toast('Đã xóa thư mục.', 'success');
+                    } catch (err) {
+                        ui.toast(err.message || 'Không xóa được thư mục.', { type: 'error' });
+                    }
+                });
+            }
+            if (el.uploadFolder) {
+                el.uploadFolder.addEventListener('change', () => {
+                    state.uploadFolder = el.uploadFolder.value;
+                });
+            }
+
             const search = document.getElementById('media-q');
             if (search) {
                 search.addEventListener('input', util.debounce(() => {
@@ -4227,6 +4441,12 @@ const Store = (function () {
             el.used = document.getElementById('media-used');
             el.bulkBar = document.getElementById('media-bulkbar');
             el.selectAll = document.getElementById('media-select-all');
+            el.folderManager = document.getElementById('media-folder-manager');
+            el.folderForm = document.getElementById('media-folder-form');
+            el.folderList = document.getElementById('media-folder-list');
+            el.uploadFolder = document.getElementById('media-upload-folder');
+            if (el.folderManager && !Store.can('media.upload')) el.folderManager.hidden = true;
+            if (el.uploadFolder) state.uploadFolder = el.uploadFolder.value;
 
             if (el.used) {
                 const totalBytes = Store.media().reduce((s, m) => s + (m.size || 0), 0);
@@ -4244,6 +4464,11 @@ const Store = (function () {
 
             bind();
             render();
+            Store.refreshMediaFolders().then(() => {
+                render();
+            }).catch((error) => {
+                ui.toast(error.message || 'Không tải được danh sách thư mục thư viện.', { type: 'error' });
+            });
         };
 
         return { init };
@@ -4362,6 +4587,8 @@ const Store = (function () {
                     ['headName', 'Người đứng đầu / đại diện', v.headName || v.head_name || '', 'text', false],
                     ['description', 'Giới thiệu', v.description || '', 'textarea', false],
                     ['functions', 'Chức năng, nhiệm vụ', v.functions || v.functionsText || v.functions_text || '', 'textarea', false],
+                    ['procedure', 'Quy trình tiếp nhận & Phối hợp giải quyết', v.procedure || v.procedureText || v.procedure_text || '', 'textarea', false],
+                    ['notes', 'Lưu ý khi người dân liên hệ làm việc', v.notes || v.notesText || v.notes_text || '', 'textarea', false],
                     ['structure', 'Cơ cấu tổ chức', v.structure || '', 'textarea', false],
                     ['logo', 'Logo / ảnh đại diện', v.logo || v.logoUrl || v.logo_url || '', { image: true }, false],
                     ['status', 'Trạng thái công khai', (v.status || 'active') === 'inactive' ? 'inactive' : 'active',

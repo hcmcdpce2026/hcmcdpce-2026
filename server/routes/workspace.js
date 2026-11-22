@@ -35,6 +35,29 @@ function scopeFilter(user, alias = 't') {
   return { sql: ` AND (${alias}.assignee_ids LIKE ? OR ${alias}.owner_org_id = ?)`, params: [`%"${user.id}"%`, user.orgId] };
 }
 
+function canAccessTask(user, row) {
+  if (!row) return false;
+  if (user.dataScope === 'all') return true;
+  if (user.dataScope === 'unit') return row.owner_org_id === user.orgId || !row.owner_org_id;
+  let assignees = [];
+  try { assignees = JSON.parse(row.assignee_ids || '[]'); } catch (_) { assignees = []; }
+  return assignees.includes(user.id) || row.owner_org_id === user.orgId;
+}
+
+function canAccessReport(user, row) {
+  if (!row) return false;
+  if (user.dataScope === 'all') return true;
+  if (user.dataScope === 'unit') return row.org_id === user.orgId;
+  return row.author_id === user.id;
+}
+
+function canAccessProposal(user, row) {
+  if (!row) return false;
+  if (user.dataScope === 'all') return true;
+  if (user.dataScope === 'unit') return row.org_id === user.orgId;
+  return row.author_id === user.id;
+}
+
 /* ============================== NHIỆM VỤ ================================== */
 
 function taskRow(db, id) {
@@ -69,6 +92,7 @@ async function getTask(req, res, ctx) {
   const db = getDb();
   const row = taskRow(db, ctx.params.id);
   if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const items = db.prepare('SELECT * FROM task_items WHERE task_id = ? ORDER BY sort_order').all(row.id);
   const comments = db.prepare('SELECT * FROM task_comments WHERE task_id = ? ORDER BY created_at').all(row.id);
   const history = db.prepare('SELECT * FROM task_history WHERE task_id = ? ORDER BY created_at DESC').all(row.id);
@@ -127,6 +151,7 @@ async function updateTask(req, res, ctx) {
   const db = getDb();
   const row = taskRow(db, ctx.params.id);
   if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const body = await http.readJson(req);
   const ts = nowIso();
   const patch = {};
@@ -155,6 +180,7 @@ async function taskAction(req, res, ctx) {
   const db = getDb();
   const row = taskRow(db, ctx.params.id);
   if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const body = await http.readJson(req).catch(() => ({}));
   const action = ctx.params.action;
   const ts = nowIso();
@@ -232,6 +258,7 @@ async function addTaskItem(req, res, ctx) {
   const db = getDb();
   const row = taskRow(db, ctx.params.id);
   if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const body = await http.readJson(req);
   const title = sec.cleanText(body.title, 300);
   if (!title) return http.badRequest(res, 'Nội dung công việc là bắt buộc.');
@@ -247,6 +274,9 @@ async function updateTaskItems(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'workspace', permission: 'task.edit' });
   if (!s) return;
   const db = getDb();
+  const row = taskRow(db, ctx.params.id);
+  if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const body = await http.readJson(req);
   const items = Array.isArray(body.items) ? body.items : [];
   items.forEach((it) => {
@@ -265,6 +295,7 @@ async function addTaskComment(req, res, ctx) {
   if (!text) return http.badRequest(res, 'Nội dung trao đổi không được để trống.');
   const row = taskRow(db, ctx.params.id);
   if (!row) return http.notFound(res, 'Nhiệm vụ không tồn tại.');
+  if (!canAccessTask(s.user, row)) return http.notFound(res, 'Nhiệm vụ không thuộc phạm vi truy cập.');
   const id = sec.makeId('tc');
   const ts = nowIso();
   db.prepare('INSERT INTO task_comments (id, task_id, user_id, user_name, body, created_at) VALUES (?,?,?,?,?,?)')
@@ -638,9 +669,18 @@ async function listReports(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'workspace', permission: 'report.view' });
   if (!s) return;
   const db = getDb();
+  let scopeSql = '';
+  const scopeParams = [];
+  if (s.user.dataScope === 'unit') {
+    scopeSql = ' WHERE r.org_id = ?';
+    scopeParams.push(s.user.orgId);
+  } else if (s.user.dataScope === 'own') {
+    scopeSql = ' WHERE r.author_id = ?';
+    scopeParams.push(s.user.id);
+  }
   const rows = db.prepare(`SELECT r.*, o.name AS org_name, u.full_name AS author_name FROM reports r
       LEFT JOIN organizations o ON o.id = r.org_id LEFT JOIN users u ON u.id = r.author_id
-      ORDER BY r.updated_at DESC`).all();
+      ${scopeSql} ORDER BY r.updated_at DESC`).all(...scopeParams);
   let items = rows.map(m.report);
   if (ctx.query.status) items = items.filter((r) => r.status === ctx.query.status);
   return http.ok(res, items);
@@ -652,6 +692,7 @@ async function getReport(req, res, ctx) {
   const db = getDb();
   const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(ctx.params.id);
   if (!row) return http.notFound(res, 'Báo cáo không tồn tại.');
+  if (!canAccessReport(s.user, row)) return http.notFound(res, 'Báo cáo không thuộc phạm vi truy cập.');
   const docs = db.prepare('SELECT d.* FROM documents d JOIN report_documents rd ON rd.doc_id = d.id WHERE rd.report_id = ?').all(row.id);
   return http.ok(res, m.report(row, { documents: docs.map(m.document) }));
 }
@@ -668,6 +709,7 @@ async function saveReport(req, res, ctx) {
   if (id) {
     const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(id);
     if (!row) return http.notFound(res, 'Báo cáo không tồn tại.');
+    if (!canAccessReport(s.user, row)) return http.notFound(res, 'Báo cáo không thuộc phạm vi truy cập.');
     if (['approved', 'pending'].includes(row.status) && !auth.hasPermission(s.user, 'report.approve')) {
       return http.forbidden(res, 'Báo cáo đang trong quy trình duyệt, không thể chỉnh sửa.');
     }
@@ -706,6 +748,9 @@ async function reportAction(req, res, ctx) {
   const db = getDb();
   const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(ctx.params.id);
   if (!row) return http.notFound(res, 'Báo cáo không tồn tại.');
+  if (!canAccessReport(s.user, row)) {
+    return http.notFound(res, 'Báo cáo không thuộc phạm vi truy cập.');
+  }
   const body = await http.readJson(req).catch(() => ({}));
   const action = ctx.params.action;
   const ts = nowIso();
@@ -750,9 +795,18 @@ async function listProposals(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'workspace', permission: 'proposal.view' });
   if (!s) return;
   const db = getDb();
+  let scopeSql = '';
+  const scopeParams = [];
+  if (s.user.dataScope === 'unit') {
+    scopeSql = ' WHERE p.org_id = ?';
+    scopeParams.push(s.user.orgId);
+  } else if (s.user.dataScope === 'own') {
+    scopeSql = ' WHERE p.author_id = ?';
+    scopeParams.push(s.user.id);
+  }
   const rows = db.prepare(`SELECT p.*, o.name AS org_name, c.name AS category_name FROM proposals p
       LEFT JOIN organizations o ON o.id = p.org_id LEFT JOIN categories c ON c.id = p.category_id
-      ORDER BY p.created_at DESC`).all();
+      ${scopeSql} ORDER BY p.created_at DESC`).all(...scopeParams);
   return http.ok(res, rows.map(m.proposal));
 }
 

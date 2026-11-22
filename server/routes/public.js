@@ -134,17 +134,31 @@ async function listEventStatuses(req, res) {
 async function listSummary(req, res) {
   const db = getDb();
   const one = (sql) => db.prepare(sql).get().c;
+  const news = one(`SELECT COUNT(*) AS c FROM articles a
+      JOIN categories c ON c.id = a.category_id
+      WHERE a.status = 'published' AND c.status = 'active'
+        AND c.group_key = 'tin-tuc'`);
+  const educationArticles = one(`SELECT COUNT(*) AS c FROM articles a
+      JOIN categories c ON c.id = a.category_id
+      WHERE a.status = 'published' AND c.status = 'active'
+        AND c.group_key = 'tuyen-truyen-giao-duc'`);
+  const events = one(`SELECT COUNT(*) AS c FROM public_events
+      WHERE (publish_status IS NULL OR publish_status = 'published')
+        AND status <> 'inactive'`);
   return http.ok(res, {
-    articles: one(`SELECT COUNT(*) AS c FROM articles a
-        LEFT JOIN categories c ON c.id = a.category_id
-        WHERE a.status = 'published' AND (a.category_id IS NULL OR c.status <> 'inactive')`),
+    articles: news + educationArticles + events,
+    news,
+    educationArticles,
+    events,
     laws: one("SELECT COUNT(*) AS c FROM legal_documents WHERE is_public <> 0 AND status <> 'inactive'"),
     agencies: one("SELECT COUNT(*) AS c FROM public_agencies WHERE status <> 'inactive'"),
-    /* Mỗi chuyên mục giáo dục có bài đã xuất bản là một chuyên đề công khai. */
     educationTopics: one(`SELECT COUNT(DISTINCT c.id) AS c FROM articles a
         JOIN categories c ON c.id = a.category_id
         WHERE a.status = 'published' AND c.status = 'active'
           AND c.group_key = 'tuyen-truyen-giao-duc'`),
+    supportFacilities: one(`SELECT COUNT(*) AS c FROM support_facilities
+        WHERE status <> 'inactive'
+          AND (publish_status IS NULL OR publish_status = 'published')`),
     generatedAt: nowIso(),
   });
 }
@@ -232,6 +246,10 @@ const AGENCY_LINKS = `SELECT p.*, o.name AS org_name, o.code AS org_code
 async function listAgencies(req, res, ctx) {
   const db = getDb();
   const labels = categoryLabels(db);
+  const textLines = (value) => String(value || '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]\s*)?(?:\d+[.)]\s*)?/, '').trim())
+    .filter(Boolean);
   const id = ctx.query.id;
   const mapAgency = (r) => ({
     id: r.id, slug: r.slug || '', name: r.name, shortName: r.short_name, roleType: r.role_type,
@@ -240,7 +258,12 @@ async function listAgencies(req, res, ctx) {
     managementLevelName: labels.get(`management_level:${r.management_level}`) || r.management_level || '',
     logo: r.logo_url || '', address: r.address,
     phone: r.phone, email: r.email, website: r.website, description: r.description,
-    functions: r.functions_text || '', headName: r.head_name || '',
+    functions: textLines(r.functions_text),
+    duties: textLines(r.functions_text),
+    procedure: textLines(r.procedure_text),
+    steps: textLines(r.procedure_text),
+    notes: textLines(r.notes_text),
+    headName: r.head_name || '',
     orgId: r.org_id || null, sortOrder: r.sort_order || 0, status: r.status,
   });
   const isPublic = (r) => r.status !== 'inactive';
@@ -261,6 +284,32 @@ async function listAgencies(req, res, ctx) {
       levels: levels.filter((t) => t.management_level).map((t) => ({ value: t.management_level, count: t.c })),
     },
   });
+}
+
+async function listMediaLibrary(req, res) {
+  const rows = getDb().prepare(`SELECT id, name, url, type, ext, mime, size, folder, alt, created_at
+    FROM media
+    WHERE is_public = 1
+    ORDER BY created_at DESC, name COLLATE NOCASE`).all();
+  return http.ok(res, rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    url: row.url,
+    type: row.type,
+    ext: row.ext || '',
+    mime: row.mime || '',
+    size: row.size || 0,
+    folder: row.folder || '',
+    description: row.alt || '',
+    uploadedAt: row.created_at,
+  })));
+}
+
+async function listMediaLibraryFolders(req, res) {
+  const rows = getDb().prepare(`SELECT name FROM system_categories
+    WHERE category_type = 'media_folder' AND status = 'active'
+    ORDER BY sort_order, name COLLATE NOCASE`).all();
+  return http.ok(res, rows.map((row) => row.name));
 }
 
 async function listStatistics(req, res, ctx) {
@@ -384,31 +433,40 @@ async function createSubmission(req, res, ctx) {
   }
   const today = new Date().toISOString().slice(0, 10);
   const dedupe = crypto.createHash('sha256').update(`${content.slice(0, 500)}|${email}|${today}`).digest('hex');
-  const dup = db.prepare('SELECT ticket_code FROM submissions WHERE dedupe_hash = ? AND created_at >= ?').get(dedupe, today);
-  if (dup) {
-    return http.conflict(res, `Yêu cầu này đã được tiếp nhận trước đó. Mã tiếp nhận: ${dup.ticket_code}.`, { ticketCode: dup.ticket_code });
-  }
-
-  const year = new Date().getFullYear();
-  const seq = db.prepare("SELECT COUNT(*) AS c FROM submissions WHERE ticket_code LIKE ?").get(`PCMT-${year}-%`).c + 1;
-  const ticket = `PCMT-${year}-${String(seq).padStart(4, '0')}`;
+  let ticket;
+  let ts;
   const id = sec.makeId('sub');
-  const ts = nowIso();
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const dup = db.prepare('SELECT ticket_code FROM submissions WHERE dedupe_hash = ? AND created_at >= ?').get(dedupe, today);
+    if (dup) {
+      db.exec('ROLLBACK');
+      return http.conflict(res, `Yêu cầu này đã được tiếp nhận trước đó. Mã tiếp nhận: ${dup.ticket_code}.`, { ticketCode: dup.ticket_code });
+    }
+    const year = new Date().getFullYear();
+    const seq = db.prepare("SELECT COUNT(*) AS c FROM submissions WHERE ticket_code LIKE ?").get(`PCMT-${year}-%`).c + 1;
+    ticket = `PCMT-${year}-${String(seq).padStart(4, '0')}`;
+    ts = nowIso();
 
-  db.prepare(`INSERT INTO submissions (id, ticket_code, form_type, status, priority, subject, topic_code, full_name, email, phone,
-      is_anonymous, content, ip, user_agent, dedupe_hash,
-      data_source, is_seed_data, environment, created_at, updated_at, created_by)
-     VALUES (?,?,?,'new',?,?,?,?,?,?,?,?,?,?,?,'operational',0,?,?,?,?)`).run(
-    id, ticket, formType, formType === 'report' ? 'high' : 'normal', subject, topicCode || null, isAnonymous ? null : fullName,
-    email || null, phone || null, isAnonymous ? 1 : 0, content, ip,
-    String(req.headers['user-agent'] || '').slice(0, 250), dedupe,
-    process.env.APP_ENV || 'development', ts, ts, null,
-  );
-  db.prepare(`INSERT INTO submission_events (submission_id, action, to_status, note, user_id, user_name, created_at)
-      VALUES (?,?,?,'Tiếp nhận yêu cầu trực tuyến',NULL,'Công dân',?)`).run(id, 'created', 'new', ts);
-  db.prepare(`INSERT INTO notifications (id, system_key, type, title, body, href, to_user_id, audience, is_read, created_at)
-      VALUES (?,?,?,?,?,?,NULL,'all',0,?)`)
-    .run(sec.makeId('notif'), 'cms', 'submission', 'Yêu cầu tiếp nhận mới', `${ticket} — ${subject}`, 'submissions.html', ts);
+    db.prepare(`INSERT INTO submissions (id, ticket_code, form_type, status, priority, subject, topic_code, full_name, email, phone,
+        is_anonymous, content, ip, user_agent, dedupe_hash,
+        data_source, is_seed_data, environment, created_at, updated_at, created_by)
+       VALUES (?,?,?,'new',?,?,?,?,?,?,?,?,?,?,?,'operational',0,?,?,?,?)`).run(
+      id, ticket, formType, formType === 'report' ? 'high' : 'normal', subject, topicCode || null, isAnonymous ? null : fullName,
+      email || null, phone || null, isAnonymous ? 1 : 0, content, ip,
+      String(req.headers['user-agent'] || '').slice(0, 250), dedupe,
+      process.env.APP_ENV || 'development', ts, ts, null,
+    );
+    db.prepare(`INSERT INTO submission_events (submission_id, action, to_status, note, user_id, user_name, created_at)
+        VALUES (?,?,?,'Tiếp nhận yêu cầu trực tuyến',NULL,'Công dân',?)`).run(id, 'created', 'new', ts);
+    db.prepare(`INSERT INTO notifications (id, system_key, type, title, body, href, to_user_id, audience, is_read, created_at)
+        VALUES (?,?,?,?,?,?,NULL,'all',0,?)`)
+      .run(sec.makeId('notif'), 'cms', 'submission', 'Yêu cầu tiếp nhận mới', `${ticket} — ${subject}`, 'submissions.html', ts);
+    db.exec('COMMIT');
+  } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) { /* ignore */ }
+    throw err;
+  }
 
   return http.created(res, {
     ticketCode: ticket,
@@ -447,11 +505,19 @@ async function lookupSubmission(req, res, ctx) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publicResponse: row.is_public_result ? row.public_response : '',
-    timeline: events.map((e) => ({ action: e.action, note: e.note, at: e.created_at })),
+    timeline: events
+      .filter((e) => ['new', 'assigned', 'status_change', 'answered', 'closed', 'rejected'].includes(e.action)
+        || ['new', 'assigned', 'in_progress', 'answered', 'closed', 'rejected'].includes(e.to_status))
+      .map((e) => ({
+        action: ['answered', 'closed', 'rejected'].includes(e.to_status)
+          ? 'Hồ sơ đã có cập nhật công khai'
+          : (e.action === 'assigned' ? 'Hồ sơ đã được phân công' : 'Hồ sơ được cập nhật'),
+        at: e.created_at,
+      })),
   });
 }
 
 module.exports = {
   health, listArticles, getArticle, listCategories, listSystemCategories, listSystemCategoryTypes, listEventStatuses, listSummary, listLegal, listEvents, listAgencies,
-  listStatistics, listSupport, listBanners, listNotifications, createSubmission, lookupSubmission,
+  listMediaLibrary, listMediaLibraryFolders, listStatistics, listSupport, listBanners, listNotifications, createSubmission, lookupSubmission,
 };

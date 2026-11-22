@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS system_categories (
     id              TEXT PRIMARY KEY,
     category_type   TEXT NOT NULL CHECK (category_type IN (
         'category_group', 'doc_type', 'legal_field', 'agency_type',
-        'management_level', 'facility_type', 'organization_type', 'contact_topic', 'event_status'
+        'management_level', 'facility_type', 'organization_type', 'contact_topic', 'event_status', 'media_folder'
     )),
     code            TEXT NOT NULL,
     name            TEXT NOT NULL,
@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS articles (
     author_name     TEXT,
     source          TEXT,
     tags            TEXT,                            -- JSON array
+    takeaway        TEXT,
     seo_title       TEXT,
     seo_description TEXT,
     views           INTEGER NOT NULL DEFAULT 0,
@@ -224,10 +225,20 @@ CREATE TABLE IF NOT EXISTS media (
     size            INTEGER NOT NULL DEFAULT 0,
     folder          TEXT,
     alt             TEXT,
+    is_public       INTEGER NOT NULL DEFAULT 0,
     stored_path     TEXT,
     data_source     TEXT NOT NULL DEFAULT 'operational',
     is_seed_data    INTEGER NOT NULL DEFAULT 0,
     environment     TEXT NOT NULL DEFAULT 'development',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    created_by      TEXT
+);
+
+CREATE TABLE IF NOT EXISTS media_folders (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL,
     created_by      TEXT
@@ -583,6 +594,8 @@ CREATE TABLE IF NOT EXISTS public_agencies (
     website     TEXT,
     description TEXT,
     functions_text TEXT,                                 -- chức năng, nhiệm vụ
+    procedure_text TEXT,                                 -- quy trình tiếp nhận & phối hợp
+    notes_text TEXT,                                     -- lưu ý khi người dân liên hệ
     structure   TEXT,                                    -- cơ cấu tổ chức
     head_name   TEXT,
     sort_order  INTEGER NOT NULL DEFAULT 0,
@@ -676,3 +689,92 @@ CREATE TABLE IF NOT EXISTS support_facilities (
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL
 );
+
+/* Validation constraints at DB level for workflow status values. */
+CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert
+BEFORE INSERT ON tasks
+FOR EACH ROW
+WHEN NEW.priority NOT IN ('low','normal','high','urgent')
+  OR NEW.status NOT IN ('new','doing','review','done','overdue','paused','cancelled')
+  OR NEW.progress < 0 OR NEW.progress > 100
+BEGIN
+  SELECT RAISE(ABORT, 'invalid task priority/status/progress');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update
+BEFORE UPDATE OF priority,status,progress ON tasks
+FOR EACH ROW
+WHEN NEW.priority NOT IN ('low','normal','high','urgent')
+  OR NEW.status NOT IN ('new','doing','review','done','overdue','paused','cancelled')
+  OR NEW.progress < 0 OR NEW.progress > 100
+BEGIN
+  SELECT RAISE(ABORT, 'invalid task priority/status/progress');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_reports_validate_insert
+BEFORE INSERT ON reports
+FOR EACH ROW
+WHEN NEW.status NOT IN ('draft','ready','sent','pending','approved','revision','rejected')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid report status');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_reports_validate_update
+BEFORE UPDATE OF status ON reports
+FOR EACH ROW
+WHEN NEW.status NOT IN ('draft','ready','sent','pending','approved','revision','rejected')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid report status');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_proposals_validate_insert
+BEFORE INSERT ON proposals
+FOR EACH ROW
+WHEN NEW.status NOT IN ('submitted','in_review','revision','approved','rejected','published')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid proposal status');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_proposals_validate_update
+BEFORE UPDATE OF status ON proposals
+FOR EACH ROW
+WHEN NEW.status NOT IN ('submitted','in_review','revision','approved','rejected','published')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid proposal status');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_submissions_validate_insert
+BEFORE INSERT ON submissions
+FOR EACH ROW
+WHEN NEW.status NOT IN ('new','assigned','in_progress','answered','closed','rejected')
+  OR NEW.priority NOT IN ('low','normal','high','urgent')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid submission status/priority');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_submissions_validate_update
+BEFORE UPDATE OF status,priority ON submissions
+FOR EACH ROW
+WHEN NEW.status NOT IN ('new','assigned','in_progress','answered','closed','rejected')
+  OR NEW.priority NOT IN ('low','normal','high','urgent')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid submission status/priority');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_collaboration_validate_insert
+BEFORE INSERT ON collaboration_requests
+FOR EACH ROW
+WHEN NEW.direction NOT IN ('cms-ws','ws-cms')
+  OR NEW.status NOT IN ('received','processing','completed','cancelled')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid collaboration direction/status');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_collaboration_validate_update
+BEFORE UPDATE OF direction,status ON collaboration_requests
+FOR EACH ROW
+WHEN NEW.direction NOT IN ('cms-ws','ws-cms')
+  OR NEW.status NOT IN ('received','processing','completed','cancelled')
+BEGIN
+  SELECT RAISE(ABORT, 'invalid collaboration direction/status');
+END;

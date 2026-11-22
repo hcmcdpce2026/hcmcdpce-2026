@@ -1,11 +1,15 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-21T12:46:47.362Z",
+  "generatedAt": "2026-11-22T09:36:52.264Z",
   "summary": {
     "laws": 4,
-    "articles": 7,
+    "articles": 10,
+    "news": 3,
+    "educationArticles": 4,
+    "events": 3,
     "agencies": 3,
-    "educationTopics": 3
+    "educationTopics": 3,
+    "supportFacilities": 2
   },
   "articles": [
     {
@@ -27,6 +31,7 @@
         "ma túy",
         "nguồn gốc"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Phân hiệu HVHC&QTC tại TP. Hồ Chí Minh",
       "seoTitle": "Nguồn gốc của ma túy: từ thảo dược tự nhiên đến các chất tổn",
@@ -55,6 +60,7 @@
         "Ma túy",
         "Phòng chống"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Sài Gòn Giải phóng Online",
       "seoTitle": "Phường Bình Thạnh ra mắt mô hình phòng chống ma túy ở khu dâ",
@@ -82,6 +88,7 @@
         "Ma túy",
         "Tác hại"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Hội đồng nhân dân TP. Hồ Chí Minh",
       "seoTitle": "Mô hình điểm về tuyên truyền tác hại của ma túy",
@@ -108,6 +115,7 @@
         "Trách nhiệm",
         "Ma túy"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Hội đồng nhân dân TP. Hồ Chí Minh",
       "seoTitle": "Công tác phòng, chống ma tuý tại TPHCM:Chuyển mạnh từ tư duy",
@@ -135,11 +143,12 @@
         "Phòng chống",
         "Chỉ đạo"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Bộ Công an",
       "seoTitle": "Công an Thành phố Hồ Chí Minh triển khai cao điểm tổng rà so",
       "seoDescription": "Công an TP.HCM tham mưu Thành ủy ban hành Nghị quyết 02-NQ/TU (12/12/2025) về phòng, chống ma túy và lập Ban Chỉ đạo các cấp, quyết tâm \"không có vùng cấm\".",
-      "views": 2,
+      "views": 3,
       "publishedAt": "2026-11-21T08:13:03.594Z"
     },
     {
@@ -162,6 +171,7 @@
         "Tội phạm",
         "Phòng chống"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Công an Thành phố Hồ Chí Minh",
       "seoTitle": "Chiến công nối tiếp chiến công, hơn 170 tên tội phạm ma túy",
@@ -189,6 +199,7 @@
         "Tuyên truyền",
         "Không ma túy"
       ],
+      "takeaway": "",
       "authorName": "Nguyễn Văn Đạt",
       "source": "Sở Nông nghiệp và Môi trường TP. Hồ Chí Minh",
       "seoTitle": "Tuyên truyền \"Tháng hành động phòng, chống ma túy” năm 2026",
@@ -691,6 +702,13 @@
     },
     {
       "categoryType": "doc_type",
+      "code": "nghi-quyet",
+      "name": "Nghị quyết",
+      "description": null,
+      "sortOrder": 1
+    },
+    {
+      "categoryType": "doc_type",
       "code": "bo-luat",
       "name": "Bộ luật",
       "description": null,
@@ -976,6 +994,10 @@
       "label": "Nhóm nội dung liên hệ"
     },
     {
+      "type": "media_folder",
+      "label": "Thư mục thư viện"
+    },
+    {
       "type": "event_status",
       "label": "Trạng thái hoạt động, sự kiện"
     }
@@ -1076,7 +1098,15 @@
       "email": "",
       "website": "https://congan.hochiminhcity.gov.vn",
       "description": "Công an Thành phố Hồ Chí Minh là lực lượng vũ trang nhân dân, làm nòng cốt trong thực hiện nhiệm vụ bảo vệ an ninh quốc gia, bảo đảm trật tự, an toàn xã hội và đấu tranh phòng, chống tội phạm trên địa bàn thành phố.",
-      "functions": "Tham mưu cho Bộ Công an, Thành ủy và UBND Thành phố về công tác bảo vệ an ninh, trật tự; tổ chức phòng ngừa, phát hiện, đấu tranh với các loại tội phạm; thực hiện công tác phòng, chống tội phạm ma túy, quản lý nhà nước về an ninh, trật tự và các nhiệm vụ khác theo quy định.",
+      "functions": [
+        "Tham mưu cho Bộ Công an, Thành ủy và UBND Thành phố về công tác bảo vệ an ninh, trật tự; tổ chức phòng ngừa, phát hiện, đấu tranh với các loại tội phạm; thực hiện công tác phòng, chống tội phạm ma túy, quản lý nhà nước về an ninh, trật tự và các nhiệm vụ khác theo quy định."
+      ],
+      "duties": [
+        "Tham mưu cho Bộ Công an, Thành ủy và UBND Thành phố về công tác bảo vệ an ninh, trật tự; tổ chức phòng ngừa, phát hiện, đấu tranh với các loại tội phạm; thực hiện công tác phòng, chống tội phạm ma túy, quản lý nhà nước về an ninh, trật tự và các nhiệm vụ khác theo quy định."
+      ],
+      "procedure": [],
+      "steps": [],
+      "notes": [],
       "headName": "Trung tướng Mai Hoàng – Giám đốc Công an TP.HCM",
       "orgId": null,
       "sortOrder": 0,
@@ -1097,7 +1127,15 @@
       "email": "syt@tphcm.gov.vn",
       "website": "https://medinet.gov.vn",
       "description": "Sở Y tế Thành phố Hồ Chí Minh là cơ quan chuyên môn thuộc UBND Thành phố, thực hiện chức năng tham mưu và giúp UBND Thành phố quản lý nhà nước về lĩnh vực y tế trên địa bàn.",
-      "functions": "Tham mưu quản lý nhà nước về y tế dự phòng, khám bệnh, chữa bệnh, phục hồi chức năng, dược, trang thiết bị y tế và các lĩnh vực y tế khác theo quy định. Phối hợp triển khai các hoạt động y tế liên quan đến phòng, chống ma túy, chăm sóc sức khỏe và hỗ trợ điều trị theo phạm vi chức năng được giao.",
+      "functions": [
+        "Tham mưu quản lý nhà nước về y tế dự phòng, khám bệnh, chữa bệnh, phục hồi chức năng, dược, trang thiết bị y tế và các lĩnh vực y tế khác theo quy định. Phối hợp triển khai các hoạt động y tế liên quan đến phòng, chống ma túy, chăm sóc sức khỏe và hỗ trợ điều trị theo phạm vi chức năng được giao."
+      ],
+      "duties": [
+        "Tham mưu quản lý nhà nước về y tế dự phòng, khám bệnh, chữa bệnh, phục hồi chức năng, dược, trang thiết bị y tế và các lĩnh vực y tế khác theo quy định. Phối hợp triển khai các hoạt động y tế liên quan đến phòng, chống ma túy, chăm sóc sức khỏe và hỗ trợ điều trị theo phạm vi chức năng được giao."
+      ],
+      "procedure": [],
+      "steps": [],
+      "notes": [],
       "headName": "PGS.TS.BS Tăng Chí Thượng – Giám đốc Sở Y tế TP.HCM",
       "orgId": null,
       "sortOrder": 0,
@@ -1118,13 +1156,23 @@
       "email": "vpubndtp@tphcm.gov.vn",
       "website": "https://hochiminhcity.gov.vn",
       "description": "Ủy ban nhân dân Thành phố Hồ Chí Minh là cơ quan hành chính nhà nước ở địa phương, thực hiện chức năng quản lý nhà nước trên địa bàn thành phố theo quy định của pháp luật.",
-      "functions": "Tổ chức thi hành Hiến pháp, pháp luật và các văn bản của cơ quan nhà nước cấp trên; xây dựng, tổ chức thực hiện kế hoạch phát triển kinh tế - xã hội; quản lý các lĩnh vực quốc phòng, an ninh, y tế, giáo dục, văn hóa và bảo đảm trật tự, an toàn xã hội. Chỉ đạo, triển khai các chương trình, kế hoạch phòng, chống ma túy trên địa bàn thành phố.",
+      "functions": [
+        "Tổ chức thi hành Hiến pháp, pháp luật và các văn bản của cơ quan nhà nước cấp trên; xây dựng, tổ chức thực hiện kế hoạch phát triển kinh tế - xã hội; quản lý các lĩnh vực quốc phòng, an ninh, y tế, giáo dục, văn hóa và bảo đảm trật tự, an toàn xã hội. Chỉ đạo, triển khai các chương trình, kế hoạch phòng, chống ma túy trên địa bàn thành phố."
+      ],
+      "duties": [
+        "Tổ chức thi hành Hiến pháp, pháp luật và các văn bản của cơ quan nhà nước cấp trên; xây dựng, tổ chức thực hiện kế hoạch phát triển kinh tế - xã hội; quản lý các lĩnh vực quốc phòng, an ninh, y tế, giáo dục, văn hóa và bảo đảm trật tự, an toàn xã hội. Chỉ đạo, triển khai các chương trình, kế hoạch phòng, chống ma túy trên địa bàn thành phố."
+      ],
+      "procedure": [],
+      "steps": [],
+      "notes": [],
       "headName": "Ông Lê Quốc Phong – Chủ tịch UBND TP.HCM",
       "orgId": null,
       "sortOrder": 0,
       "status": "active"
     }
   ],
+  "mediaLibrary": [],
+  "mediaFolders": [],
   "statistics": [
     {
       "id": "stp-mwq8ppnof44f81",

@@ -68,6 +68,8 @@ const routes = [
   ['GET', '/api/public/legal-documents', publicRoutes.listLegal],
   ['GET', '/api/public/events', publicRoutes.listEvents],
   ['GET', '/api/public/agencies', publicRoutes.listAgencies],
+  ['GET', '/api/public/media-library', publicRoutes.listMediaLibrary],
+  ['GET', '/api/public/media-library-folders', publicRoutes.listMediaLibraryFolders],
   ['GET', '/api/public/statistics', publicRoutes.listStatistics],
   ['GET', '/api/public/support-facilities', publicRoutes.listSupport],
   ['GET', '/api/public/banners', publicRoutes.listBanners],
@@ -105,7 +107,11 @@ const routes = [
   ['PATCH', '/api/cms/system-categories/:id/status', cmsRoutes.setSystemCategoryStatus],
   ['DELETE', '/api/cms/system-categories/:id', cmsRoutes.deleteSystemCategory],
   ['GET', '/api/cms/media', cmsRoutes.listMedia],
+  ['GET', '/api/cms/media-folders', cmsRoutes.listMediaFolders],
+  ['POST', '/api/cms/media-folders', cmsRoutes.createMediaFolder],
+  ['DELETE', '/api/cms/media-folders/:id', cmsRoutes.deleteMediaFolder],
   ['POST', '/api/cms/media', cmsRoutes.addMedia],
+  ['PUT', '/api/cms/media/:id', cmsRoutes.updateMedia],
   ['DELETE', '/api/cms/media/:id', cmsRoutes.deleteMedia],
   /* Danh mục công khai: văn bản, cơ quan, sự kiện, thống kê, cơ sở hỗ trợ */
   ['GET', '/api/cms/catalog/:kind', cmsRoutes.listCatalog],
@@ -350,6 +356,39 @@ async function handleRequest(req, res) {
   const blocked = /^\/(server|node_modules|\.git|\.env|docs\/internal|backups|scripts)(\/|$)/i;
   if (blocked.test(decodedPath) || /\.env(\.|$)/i.test(decodedPath)) {
     return libHttp.notFound(res, 'Không tìm thấy tài nguyên yêu cầu.');
+  }
+
+  if (pathname.startsWith('/uploads/')) {
+    const fileName = path.basename(decodedPath);
+    const url = `/uploads/${fileName}`;
+    const media = db.get('SELECT is_public FROM media WHERE url = ? OR url LIKE ?', [url, `%/${fileName}`]);
+    let isReferencedByPublicData = false;
+    if (!media || media.is_public !== 1) {
+      const pattern = `%${url}%`;
+      isReferencedByPublicData = !!(
+        db.get(`SELECT 1 AS ok FROM articles
+          WHERE status = 'published' AND (thumbnail = ? OR body LIKE ?) LIMIT 1`, [url, pattern])
+        || db.get(`SELECT 1 AS ok FROM legal_documents
+          WHERE is_public = 1 AND status <> 'inactive' AND (file_url = ? OR content LIKE ?) LIMIT 1`, [url, pattern])
+        || db.get(`SELECT 1 AS ok FROM public_agencies
+          WHERE status <> 'inactive' AND (logo_url = ? OR description LIKE ?) LIMIT 1`, [url, pattern])
+        || db.get(`SELECT 1 AS ok FROM public_events
+          WHERE publish_status = 'published' AND status <> 'inactive' AND (image_url = ? OR content LIKE ?) LIMIT 1`, [url, pattern])
+        || db.get(`SELECT 1 AS ok FROM support_facilities
+          WHERE publish_status = 'published' AND status <> 'inactive' AND (image_url = ? OR description LIKE ?) LIMIT 1`, [url, pattern])
+      );
+    }
+    if (media && media.is_public === 1) {
+      // public media library
+    } else if (isReferencedByPublicData) {
+      // media referenced by approved public content
+    } else {
+      const session = auth.authenticate(req);
+      if (!session || session.user.system !== 'cms'
+        || !auth.hasPermission(session.user, 'media.upload')) {
+        return libHttp.notFound(res, 'Tài nguyên không công khai.');
+      }
+    }
   }
 
   let target = libHttp.resolveStaticPath(ROOT, pathname);

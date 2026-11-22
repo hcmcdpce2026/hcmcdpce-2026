@@ -15,7 +15,9 @@ const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MINUTES || 480) * 60 * 100
 const MAX_FAILED = Number(process.env.MAX_LOGIN_ATTEMPTS || 5);
 const LOCK_MINUTES = Number(process.env.LOCK_MINUTES || 15);
 const COOKIE_NAME = 'hcm_portal_session';
-const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
+const COOKIE_SECURE = process.env.APP_ENV === 'production'
+  ? process.env.COOKIE_SECURE !== 'false'
+  : process.env.COOKIE_SECURE === 'true';
 
 const nowIso = () => new Date().toISOString();
 const addMinutes = (d, m) => new Date(d.getTime() + m * 60_000).toISOString();
@@ -224,30 +226,21 @@ function login(req, res, { username, password, system }) {
 
   if (system && user.system_key !== system) {
     recordAttempt(false, 'wrong_system');
-    return {
-      ok: false, status: 403,
-      message: system === 'cms'
-        ? 'Tài khoản này không có quyền truy cập khu vực quản trị nội dung (CMS).'
-        : 'Tài khoản này không có quyền truy cập không gian làm việc (Workspace).',
-    };
+    return { ok: false, status: 401, message: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
   }
 
   if (user.status === 'locked') {
     recordAttempt(false, 'locked');
-    return { ok: false, status: 403, message: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị hệ thống.' };
+    return { ok: false, status: 401, message: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
   }
   if (user.status === 'pending') {
     recordAttempt(false, 'pending');
-    return { ok: false, status: 403, message: 'Tài khoản chưa được kích hoạt.' };
+    return { ok: false, status: 401, message: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
   }
 
   if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
     recordAttempt(false, 'temp_locked');
-    const minutes = Math.ceil((new Date(user.locked_until).getTime() - Date.now()) / 60_000);
-    return {
-      ok: false, status: 429,
-      message: `Tài khoản tạm khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${minutes} phút.`,
-    };
+    return { ok: false, status: 429, message: 'Tài khoản tạm khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau.' };
   }
 
   if (!sec.verifyPassword(password, user.password_hash)) {

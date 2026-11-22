@@ -188,8 +188,16 @@
                             <span id="art-author"></span>
                         </span>
                         <span>
+                            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            <span data-publish-date></span>
+                        </span>
+                        <span>
                             <i class="fa-regular fa-clock" aria-hidden="true"></i>
                             <span id="art-readtime"></span>
+                        </span>
+                        <span>
+                            <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            <span data-view-count></span>
                         </span>
                         <span>
                             <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
@@ -220,6 +228,10 @@
                 <!-- Nội dung chi tiết bài viết -->
                 <article class="article-content" id="article-body">
                     <p class="article-sapo" id="art-sapo"></p>
+                    <figure class="article-figure" id="art-figure">
+                        <img id="art-image" src="../../assets/images/article-placeholder.svg" alt="" loading="eager">
+                        <figcaption id="art-caption"></figcaption>
+                    </figure>
                     <div id="art-body-content"></div>
 
                     <footer class="article-footer">
@@ -242,6 +254,13 @@
 
                 <!-- Cột phải: Tin đọc nhiều & Hỗ trợ -->
                 <aside class="article-sidebar" aria-label="Tin cùng chuyên mục và hỗ trợ">
+                    <nav class="article-toc" id="art-toc" aria-label="Mục lục bài viết">
+                        <h2 class="article-toc__title">
+                            <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+                            Nội dung bài viết
+                        </h2>
+                        <ol id="art-toc-list"></ol>
+                    </nav>
                     <div class="article-side-box">
                         <h2 class="article-side-box__title">
                             <i class="fa-solid fa-bolt" aria-hidden="true"></i>
@@ -286,6 +305,9 @@
     <div class="article-copy-toast" id="copy-toast" role="status">
         Đã sao chép liên kết bài viết vào bộ nhớ tạm
     </div>
+    <button type="button" class="article-back-to-top" id="art-back-to-top" aria-label="Lên đầu trang">
+        <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+    </button>
 
     <footer class="site-footer">
         <div class="site-footer__main">

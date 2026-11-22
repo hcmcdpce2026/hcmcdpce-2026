@@ -151,7 +151,26 @@
             return snapshot.systemCategoryTypes || [];
         }
 
-        if (pathname === '/api/public/summary') return snapshot.summary || null;
+        if (pathname === '/api/public/summary') {
+            const summary = snapshot.summary || {};
+            const newsCount = articles.filter((item) => item.categoryGroup === 'tin-tuc').length;
+            const educationCount = articles.filter((item) =>
+                item.categoryGroup === 'tuyen-truyen-giao-duc').length;
+            const eventCount = events.length;
+            const legalDocuments = snapshot.legalDocuments || [];
+            return {
+                ...summary,
+                news: summary.news != null ? summary.news : newsCount,
+                educationArticles: summary.educationArticles != null ? summary.educationArticles : educationCount,
+                events: summary.events != null ? summary.events : eventCount,
+                articles: newsCount + educationCount + eventCount,
+                laws: summary.laws != null ? summary.laws : legalDocuments.length,
+                agencies: summary.agencies != null ? summary.agencies : agencies.length,
+                supportFacilities: summary.supportFacilities != null
+                    ? summary.supportFacilities
+                    : (snapshot.supportFacilities || []).length,
+            };
+        }
 
         if (pathname === '/api/public/event-statuses') return snapshot.eventStatuses || [];
 
@@ -208,6 +227,8 @@
             });
         }
 
+        if (pathname === '/api/public/media-library') return snapshot.mediaLibrary || [];
+        if (pathname === '/api/public/media-library-folders') return snapshot.mediaFolders || [];
         if (pathname === '/api/public/statistics') return snapshot.statistics || [];
         if (pathname === '/api/public/support-facilities') {
             let rows = snapshot.supportFacilities || [];

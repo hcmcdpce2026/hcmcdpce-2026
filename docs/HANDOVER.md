@@ -43,7 +43,7 @@ Tại thời điểm kiểm kê, database có nội dung vận hành gồm 10 b�
 | Server/API với SQLite tạm mới tạo | **Đạt.** Tám danh sách PUBLIC trả 0 bản ghi; các số `articles`, `laws`, `agencies`, `educationTopics` của summary đều bằng 0. Kiểm tra trực tiếp database xác nhận khởi động không tạo nội dung nghiệp vụ cho articles, categories, public events, agencies, statistics, support facilities, tasks, reports, submissions hoặc proposals. |
 | Dry-run dọn dữ liệu test/demo | **Không có bản ghi đủ điều kiện; không xóa.** |
 | Dry-run `data_source='demo'` | **0 dòng đủ điều kiện.** |
-| `npm.cmd run check:static-public` | **Không đạt do thiếu snapshot:** `public-data/public.json` chưa tồn tại. Theo lựa chọn bàn giao, giữ snapshot thiếu; không export database vận hành, không commit/push dữ liệu này. |
+| `npm.cmd run check:static-public` | **Đạt** với snapshot hiện tại và media được tham chiếu công khai |
 | Kiểm tra tĩnh trong bước bàn giao | `npm.cmd run check` **đạt**; kiểm tra mã hóa 86 tệp và quét mẫu rủi ro 110 tệp, không có mẫu mức cao. Đây không phải quét secret trên toàn bộ Git history. |
 | Kiểm thử gợi ý thẻ bài viết | `npm.cmd run test:article-tags` **đạt**, xác minh 4 thẻ. |
 | Kiểm thử API và content type | Trong lần bàn giao, `npm.cmd run test:isolated` và `npm.cmd run test:content-types` đều **exit 0**. Output được ẩn để tránh lộ credential seed; lần chạy trước ghi nhận lần lượt 121/121 và 31/31. Không phải kiểm chứng triển khai production. |
@@ -60,7 +60,7 @@ Tại thời điểm kiểm kê, database có nội dung vận hành gồm 10 b�
 
 ## Việc còn phải xử lý
 
-1. **PUBLIC tĩnh:** chỉ export snapshot từ nguồn dữ liệu được duyệt; kiểm tra nội dung và media trước khi public. Hiện chưa thể xác nhận GitHub Pages.
+1. **PUBLIC tĩnh:** export snapshot và prepare public-only Pages; xác nhận workflow deploy trên GitHub và URL production.
 2. **Credential:** ở lần rà soát trước, tệp credential local không khớp database vận hành. Lần bàn giao này không đọc, in, reset hoặc thay credential. Quản trị viên được ủy quyền cần xử lý qua quy trình khôi phục tài khoản.
 3. **Production:** kiểm tra HTTPS, cookie Secure, proxy trust, quyền service, biến môi trường, giám sát, retention và khả năng phục hồi trên môi trường triển khai thật.
 4. **Secret trong Git history:** chạy công cụ quét nội dung được phê duyệt trên toàn bộ history; nếu phát hiện thì thu hồi/đổi secret tương ứng.

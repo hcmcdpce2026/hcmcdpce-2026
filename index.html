@@ -440,50 +440,94 @@
                         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                     </a>
                 </div>
-                <div class="site-main__statistics-grid">
-                    <article class="site-main__stat-card">
-                        <div class="site-main__stat-icon">
-                            <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                <div class="site-main__statistics-dashboard" aria-live="polite">
+                    <article class="site-main__stat-overview">
+                        <div class="site-main__stat-overview-head">
+                            <div>
+                                <span class="site-main__stat-eyebrow">TỔNG HỢP DỮ LIỆU CÔNG KHAI</span>
+                                <h3>Các nhóm dữ liệu công khai</h3>
+                            </div>
+                            <span class="site-main__stat-live"><i aria-hidden="true"></i> Trực tiếp</span>
                         </div>
-                        <h3 class="site-main__stat-title">
-                            Văn bản pháp luật
-                        </h3>
-                        <p class="site-main__stat-value" data-stat="laws">
-                            Đang cập nhật
-                        </p>
+                        <div class="site-main__stat-article-total">
+                            <span>Tổng tin bài</span>
+                            <strong id="home-stat-articles-total">—</strong>
+                        </div>
+                        <div class="site-main__stat-overview-body">
+                            <div class="site-main__stat-donut" id="home-stat-donut" aria-label="Tỷ lệ các nhóm dữ liệu">
+                                <div class="site-main__stat-donut-center">
+                                    <strong id="home-stat-total">—</strong>
+                                    <span>tổng dữ liệu</span>
+                                </div>
+                            </div>
+                            <div class="site-main__stat-legend">
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--news"></span>
+                                    <span>Tin tức</span>
+                                    <strong class="site-main__stat-value" data-stat="news">—</strong>
+                                </div>
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--education"></span>
+                                    <span>Tuyên truyền - Giáo dục</span>
+                                    <strong class="site-main__stat-value" data-stat="education">—</strong>
+                                </div>
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--events"></span>
+                                    <span>Sự kiện</span>
+                                    <strong class="site-main__stat-value" data-stat="events">—</strong>
+                                </div>
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--laws"></span>
+                                    <span>Văn bản pháp luật</span>
+                                    <strong class="site-main__stat-value" data-stat="laws">—</strong>
+                                </div>
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--agencies"></span>
+                                    <span>Cơ quan - Đơn vị</span>
+                                    <strong class="site-main__stat-value" data-stat="agencies">—</strong>
+                                </div>
+                                <div class="site-main__stat-legend-item">
+                                    <span class="site-main__stat-dot site-main__stat-dot--support"></span>
+                                    <span>Cơ sở hỗ trợ</span>
+                                    <strong class="site-main__stat-value" data-stat="support">—</strong>
+                                </div>
+                            </div>
+                        </div>
                     </article>
-                    <article class="site-main__stat-card">
-                        <div class="site-main__stat-icon">
-                            <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
+
+                    <article class="site-main__stat-bars">
+                        <div class="site-main__stat-overview-head">
+                            <div>
+                                <span class="site-main__stat-eyebrow">CƠ CẤU NỘI DUNG</span>
+                                <h3>Số lượng theo nhóm dữ liệu</h3>
+                            </div>
                         </div>
-                        <h3 class="site-main__stat-title">
-                            Tin tức và bài viết
-                        </h3>
-                        <p class="site-main__stat-value" data-stat="articles">
-                            Đang cập nhật
-                        </p>
-                    </article>
-                    <article class="site-main__stat-card">
-                        <div class="site-main__stat-icon">
-                            <i class="fa-solid fa-building" aria-hidden="true"></i>
+                        <div class="site-main__stat-bar-list">
+                            <div class="site-main__stat-bar-row" data-bar="news">
+                                <div class="site-main__stat-bar-label"><span>Tin tức</span><strong class="site-main__stat-value" data-stat="news">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
+                            <div class="site-main__stat-bar-row" data-bar="education">
+                                <div class="site-main__stat-bar-label"><span>Tuyên truyền - Giáo dục</span><strong class="site-main__stat-value" data-stat="education">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
+                            <div class="site-main__stat-bar-row" data-bar="events">
+                                <div class="site-main__stat-bar-label"><span>Sự kiện</span><strong class="site-main__stat-value" data-stat="events">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
+                            <div class="site-main__stat-bar-row" data-bar="laws">
+                                <div class="site-main__stat-bar-label"><span>Văn bản pháp luật</span><strong class="site-main__stat-value" data-stat="laws">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
+                            <div class="site-main__stat-bar-row" data-bar="agencies">
+                                <div class="site-main__stat-bar-label"><span>Cơ quan - Đơn vị</span><strong class="site-main__stat-value" data-stat="agencies">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
+                            <div class="site-main__stat-bar-row" data-bar="support">
+                                <div class="site-main__stat-bar-label"><span>Cơ sở hỗ trợ</span><strong class="site-main__stat-value" data-stat="support">—</strong></div>
+                                <div class="site-main__stat-bar-track"><span></span></div>
+                            </div>
                         </div>
-                        <h3 class="site-main__stat-title">
-                            Cơ quan, đơn vị
-                        </h3>
-                        <p class="site-main__stat-value" data-stat="agencies">
-                            Đang cập nhật
-                        </p>
-                    </article>
-                    <article class="site-main__stat-card">
-                        <div class="site-main__stat-icon">
-                            <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="site-main__stat-title">
-                            Chuyên đề tuyên truyền
-                        </h3>
-                        <p class="site-main__stat-value" data-stat="education">
-                            Đang cập nhật
-                        </p>
                     </article>
                 </div>
             </div>

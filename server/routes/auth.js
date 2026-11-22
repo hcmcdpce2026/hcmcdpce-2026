@@ -35,6 +35,8 @@ async function login(req, res, ctx) {
 }
 
 async function logout(req, res, ctx) {
+  const session = auth.requireAuth(req, res);
+  if (!session) return;
   const ok = auth.destroySession(req, res);
   return http.ok(res, { message: 'Đã đăng xuất.' });
 }

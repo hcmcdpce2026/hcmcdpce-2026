@@ -10,7 +10,7 @@
         if (!Array.isArray(types) || !types.length) throw new Error('Máy chủ chưa khai báo loại danh mục nào.');
         return types;
     };
-    const state = { type: '', status: '', query: '', rows: [], selected: new Set(), editing: null };
+    const state = { type: '', status: '', query: '', rows: [], selected: new Set(), editing: null, renderVersion: 0 };
     const el = {};
 
     const escape = (value) => String(value == null ? '' : value)
@@ -67,11 +67,13 @@
     };
 
     const render = async () => {
+        const version = ++state.renderVersion;
         el.table.innerHTML = '<div class="cms-state">Đang tải danh mục…</div>';
         try {
             if (!types.length) await loadTypes();
             const query = state.type ? `?type=${encodeURIComponent(state.type)}` : '';
             const rows = await api.get(`/api/cms/system-categories${query}`);
+            if (version !== state.renderVersion) return;
             state.rows = Array.isArray(rows) ? rows : [];
             const rowIds = new Set(state.rows.map((row) => row.id));
             state.selected.forEach((id) => {

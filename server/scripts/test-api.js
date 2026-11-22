@@ -121,6 +121,13 @@ async function run() {
     r.status === 200 && Array.isArray(r.body.data) && r.body.data.every((p) => p.sourceType !== undefined));
   r = await anon.request('GET', '/api/public/agencies');
   check('Cơ quan, đơn vị công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
+  r = await anon.request('GET', '/api/public/media-library');
+  check('Thư viện công khai chỉ trả về các loại tài nguyên hợp lệ',
+    r.status === 200 && Array.isArray(r.body.data)
+      && r.body.data.every((item) => ['image', 'video', 'audio', 'document'].includes(item.type)));
+  r = await anon.request('GET', '/api/public/media-library-folders');
+  check('Thư mục công khai lấy danh sách do CMS quản lý',
+    r.status === 200 && Array.isArray(r.body.data) && r.body.data.every((folder) => typeof folder === 'string'));
   r = await anon.request('GET', '/api/public/events');
   check('Sự kiện công khai trả về mảng', r.status === 200 && Array.isArray(r.body.data));
   check('Sự kiện chỉ trả trạng thái được phép công khai',
@@ -132,15 +139,24 @@ async function run() {
   /* Số liệu trang chủ: một endpoint, đếm bằng COUNT trên máy chủ */
   const summary = await anon.request('GET', '/api/public/summary');
   check('Số liệu tổng quan có đủ khoá đếm',
-    summary.status === 200 && ['articles', 'laws', 'agencies', 'educationTopics']
+    summary.status === 200 && [
+      'articles', 'news', 'educationArticles', 'events',
+      'laws', 'agencies', 'supportFacilities', 'educationTopics',
+    ]
       .every((key) => Number.isInteger(summary.body.data[key])),
     `status=${summary.status} ${JSON.stringify(summary.body.data).slice(0, 120)}`);
-  const publicArticles = await anon.request('GET', '/api/public/articles?limit=50');
-  check('Số liệu tổng quan khớp danh sách thật',
-    summary.status === 200 && publicArticles.status === 200
-      && summary.body.data.articles === publicArticles.body.data.length,
-    `${summary.body.data && summary.body.data.articles} vs ${publicArticles.body.data && publicArticles.body.data.length}`);
-
+  const publicNews = await anon.request('GET', '/api/public/articles?limit=50&group=tin-tuc');
+  const publicEducation = await anon.request('GET', '/api/public/articles?limit=50&group=tuyen-truyen-giao-duc');
+  const publicEvents = await anon.request('GET', '/api/public/events');
+  check('Nhóm thống kê khớp danh sách nội dung công khai',
+    summary.status === 200 && publicNews.status === 200 && publicEducation.status === 200
+      && publicEvents.status === 200
+      && summary.body.data.news === publicNews.body.data.length
+      && summary.body.data.educationArticles === publicEducation.body.data.length
+      && summary.body.data.events === publicEvents.body.data.length
+      && summary.body.data.articles === publicNews.body.data.length
+        + publicEducation.body.data.length + publicEvents.body.data.length,
+    JSON.stringify(summary.body.data));
   /* Danh mục hệ thống: danh sách loại do máy chủ khai báo, không hardcode ở client */
   const publicTypes = await anon.request('GET', '/api/public/system-category-types');
   check('PUBLIC trả danh sách loại danh mục kèm nhãn',
@@ -168,7 +184,9 @@ async function run() {
   check('Sai tài khoản/mật khẩu bị từ chối', r.status === 401);
   const wsWrongSystem = new Session('ws-system-check');
   r = await wsWrongSystem.login('ws.nguyenvandat', creds['ws.nguyenvandat'], 'cms');
-  check('Tài khoản Workspace không đăng nhập được CMS', [401, 403].includes(r.status), `status=${r.status}`);
+  check('Tài khoản Workspace không đăng nhập được CMS',
+    r.status === 401 && r.body.error === 'Tên đăng nhập hoặc mật khẩu không đúng.',
+    `status=${r.status}`);
   if (process.env.TEST_DEBUG) {
     console.log('[debug] creds[cms.nguyenvandat] length =', (creds['cms.nguyenvandat'] || '').length, '| cookie =', cmsAdmin.cookie ? 'set' : 'none');
   }
@@ -176,6 +194,27 @@ async function run() {
   if (process.env.TEST_DEBUG && r.status !== 200) console.log('[debug] raw =', JSON.stringify(r.body));
   check('Đăng nhập CMS admin thành công', r.status === 200 && !!cmsAdmin.csrf, `status=${r.status} ${r.status !== 200 ? JSON.stringify(r.body).slice(0, 120) : ''}`);
   check('Không trả mật khẩu/hash trong phản hồi', !JSON.stringify(r.body).includes('scrypt') && !JSON.stringify(r.body).includes('password_hash'));
+
+  r = await anon.request('GET', '/api/public/agencies');
+  const agencyId = r.status === 200 && r.body.data.length ? r.body.data[0].id : null;
+  if (agencyId) {
+    r = await cmsAdmin.request('PUT', `/api/cms/catalog/agencies/${agencyId}`, {
+      functions: 'Chức năng kiểm thử\\nNhiệm vụ kiểm thử',
+      procedure: 'Tiếp nhận hồ sơ\\nPhối hợp đơn vị liên quan',
+      notes: 'Mang theo giấy tờ tùy thân\\nLiên hệ trong giờ hành chính',
+    });
+    check('CMS lưu được 3 khối nội dung chi tiết cơ quan',
+      r.status === 200
+      && r.body.data.functions_text.includes('Chức năng kiểm thử')
+      && r.body.data.procedure_text.includes('Tiếp nhận hồ sơ')
+      && r.body.data.notes_text.includes('Mang theo giấy tờ'));
+    r = await anon.request('GET', `/api/public/agencies?id=${agencyId}`);
+    check('PUBLIC trả 3 khối chi tiết cơ quan theo từng dòng',
+      r.status === 200
+      && r.body.data.duties.includes('Chức năng kiểm thử')
+      && r.body.data.procedure.includes('Tiếp nhận hồ sơ')
+      && r.body.data.notes.includes('Mang theo giấy tờ'));
+  }
 
   r = await cmsAdmin.request('GET', '/api/cms/system-category-types');
   check('CMS trả danh sách loại danh mục', r.status === 200 && Array.isArray(r.body.data) && r.body.data.length > 0, `status=${r.status}`);
@@ -237,15 +276,28 @@ async function run() {
   check('Quản trị CMS được xóa nội dung', r.status === 200);
   r = await cmsEditor.request('POST', `/api/cms/articles/${editorArticleId}/publish`);
   check('Quản trị CMS được xuất bản', r.status !== 403);
-  r = await cmsEditor.request('POST', '/api/cms/articles', { title: 'Bài kiểm thử liên thông CMS', body: '<p>Nội dung liên thông kiểm thử</p>' });
+  r = await cmsEditor.request('POST', '/api/cms/articles', {
+    title: 'Bài kiểm thử liên thông CMS',
+    body: '<p>Nội dung liên thông kiểm thử</p>',
+    tags: ['thẻ tin tức'],
+    takeaway: 'Thông điệp cần ghi nhớ là một đoạn văn riêng.',
+  });
   editorArticleId = r.body.data && r.body.data.id;
+  check('Lưu riêng thông điệp cốt lõi và thẻ bài viết',
+    r.status === 201 && r.body.data.takeaway === 'Thông điệp cần ghi nhớ là một đoạn văn riêng.'
+      && r.body.data.tags.includes('thẻ tin tức'));
   const formattedBody = '<p><font face="Arial">Nội dung có định dạng</font></p><font face="Comic Sans MS">Font không được phép</font>';
-  r = await cmsEditor.request('PUT', `/api/cms/articles/${editorArticleId}`, { body: formattedBody });
+  r = await cmsEditor.request('PUT', `/api/cms/articles/${editorArticleId}`, {
+    body: formattedBody,
+    takeaway: 'Thông điệp được cập nhật.',
+  });
   check('Lưu nội dung bài viết giữ lại font an toàn', r.status === 200 && r.body.data.body.includes('<font face="Arial">'));
   check('Không lưu font ngoài danh sách cho phép', r.status === 200 && !r.body.data.body.includes('face="Comic Sans MS"'));
   r = await cmsEditor.request('GET', `/api/cms/articles/${editorArticleId}`);
   check('Mở chi tiết bài viết trả lại phần nội dung đã lưu',
-    r.status === 200 && r.body.data.body.includes('Nội dung có định dạng'));
+    r.status === 200 && r.body.data.body.includes('Nội dung có định dạng')
+      && r.body.data.takeaway === 'Thông điệp được cập nhật.'
+      && r.body.data.tags.includes('thẻ tin tức'));
 
   const wsAdmin = new Session('ws.nguyenvandat');
   r = await wsAdmin.login('ws.nguyenvandat', creds['ws.nguyenvandat'], 'workspace');
@@ -524,9 +576,10 @@ async function run() {
 
   /* 10. Tải tệp lên – chính sách an toàn */
   console.log('\n[10] TẢI TỆP LÊN (CHÍNH SÁCH AN TOÀN)');
-  const uploadFile = async (name, mime, buffer) => {
+  const uploadFile = async (name, mime, buffer, folder) => {
     const fd = new FormData();
     fd.append('file', new Blob([buffer], { type: mime }), name);
+    if (folder) fd.append('folder', folder);
     const res = await fetch(`${BASE}/api/cms/media`, {
       method: 'POST',
       headers: { Cookie: cmsAdmin.cookie, 'X-CSRF-Token': cmsAdmin.csrf },
@@ -537,12 +590,32 @@ async function run() {
     try { json = JSON.parse(text); } catch (_) { json = { raw: text }; }
     return { status: res.status, body: json };
   };
+  const folderName = `Media test folder ${Date.now().toString(36)}`;
+  r = await cmsAdmin.request('POST', '/api/cms/media-folders', { name: folderName });
+  const mediaFolderId = r.status === 201 ? r.body.data.id : null;
+  check('CMS tạo được thư mục thư viện', r.status === 201 && r.body.data.name === folderName);
+  r = await anon.request('GET', '/api/public/media-library-folders');
+  check('Thư mục mới xuất hiện công khai dù chưa có tài nguyên',
+    r.status === 200 && r.body.data.includes(folderName));
+  r = await cmsAdmin.request('POST', '/api/cms/media-folders', { name: folderName.toUpperCase() });
+  check('CMS không tạo thư mục trùng tên khác chữ hoa thường', r.status === 409);
+
   const pngBytes = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489', 'hex');
-  r = await uploadFile('anh-kiem-thu.png', 'image/png', pngBytes);
+  r = await uploadFile('anh-kiem-thu.png', 'image/png', pngBytes, folderName);
   check('Nhận ảnh PNG hợp lệ', r.status === 201 && /^\/uploads\//.test(r.body.data.url), `status=${r.status}`);
   const uploadedId = r.status === 201 ? r.body.data.id : null;
   const uploadedUrl = r.status === 201 ? r.body.data.url : null;
   check('Lưu đúng MIME và loại tài nguyên', r.status === 201 && r.body.data.mime === 'image/png' && r.body.data.type === 'image');
+  check('Gán tệp vào thư mục đã tạo trong CMS', r.status === 201 && r.body.data.folder === folderName);
+  if (uploadedUrl) {
+    const privateFile = await fetch(`${BASE}${uploadedUrl}`);
+    check('Tệp private không được phục vụ công khai qua /uploads',
+      privateFile.status === 404);
+  }
+  if (mediaFolderId && uploadedId) {
+    r = await cmsAdmin.request('DELETE', `/api/cms/media-folders/${mediaFolderId}`);
+    check('Không xóa thư mục đang được tài nguyên sử dụng', r.status === 409);
+  }
 
   r = await uploadFile('doc-hai.html', 'text/html', Buffer.from('<script>alert(1)</script>'));
   check('Từ chối tệp HTML', r.status === 400);
@@ -559,6 +632,13 @@ async function run() {
   if (r.status === 201) {
     const bigId = r.body.data.id;
     check('Lưu đúng dung lượng tệp lớn', r.body.data.size === 26 * 1024 * 1024, `size=${r.body.data.size}`);
+    const publishVideo = await cmsAdmin.request('PUT', `/api/cms/media/${bigId}`, { isPublic: true });
+    check('CMS công khai được video trong thư viện',
+      publishVideo.status === 200 && publishVideo.body.data.isPublic === true);
+    const publicVideo = await anon.request('GET', '/api/public/media-library');
+    check('Video công khai xuất hiện trong thư viện',
+      publicVideo.status === 200 && publicVideo.body.data.some((item) => item.id === bigId && item.type === 'video'));
+    await cmsAdmin.request('PUT', `/api/cms/media/${bigId}`, { isPublic: false });
     await cmsAdmin.request('DELETE', `/api/cms/media/${bigId}`);
   }
 
@@ -566,6 +646,25 @@ async function run() {
   check('Ảnh tĩnh vẫn phục vụ đúng MIME',
     staticImage.status === 200 && /^image\//.test(staticImage.headers.get('content-type') || ''));
   if (uploadedId) {
+    r = await anon.request('GET', '/api/public/media-library');
+    check('Ảnh tải lên chưa được bật không xuất hiện công khai',
+      r.status === 200 && !r.body.data.some((item) => item.id === uploadedId));
+    r = await cmsAdmin.request('PUT', `/api/cms/media/${uploadedId}`, {
+      isPublic: true,
+      alt: 'Ảnh tuyên truyền kiểm thử',
+    });
+    check('CMS bật công khai ảnh và lưu mô tả',
+      r.status === 200 && r.body.data.isPublic === true && r.body.data.alt === 'Ảnh tuyên truyền kiểm thử');
+    const publicMedia = await anon.request('GET', '/api/public/media-library');
+    check('Ảnh đã bật xuất hiện trong thư viện public',
+      publicMedia.status === 200 && publicMedia.body.data.some((item) =>
+        item.id === uploadedId && item.description === 'Ảnh tuyên truyền kiểm thử' && item.folder === folderName));
+    r = await cmsAdmin.request('PUT', `/api/cms/media/${uploadedId}`, { isPublic: false });
+    check('CMS có thể gỡ ảnh khỏi thư viện public', r.status === 200 && r.body.data.isPublic === false);
+    const hiddenMedia = await anon.request('GET', '/api/public/media-library');
+    check('Ảnh đã gỡ không còn xuất hiện công khai',
+      hiddenMedia.status === 200 && !hiddenMedia.body.data.some((item) => item.id === uploadedId));
+
     const article = await cmsAdmin.request('POST', '/api/cms/articles', {
       title: 'Bài viết dùng tài nguyên kiểm thử',
       body: `<p><img src="${uploadedUrl}" alt="Ảnh kiểm thử"></p>`,
@@ -578,9 +677,18 @@ async function run() {
     r = await cmsAdmin.request('DELETE', `/api/cms/media/${uploadedId}`);
     check('Xóa được tài nguyên vừa tải lên', r.status === 200);
   }
+  if (mediaFolderId) {
+    r = await cmsAdmin.request('DELETE', `/api/cms/media-folders/${mediaFolderId}`);
+    check('Xóa được thư mục không còn tài nguyên sử dụng', r.status === 200);
+  }
 
   /* 11. Đăng xuất */
   console.log('\n[11] ĐĂNG XUẤT');
+  r = await fetch(`${BASE}/api/auth/logout`, {
+    method: 'POST',
+    headers: { Cookie: cmsAdmin.cookie, 'X-Test-Suite': 'integration' },
+  });
+  check('Đăng xuất không có CSRF bị từ chối', r.status === 403);
   r = await cmsAdmin.request('POST', '/api/auth/logout');
   check('Đăng xuất thành công', r.status === 200);
   r = await cmsAdmin.request('GET', '/api/auth/me');

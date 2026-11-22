@@ -120,12 +120,13 @@ async function createArticle(req, res, ctx) {
   const ts = nowIso();
   const status = ['draft', 'pending'].includes(body.status) ? body.status : 'draft';
   db.prepare(`INSERT INTO articles (id, title, slug, excerpt, body, thumbnail, category_id, status, author_id, author_name,
-      source, tags, seo_title, seo_description, views, submitted_at, submitted_by, origin, origin_ref,
+      source, tags, takeaway, seo_title, seo_description, views, submitted_at, submitted_by, origin, origin_ref,
       data_source, is_seed_data, environment, created_at, updated_at, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,'operational',0,?,?,?,?)`).run(
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,'operational',0,?,?,?,?)`).run(
     id, title, slug, sec.cleanText(body.excerpt, 1000), sec.sanitizeHtml(body.body),
     sec.cleanText(body.thumbnail, 500), body.categoryId || null, status, s.user.id, s.user.name,
     sec.cleanText(body.source, 200), JSON.stringify(Array.isArray(body.tags) ? body.tags.slice(0, 20) : []),
+    sec.cleanText(body.takeaway, 5000),
     sec.cleanText(body.seoTitle, 200), sec.cleanText(body.seoDescription, 300),
     status === 'pending' ? ts : null, status === 'pending' ? s.user.id : null,
     ['cms', 'workspace', 'public'].includes(body.origin) ? body.origin : 'cms', body.originRef || null,
@@ -159,6 +160,7 @@ async function updateArticle(req, res, ctx) {
   if (body.categoryId !== undefined) patch.category_id = body.categoryId || null;
   if (body.source !== undefined) patch.source = sec.cleanText(body.source, 200);
   if (body.tags !== undefined) patch.tags = JSON.stringify(Array.isArray(body.tags) ? body.tags.slice(0, 20) : []);
+  if (body.takeaway !== undefined) patch.takeaway = sec.cleanText(body.takeaway, 5000);
   if (body.seoTitle !== undefined) patch.seo_title = sec.cleanText(body.seoTitle, 200);
   if (body.seoDescription !== undefined) patch.seo_description = sec.cleanText(body.seoDescription, 300);
   if (body.slug !== undefined) patch.slug = uniqueSlug(db, 'articles', body.slug || row.title, row.id);
@@ -388,6 +390,64 @@ async function listMedia(req, res, ctx) {
   return http.ok(res, items);
 }
 
+async function listMediaFolders(req, res) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'content.view' });
+  if (!s) return;
+  const db = getDb();
+  const rows = db.prepare(`SELECT id, name, sort_order, status
+    FROM system_categories
+    WHERE category_type = 'media_folder'
+    ORDER BY sort_order, name COLLATE NOCASE`).all();
+  return http.ok(res, rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sortOrder: row.sort_order,
+    status: row.status,
+    mediaCount: db.prepare('SELECT COUNT(*) AS count FROM media WHERE folder = ? COLLATE NOCASE').get(row.name).count,
+  })));
+}
+
+async function createMediaFolder(req, res) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'media.upload' });
+  if (!s) return;
+  const body = await http.readJson(req);
+  const name = typeof body.name === 'string' ? sec.cleanText(body.name, 80).trim() : '';
+  if (!name) return http.badRequest(res, 'Vui lòng nhập tên thư mục.');
+  const db = getDb();
+  if (db.prepare(`SELECT id FROM system_categories
+    WHERE category_type = 'media_folder' AND (name = ? COLLATE NOCASE OR code = ?)`).get(name, sec.slugify ? sec.slugify(name) : name)) {
+    return http.conflict(res, 'Tên thư mục đã tồn tại.');
+  }
+  const id = sec.makeId('mfolder');
+  const code = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100) || id;
+  const ts = nowIso();
+  const sortOrder = db.prepare(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next
+    FROM system_categories WHERE category_type = 'media_folder'`).get().next;
+  db.prepare(`INSERT INTO system_categories
+    (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
+    VALUES (?, 'media_folder', ?, ?, ?, 'active', ?, ?, ?)`).run(id, code, name, sortOrder, ts, ts, s.user.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'media-folder.create',
+    targetType: 'Thư mục thư viện', targetId: id, targetName: name, detail: 'Tạo thư mục thư viện', req });
+  return http.created(res, { id, name, sortOrder, mediaCount: 0 });
+}
+
+async function deleteMediaFolder(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'media.upload' });
+  if (!s) return;
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM system_categories
+    WHERE id = ? AND category_type = 'media_folder'`).get(ctx.params.id);
+  if (!row) return http.notFound(res, 'Thư mục không tồn tại.');
+  const usage = db.prepare('SELECT COUNT(*) AS count FROM media WHERE folder = ? COLLATE NOCASE').get(row.name).count;
+  if (usage) return http.conflict(res, 'Không thể xóa thư mục đang được tài nguyên sử dụng.');
+  db.prepare(`DELETE FROM system_categories
+    WHERE id = ? AND category_type = 'media_folder'`).run(row.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'media-folder.delete',
+    targetType: 'Thư mục thư viện', targetId: row.id, targetName: row.name, detail: 'Xóa thư mục thư viện', req });
+  return http.ok(res, { message: 'Đã xóa thư mục.' });
+}
+
 async function addMedia(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'cms', permission: 'media.upload' });
   if (!s) return;
@@ -476,6 +536,34 @@ async function addMedia(req, res, ctx) {
   return http.created(res, m.media(db.prepare('SELECT * FROM media WHERE id = ?').get(id)));
 }
 
+async function updateMedia(req, res, ctx) {
+  const s = auth.requireAuth(req, res, { system: 'cms', permission: 'media.upload' });
+  if (!s) return;
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM media WHERE id = ?').get(ctx.params.id);
+  if (!row) return http.notFound(res, 'Tài nguyên không tồn tại.');
+
+  const body = await http.readJson(req);
+  const patch = {};
+  if (body.alt !== undefined) {
+    if (typeof body.alt !== 'string') return http.badRequest(res, 'Mô tả ảnh không hợp lệ.');
+    patch.alt = sec.cleanText(body.alt, 250);
+  }
+  if (body.isPublic !== undefined) {
+    if (typeof body.isPublic !== 'boolean') return http.badRequest(res, 'Trạng thái công khai không hợp lệ.');
+    patch.is_public = body.isPublic ? 1 : 0;
+  }
+  const keys = Object.keys(patch);
+  if (!keys.length) return http.badRequest(res, 'Không có thông tin tài nguyên cần cập nhật.');
+
+  db.prepare(`UPDATE media SET ${keys.map((key) => `${key} = ?`).join(', ')}, updated_at = ? WHERE id = ?`)
+    .run(...keys.map((key) => patch[key]), nowIso(), row.id);
+  const fresh = db.prepare('SELECT * FROM media WHERE id = ?').get(row.id);
+  auth.logActivity({ systemKey: 'cms', user: s.user, action: 'media.update', targetType: 'Tài nguyên',
+    targetId: row.id, targetName: row.name, detail: fresh.is_public ? 'Cập nhật và công khai tài nguyên' : 'Cập nhật thông tin tài nguyên', req });
+  return http.ok(res, m.media(fresh));
+}
+
 async function deleteMedia(req, res, ctx) {
   const s = auth.requireAuth(req, res, { system: 'cms', permission: 'media.delete' });
   if (!s) return;
@@ -485,13 +573,21 @@ async function deleteMedia(req, res, ctx) {
   const used = db.prepare(`SELECT COUNT(*) AS c FROM articles
     WHERE thumbnail = ? OR instr(COALESCE(body, ''), ?) > 0`).get(row.url, row.url).c;
   if (used > 0) return http.conflict(res, `Tệp đang được sử dụng trong ${used} bài viết, không thể xóa.`);
-  db.prepare('DELETE FROM media WHERE id = ?').run(row.id);
+  let filePath = null;
   if (String(row.url || '').startsWith('/uploads/')) {
     const fileName = path.basename(String(row.url));
-    const filePath = path.resolve(__dirname, '..', '..', 'uploads', fileName);
-    if (filePath.startsWith(path.resolve(__dirname, '..', '..', 'uploads') + path.sep)) {
-      try { fs.unlinkSync(filePath); } catch (_) { /* file may already be missing */ }
-    }
+    const candidate = path.resolve(__dirname, '..', '..', 'uploads', fileName);
+    const uploadRoot = path.resolve(__dirname, '..', '..', 'uploads');
+    if (candidate.startsWith(uploadRoot + path.sep)) filePath = candidate;
+  }
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.prepare('DELETE FROM media WHERE id = ?').run(row.id);
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    db.exec('COMMIT');
+  } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) { /* ignore */ }
+    throw err;
   }
   auth.logActivity({ systemKey: 'cms', user: s.user, action: 'media.delete', targetType: 'Tài nguyên', targetId: row.id, targetName: row.name, detail: 'Xóa tài nguyên', req });
   return http.ok(res, { id: row.id, message: 'Đã xóa tài nguyên.' });
@@ -795,7 +891,7 @@ async function stats(req, res, ctx) {
 module.exports = {
   listArticles, getArticle, createArticle, updateArticle, articleAction, deleteArticle,
   listCategories, saveCategory, deleteCategory, reorderCategory,
-  listMedia, addMedia, deleteMedia,
+  listMedia, listMediaFolders, createMediaFolder, deleteMediaFolder, addMedia, updateMedia, deleteMedia,
   workflow, listSubmissions, getSubmission, updateSubmission, assignToWorkspace,
   listProposals, reviewProposal, createCollaboration, activityLog, stats,
 };
@@ -881,6 +977,8 @@ function catalogRow(table, body, existing) {
       website: pick(['website'], text),
       description: pick(['description'], text),
       functions_text: pick(['functions', 'functionsText', 'functions_text'], text),
+      procedure_text: pick(['procedure', 'procedureText', 'procedure_text'], text),
+      notes_text: pick(['notes', 'notesText', 'notes_text'], text),
       structure: pick(['structure'], text),
       head_name: pick(['headName', 'head_name'], text),
       logo_url: pick(['logo', 'logoUrl', 'logo_url'], text),

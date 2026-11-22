@@ -76,7 +76,7 @@ CSP hiện cho phép inline script/style để tương thích frontend. Siết C
 Đối với upload:
 
 - whitelist MIME/dạng tệp;
-- mặc định tối đa 200 MB/tệp, điều chỉnh bằng `MAX_UPLOAD_MB`;
+- mặc định tối đa 100 MB/tệp, điều chỉnh bằng `MAX_UPLOAD_MB`; media tĩnh >100 MB bị exporter chặn;
 - HTML/SVG/executable bị từ chối;
 - PDF/media được kiểm soát header Content-Disposition/CSP.
 

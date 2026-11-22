@@ -22,6 +22,7 @@ const SYSTEM_CATEGORY_TYPES = Object.freeze({
   facility_type: { label: 'Loại hình cơ sở', references: [['support_facilities', 'type']] },
   organization_type: { label: 'Loại hình tổ chức', references: [['organizations', 'type']] },
   contact_topic: { label: 'Nhóm nội dung liên hệ', references: [['submissions', 'topic_code']] },
+  media_folder: { label: 'Thư mục thư viện', references: [['media', 'folder']] },
   /*
    * Trạng thái hoạt động / sự kiện. Mã phải khớp CHECK constraint của
    * public_events.status. `role` cho biết cách PUBLIC diễn giải mã: `open` =

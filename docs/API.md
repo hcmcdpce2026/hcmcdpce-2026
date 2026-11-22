@@ -255,7 +255,7 @@ Yêu cầu phiên hợp lệ của CMS hoặc Workspace.
 
 Upload đi qua `server/lib/upload.js`. Chính sách mặc định:
 
-- tối đa 200 MB/tệp (đổi bằng biến `MAX_UPLOAD_MB`; `0` = không giới hạn, trần 1024 MB);
+- tối đa 100 MB/tệp để phù hợp GitHub/GitHub Pages (đổi bằng `MAX_UPLOAD_MB`; `0` tắt giới hạn từng tệp nhưng tệp vẫn phải <= giới hạn GitHub 100 MB);
 - cho phép ảnh JPG/JPEG/PNG/WEBP/GIF/AVIF/BMP/ICO;
 - cho phép tài liệu PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX/CSV/TXT/ZIP;
 - cho phép media MP4/WEBM/M4V/OGV/MP3/WAV/OGG;

@@ -125,6 +125,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .site-main__statistics-dashboard {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .site-main__support {
         padding-block: 3.75rem;
     }
@@ -712,6 +716,11 @@
 
     .ct-form-box {
         padding: 1.35rem;
+    }
+
+    .ct-lookup {
+        padding: 1.2rem;
+        border-radius: var(--radius-2xl);
     }
 
     .ct-form-actions {
@@ -1490,8 +1499,18 @@
         word-break: normal;
     }
 
+    .site-main__stat-overview-body {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+    }
+
+    .site-main__stat-legend {
+        width: 100%;
+    }
+
     .site-main__quick-grid,
     .site-main__statistics-grid,
+    .site-main__statistics-dashboard,
     .cms-stats,
     .cms-log-summary,
     .ws-stats,

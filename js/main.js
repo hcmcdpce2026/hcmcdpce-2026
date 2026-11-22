@@ -138,7 +138,7 @@ function initActiveNavigation() {
         'education-detail.html': 'education.html',
         'law-detail.html': 'laws.html',
         'agency-detail.html': 'agencies.html',
-        'event-detail.html': 'news.html'
+        'event-detail.html': 'events.html'
     };
 
     if (detailToParentMap[currentFile]) {
@@ -230,7 +230,14 @@ function initHomepageStats() {
     if (!nodes.length || !window.PortalAPI) return;
 
     const api = window.PortalAPI;
-    const MAP = { laws: 'laws', articles: 'articles', agencies: 'agencies', educationTopics: 'education' };
+    const MAP = {
+        news: 'news',
+        educationArticles: 'education',
+        events: 'events',
+        laws: 'laws',
+        agencies: 'agencies',
+        supportFacilities: 'support',
+    };
 
     const setValue = (key, total) => {
         const value = Number(total);
@@ -239,7 +246,9 @@ function initHomepageStats() {
             if (el.getAttribute('data-stat') !== key) return;
             el.textContent = value.toLocaleString('vi-VN');
             el.classList.add('is-available');
-            el.closest('.site-main__stat-card')?.classList.add('is-available');
+        });
+        document.querySelectorAll(`[data-bar="${key}"]`).forEach((row) => {
+            row.dataset.value = String(value);
         });
     };
 
@@ -247,6 +256,59 @@ function initHomepageStats() {
         .then((data) => {
             if (!data) return;
             Object.keys(MAP).forEach((field) => setValue(MAP[field], data[field]));
+
+            const values = {
+                news: Number(data.news) || 0,
+                education: Number(data.educationArticles) || 0,
+                events: Number(data.events) || 0,
+                laws: Number(data.laws) || 0,
+                agencies: Number(data.agencies) || 0,
+                support: Number(data.supportFacilities) || 0,
+            };
+            const total = Object.values(values).reduce((sum, value) => sum + value, 0);
+            const articleTotal = values.news + values.education + values.events;
+            const totalEl = document.getElementById('home-stat-total');
+            if (totalEl) totalEl.textContent = total.toLocaleString('vi-VN');
+            const articleTotalEl = document.getElementById('home-stat-articles-total');
+            if (articleTotalEl) articleTotalEl.textContent = articleTotal.toLocaleString('vi-VN');
+
+            const max = Math.max(...Object.values(values), 1);
+            const barRows = [...document.querySelectorAll('.site-main__stat-bar-row')];
+            barRows.forEach((row) => {
+                row.classList.add('is-available');
+                row.querySelector('.site-main__stat-bar-track span')?.style.setProperty('--bar-width', '0%');
+            });
+            window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                    barRows.forEach((row) => {
+                        const value = values[row.dataset.bar] || 0;
+                        row.querySelector('.site-main__stat-bar-track span')?.style.setProperty(
+                            '--bar-width',
+                            `${Math.max(0, (value / max) * 100)}%`
+                        );
+                    });
+                });
+            });
+
+            const donut = document.getElementById('home-stat-donut');
+            if (donut && total > 0) {
+                let cursor = 0;
+                const colors = {
+                    news: 'var(--color-primary)',
+                    education: 'var(--color-accent)',
+                    events: 'var(--color-secondary)',
+                    laws: 'var(--color-indigo)',
+                    agencies: 'var(--color-teal-deep)',
+                    support: 'var(--color-success)',
+                };
+                const segments = Object.keys(values).map((key) => {
+                    const start = cursor;
+                    cursor += (values[key] / total) * 360;
+                    return `${colors[key]} ${start}deg ${cursor}deg`;
+                });
+                donut.style.background = `conic-gradient(${segments.join(', ')})`;
+                donut.classList.add('is-available');
+            }
         })
         .catch((error) => {
             /* Giữ "Đang cập nhật" nhưng nêu lý do để người dùng không hiểu sai */
@@ -951,6 +1013,84 @@ function initEducationFontControls() {
     if (btnDec) btnDec.addEventListener('click', () => { fontStep = -1; applyFontStep(); });
 }
 
+/* Tạo mục lục, công cụ chia sẻ/in và nút quay đầu trang cho chuyên đề giáo dục. */
+function initEducationArticleTools() {
+    const body = document.getElementById('edd-body');
+    const toc = document.getElementById('edd-toc');
+    const tocList = document.getElementById('edd-toc-list');
+    let activeScrollHandler = null;
+
+    const buildToc = () => {
+        if (!body || !tocList) return;
+        const headings = [...body.querySelectorAll('h2, h3')].filter((heading) => heading.textContent.trim());
+        if (!headings.length) {
+            if (toc) toc.hidden = true;
+            return;
+        }
+        if (toc) {
+            toc.hidden = false;
+            toc.classList.add('is-ready');
+        }
+        tocList.innerHTML = headings.map((heading, index) => {
+            if (!heading.id) heading.id = `edd-section-${index + 1}`;
+            const level = heading.tagName.toLowerCase();
+            return `<li class="${level === 'h3' ? 'edd-toc__sub' : ''}">
+                <a href="#${heading.id}">${heading.textContent.trim()}</a>
+            </li>`;
+        }).join('');
+
+        const links = [...tocList.querySelectorAll('a')];
+        const updateActiveHeading = () => {
+            let activeId = '';
+            headings.forEach((heading) => {
+                if (heading.getBoundingClientRect().top <= 180) activeId = heading.id;
+            });
+            links.forEach((link) => link.classList.toggle(
+                'is-active',
+                link.getAttribute('href') === `#${activeId}`
+            ));
+        };
+        if (activeScrollHandler) window.removeEventListener('scroll', activeScrollHandler);
+        activeScrollHandler = updateActiveHeading;
+        window.addEventListener('scroll', updateActiveHeading, { passive: true });
+        updateActiveHeading();
+    };
+    buildToc();
+    if (body) {
+        const observer = new MutationObserver(() => buildToc());
+        observer.observe(body, { childList: true, subtree: true });
+    }
+
+    const copyButton = document.getElementById('edd-copy-link');
+    const printButton = document.getElementById('edd-print');
+    const toast = document.getElementById('copy-toast');
+    const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('is-shown');
+        window.setTimeout(() => toast.classList.remove('is-shown'), 2200);
+    };
+    if (copyButton) {
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                showToast('Đã sao chép liên kết chuyên đề.');
+            } catch (_) {
+                showToast('Không thể sao chép liên kết trên trình duyệt này.');
+            }
+        });
+    }
+    if (printButton) printButton.addEventListener('click', () => window.print());
+
+    const backToTop = document.getElementById('edd-back-to-top');
+    if (backToTop) {
+        const updateBackToTop = () => backToTop.classList.toggle('is-visible', window.scrollY > 600);
+        window.addEventListener('scroll', updateBackToTop, { passive: true });
+        backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        updateBackToTop();
+    }
+}
+
 /* ==========================================================================
    Đổ danh sách Tin đọc nhiều & Tin liên quan
    ========================================================================== */
@@ -1173,6 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.getElementById('edd-article-container')) return;
     initEducationReadingProgress();
     initEducationFontControls();
+    initEducationArticleTools();
 });
 
 /* ==========================================================================
@@ -1258,6 +1399,51 @@ function initArticleTools() {
             toast.classList.add('is-shown');
             window.setTimeout(() => toast.classList.remove('is-shown'), 2200);
         });
+    }
+
+    const toc = document.getElementById('art-toc');
+    const tocList = document.getElementById('art-toc-list');
+    let activeScrollHandler = null;
+    const buildToc = () => {
+        if (!toc || !tocList) return;
+        const body = document.getElementById('art-body-content') || article;
+        const headings = [...body.querySelectorAll('h2, h3')].filter((heading) => heading.textContent.trim());
+        if (!headings.length) {
+            toc.hidden = true;
+            return;
+        }
+        toc.hidden = false;
+        tocList.innerHTML = headings.map((heading, index) => {
+            if (!heading.id) heading.id = `art-section-${index + 1}`;
+            return `<li class="${heading.tagName.toLowerCase() === 'h3' ? 'article-toc__sub' : ''}">
+                <a href="#${heading.id}">${heading.textContent.trim()}</a>
+            </li>`;
+        }).join('');
+
+        const links = [...tocList.querySelectorAll('a')];
+        const updateActiveHeading = () => {
+            let activeId = '';
+            headings.forEach((heading) => {
+                if (heading.getBoundingClientRect().top <= 180) activeId = heading.id;
+            });
+            links.forEach((link) => link.classList.toggle('is-active',
+                link.getAttribute('href') === `#${activeId}`));
+        };
+        if (activeScrollHandler) window.removeEventListener('scroll', activeScrollHandler);
+        activeScrollHandler = updateActiveHeading;
+        window.addEventListener('scroll', updateActiveHeading, { passive: true });
+        updateActiveHeading();
+    };
+    buildToc();
+    const bodyObserver = new MutationObserver(buildToc);
+    bodyObserver.observe(document.getElementById('art-body-content') || article, { childList: true, subtree: true });
+
+    const backToTop = document.getElementById('art-back-to-top');
+    if (backToTop) {
+        const updateBackToTop = () => backToTop.classList.toggle('is-visible', window.scrollY > 600);
+        window.addEventListener('scroll', updateBackToTop, { passive: true });
+        backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        updateBackToTop();
     }
 }
 
@@ -1910,19 +2096,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await window.PortalAPI.get('/api/public/submissions/lookup' +
                     window.PortalAPI.qs({ code: code, contact: contact }));
 
+                const escapeHtml = (value) => String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
                 const timeline = (data.timeline || []).map((s) =>
                     `<li class="ct-lookup__step"><span class="ct-lookup__dot" aria-hidden="true"></span>
-                        <span class="ct-lookup__step-body"><strong>${window.CMS ? window.CMS.util.escape(s.note || s.action) : s.note || s.action}</strong>
+                        <span class="ct-lookup__step-body"><strong>${escapeHtml(s.note || s.action || 'Cập nhật hồ sơ')}</strong>
                         <span class="ct-lookup__step-time">${new Date(s.at).toLocaleString('vi-VN')}</span></span></li>`).join('');
 
                 lookupResult.innerHTML = `
                     <dl class="ct-lookup__summary">
-                        <dt>Mã tiếp nhận</dt><dd>${data.ticketCode}</dd>
-                        <dt>Trạng thái</dt><dd><strong>${STATUS_LABEL[data.status] || data.status}</strong></dd>
-                        <dt>Tiêu đề</dt><dd>${data.subject || '—'}</dd>
-                        <dt>Ngày gửi</dt><dd>${new Date(data.createdAt).toLocaleString('vi-VN')}</dd>
+                        <dt>Mã tiếp nhận</dt><dd>${escapeHtml(data.ticketCode)}</dd>
+                        <dt>Trạng thái</dt><dd><strong>${escapeHtml(STATUS_LABEL[data.status] || data.status)}</strong></dd>
+                        <dt>Tiêu đề</dt><dd>${escapeHtml(data.subject || '—')}</dd>
+                        <dt>Ngày gửi</dt><dd>${escapeHtml(new Date(data.createdAt).toLocaleString('vi-VN'))}</dd>
                     </dl>
-                    ${data.publicResponse ? `<div class="ct-lookup__answer"><strong>Phản hồi của cơ quan chức năng</strong><p>${data.publicResponse}</p></div>` : ''}
+                    ${data.publicResponse ? `<div class="ct-lookup__answer"><strong>Phản hồi của cơ quan chức năng</strong><p>${escapeHtml(data.publicResponse)}</p></div>` : ''}
                     ${timeline ? `<ol class="ct-lookup__timeline">${timeline}</ol>` : ''}`;
                 lookupResult.hidden = false;
             } catch (err) {

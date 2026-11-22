@@ -20,12 +20,24 @@ const nowIso = () => new Date().toISOString();
 async function users(req, res) {
   const s = auth.requireAuth(req, res);
   if (!s) return;
+  if (!auth.hasPermission(s.user, 'user.view') && s.user.dataScope !== 'all') {
+    return http.forbidden(res, 'Bạn không có quyền xem danh bạ người dùng.');
+  }
   const db = getDb();
+  let where = `u.password_algo = 'scrypt' AND u.status = 'active'`;
+  const params = [];
+  if (s.user.dataScope === 'unit') {
+    where += ' AND u.org_id = ?';
+    params.push(s.user.orgId);
+  } else if (s.user.dataScope === 'own') {
+    where += ' AND u.id = ?';
+    params.push(s.user.id);
+  }
   const rows = db.prepare(`
     SELECT u.*, r.name AS role_name, r.code AS role_code, o.name AS org_name
     FROM users u LEFT JOIN roles r ON r.id = u.role_id LEFT JOIN organizations o ON o.id = u.org_id
-    WHERE u.password_algo = 'scrypt' AND u.status = 'active'
-    ORDER BY u.system_key, u.full_name`).all();
+    WHERE ${where}
+    ORDER BY u.system_key, u.full_name`).all(...params);
   return http.ok(res, rows.map((u) => ({
     id: u.id, code: u.code, username: u.username, name: u.full_name, email: u.email, phone: u.phone,
     position: u.position, system: u.system_key, orgId: u.org_id, orgName: u.org_name,

@@ -44,6 +44,8 @@ console.log('  Đối chiếu các cột theo dõi nguồn dữ liệu…');
     addColumnIfMissing(table, col, def);
   });
 });
+addColumnIfMissing('articles', 'takeaway', 'TEXT');
+addColumnIfMissing('media', 'is_public', 'INTEGER NOT NULL DEFAULT 0');
 
 /* Ghi nhận migration */
 /* Logo cơ quan: cột bổ sung cho phiên bản có upload ảnh trong CMS */
@@ -82,6 +84,7 @@ const CONTENT_TYPE_COLUMNS = {
   ],
   public_agencies: [
     ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],
+    ['procedure_text', 'TEXT'], ['notes_text', 'TEXT'],
     ['structure', 'TEXT'], ['head_name', 'TEXT'],
   ],
   support_facilities: [
@@ -575,6 +578,106 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id9)) {
   }
 } else {
   console.log('  • Migration', id9, 'đã áp dụng trước đó');
+}
+
+/* ---------------------------------------------------------------------------
+ * 010 – Thư mục tài nguyên do CMS quản lý trong "Quản lý danh mục".
+ * ------------------------------------------------------------------------- */
+const id10 = '010-media-folder-category';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id10)) {
+  const tableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'system_categories'").get();
+  if (tableSql && !tableSql.sql.includes("'media_folder'")) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.exec(`CREATE TABLE system_categories_new (
+        id              TEXT PRIMARY KEY,
+        category_type   TEXT NOT NULL CHECK (category_type IN (
+          'category_group', 'doc_type', 'legal_field', 'agency_type',
+          'management_level', 'facility_type', 'organization_type', 'contact_topic',
+          'event_status', 'media_folder'
+        )),
+        code            TEXT NOT NULL,
+        name            TEXT NOT NULL,
+        description     TEXT,
+        sort_order      INTEGER NOT NULL DEFAULT 0,
+        status          TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+        created_at      TEXT NOT NULL,
+        updated_at      TEXT NOT NULL,
+        created_by      TEXT,
+        updated_by      TEXT,
+        UNIQUE (category_type, code)
+      )`);
+      db.exec(`INSERT INTO system_categories_new
+        (id, category_type, code, name, description, sort_order, status, created_at, updated_at, created_by, updated_by)
+        SELECT id, category_type, code, name, description, sort_order, status, created_at, updated_at, created_by, updated_by
+        FROM system_categories`);
+      db.exec('DROP TABLE system_categories');
+      db.exec('ALTER TABLE system_categories_new RENAME TO system_categories');
+      db.exec(`CREATE UNIQUE INDEX uq_system_categories_type_name
+        ON system_categories(category_type, name COLLATE NOCASE)`);
+      db.exec(`CREATE INDEX idx_system_categories_status_order
+        ON system_categories(category_type, status, sort_order, name)`);
+      db.exec('COMMIT');
+      console.log('  ✓ Mở rộng danh mục hệ thống media_folder');
+    } catch (err) {
+      try { db.exec('ROLLBACK'); } catch (_) { /* bỏ qua */ }
+      throw err;
+    }
+  }
+  db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id10, new Date().toISOString());
+} else {
+  console.log('  • Migration', id10, 'đã áp dụng trước đó');
+}
+
+/* ---------------------------------------------------------------------------
+ * 011 – Ràng buộc enum trạng thái ở mức SQLite trigger.
+ * ------------------------------------------------------------------------- */
+const id11 = '011-workflow-status-triggers';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id11)) {
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks
+    FOR EACH ROW WHEN NEW.priority NOT IN ('low','normal','high','urgent')
+      OR NEW.status NOT IN ('new','doing','review','done','overdue','paused','cancelled')
+      OR NEW.progress < 0 OR NEW.progress > 100
+    BEGIN SELECT RAISE(ABORT, 'invalid task priority/status/progress'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF priority,status,progress ON tasks
+    FOR EACH ROW WHEN NEW.priority NOT IN ('low','normal','high','urgent')
+      OR NEW.status NOT IN ('new','doing','review','done','overdue','paused','cancelled')
+      OR NEW.progress < 0 OR NEW.progress > 100
+    BEGIN SELECT RAISE(ABORT, 'invalid task priority/status/progress'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_reports_validate_insert BEFORE INSERT ON reports
+    FOR EACH ROW WHEN NEW.status NOT IN ('draft','ready','sent','pending','approved','revision','rejected')
+    BEGIN SELECT RAISE(ABORT, 'invalid report status'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_reports_validate_update BEFORE UPDATE OF status ON reports
+    FOR EACH ROW WHEN NEW.status NOT IN ('draft','ready','sent','pending','approved','revision','rejected')
+    BEGIN SELECT RAISE(ABORT, 'invalid report status'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_proposals_validate_insert BEFORE INSERT ON proposals
+    FOR EACH ROW WHEN NEW.status NOT IN ('submitted','in_review','revision','approved','rejected','published')
+    BEGIN SELECT RAISE(ABORT, 'invalid proposal status'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_proposals_validate_update BEFORE UPDATE OF status ON proposals
+    FOR EACH ROW WHEN NEW.status NOT IN ('submitted','in_review','revision','approved','rejected','published')
+    BEGIN SELECT RAISE(ABORT, 'invalid proposal status'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_submissions_validate_insert BEFORE INSERT ON submissions
+    FOR EACH ROW WHEN NEW.status NOT IN ('new','assigned','in_progress','answered','closed','rejected')
+      OR NEW.priority NOT IN ('low','normal','high','urgent')
+    BEGIN SELECT RAISE(ABORT, 'invalid submission status/priority'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_submissions_validate_update BEFORE UPDATE OF status,priority ON submissions
+    FOR EACH ROW WHEN NEW.status NOT IN ('new','assigned','in_progress','answered','closed','rejected')
+      OR NEW.priority NOT IN ('low','normal','high','urgent')
+    BEGIN SELECT RAISE(ABORT, 'invalid submission status/priority'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_collaboration_validate_insert BEFORE INSERT ON collaboration_requests
+    FOR EACH ROW WHEN NEW.direction NOT IN ('cms-ws','ws-cms')
+      OR NEW.status NOT IN ('received','processing','completed','cancelled')
+    BEGIN SELECT RAISE(ABORT, 'invalid collaboration direction/status'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_collaboration_validate_update BEFORE UPDATE OF direction,status ON collaboration_requests
+    FOR EACH ROW WHEN NEW.direction NOT IN ('cms-ws','ws-cms')
+      OR NEW.status NOT IN ('received','processing','completed','cancelled')
+    BEGIN SELECT RAISE(ABORT, 'invalid collaboration direction/status'); END;
+  `);
+  db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(id11, new Date().toISOString());
+  console.log('  ✓ Cập nhật trigger ràng buộc trạng thái nghiệp vụ');
+} else {
+  console.log('  • Migration', id11, 'đã áp dụng trước đó');
 }
 
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();

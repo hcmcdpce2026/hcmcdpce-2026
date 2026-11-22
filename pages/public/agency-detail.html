@@ -194,7 +194,24 @@
                             <i class="fa-solid fa-list-check" aria-hidden="true"></i>
                             Chức năng và nhiệm vụ trọng tâm
                         </h2>
-                        <ul class="agd-list" id="agd-duties"></ul>
+                        <ul class="agd-list" id="agd-duties">
+                            <li>
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                <span>Tham mưu, đề xuất UBND cấp xã, phường triển khai kế hoạch phòng, chống ma túy theo chỉ đạo của Thành phố.</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                <span>Tiếp nhận tin báo, tố giác về tội phạm và tệ nạn ma túy; bảo mật thông tin người cung cấp.</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                <span>Phối hợp xác định tình trạng nghiện, lập hồ sơ quản lý người sử dụng trái phép chất ma túy và quản lý sau cai.</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                <span>Tuyên truyền, giáo dục pháp luật và kết nối cơ sở điều trị, cai nghiện cho người dân trên địa bàn phụ trách.</span>
+                            </li>
+                        </ul>
                     </div>
 
                     <div class="agd-section">
@@ -202,7 +219,23 @@
                             <i class="fa-solid fa-route" aria-hidden="true"></i>
                             Quy trình tiếp nhận & Phối hợp giải quyết
                         </h2>
-                        <div class="agd-steps" id="agd-steps"></div>
+                        <div class="agd-steps" id="agd-steps">
+                            <div class="agd-step-card">
+                                <span class="agd-step-card__num">1</span>
+                                <h4>Tiếp nhận yêu cầu</h4>
+                                <p>Người dân gửi yêu cầu trực tiếp tại bộ phận một cửa, qua điện thoại hoặc biểu mẫu trực tuyến kèm họ tên, số điện thoại và nội dung cần hỗ trợ.</p>
+                            </div>
+                            <div class="agd-step-card">
+                                <span class="agd-step-card__num">2</span>
+                                <h4>Phân loại & phối hợp xử lý</h4>
+                                <p>Cán bộ tiếp nhận phân loại hồ sơ, chuyển đơn vị chức năng liên quan phối hợp xử lý; trường hợp cần điều trị, tư vấn gửi đến cơ sở y tế phù hợp.</p>
+                            </div>
+                            <div class="agd-step-card">
+                                <span class="agd-step-card__num">3</span>
+                                <h4>Phản hồi & theo dõi</h4>
+                                <p>Kết quả được phản hồi qua kênh liên hệ đã đăng ký; thời hạn xử lý theo quy định hiện hành và có theo dõi sau hỗ trợ khi cần thiết.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="agd-section">
@@ -210,7 +243,20 @@
                             <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                             Lưu ý khi người dân liên hệ làm việc
                         </h2>
-                        <ul class="agd-list" id="agd-notes"></ul>
+                        <ul class="agd-list" id="agd-notes">
+                            <li>
+                                <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                                <span>Chuẩn bị Thẻ Căn cước/CCCD hoặc tài khoản định danh điện tử (VNeID) để đối chiếu thông tin cư trú khi làm thủ tục.</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                                <span>Liên hệ trong giờ hành chính từ thứ Hai đến thứ Sáu để được hướng dẫn nhanh nhất.</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                                <span>Thông tin cá nhân và nội dung trao đổi được bảo mật theo Nghị định số 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân.</span>
+                            </li>
+                        </ul>
                     </div>
 
                     <div class="agd-back-row">
@@ -227,7 +273,10 @@
                 <!-- Cột phải: Thông tin liên hệ nhanh -->
                 <aside class="agd-sidebar" aria-label="Thông tin liên hệ đơn vị">
                     <div class="agd-info-box">
-                        <h2 class="agd-info-box__title">Thông tin liên hệ</h2>
+                        <h2 class="agd-info-box__title">
+                            <i class="fa-solid fa-address-card" aria-hidden="true"></i>
+                            Thông tin liên hệ
+                        </h2>
                         <ul class="agd-info-list">
                             <li>
                                 <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
@@ -271,11 +320,17 @@
                         </div>
                     </div>
 
-                    <div class="agd-related">
-                        <h3>Đơn vị liên quan khác</h3>
-                        <ul class="agd-related-list" id="agd-related-list"></ul>
-                    </div>
                 </aside>
+            </div>
+
+            <div class="container">
+                <section class="agd-related" aria-labelledby="agd-related-title">
+                    <h2 id="agd-related-title">
+                        <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                        Đơn vị liên quan khác
+                    </h2>
+                    <ul class="agd-related-list" id="agd-related-list"></ul>
+                </section>
             </div>
         </section>
     </main>

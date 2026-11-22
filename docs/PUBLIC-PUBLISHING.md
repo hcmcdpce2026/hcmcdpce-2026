@@ -4,13 +4,15 @@
 
 GitHub Pages chỉ phục vụ tệp tĩnh. Nó không chạy Node.js, SQLite, API ghi dữ liệu, CMS hoặc Workspace. Tài liệu này chỉ hướng dẫn xuất **nội dung công khai đã được duyệt** cùng media được tham chiếu; không dùng để xóa dữ liệu CMS/Workspace hoặc database nguồn.
 
+GitHub/GitHub Pages nhận tệp trực tiếp tối đa 100 MB. CMS từ chối upload >100 MB; exporter cũng từ chối media công khai >100 MB để không tạo snapshot không thể push hoặc deploy.
+
 Luồng:
 
 ```text
 CMS và SQLite -> export:static-public -> public-data/ -> GitHub Pages
 ```
 
-Snapshot hiện chưa có `public-data/public.json`. Không xuất database vận hành lên Pages cho đến khi nội dung và quyền công khai được người có thẩm quyền duyệt.
+Snapshot hiện được duy trì tại `public-data/public.json` và media công khai tại `public-data/media/`. Không xuất database vận hành lên Pages; chỉ export nội dung công khai sau khi được người có thẩm quyền duyệt.
 
 ## Trước khi xuất
 
@@ -27,6 +29,8 @@ if ($LASTEXITCODE -ne 0) { throw "Export hoặc kiểm tra snapshot thất bại
 ```
 
 Lệnh xuất `public-data/public.json` và chỉ sao chép media công khai được nội dung tham chiếu vào `public-data/media/`. Nó không xuất tài khoản, session, phản ánh cá nhân hoặc nội dung Workspace. Không sao chép thủ công toàn bộ `uploads/`.
+
+GitHub/GitHub Pages nhận tệp trực tiếp tối đa 100 MB. Exporter từ chối tệp công khai lớn hơn 100 MB thay vì tạo snapshot có phần không tải được.
 
 Kiểm tra nội dung và tệp:
 
@@ -94,7 +98,7 @@ Tài liệu triển khai backend: `DEPLOYMENT.md`.
 
 Phần này chỉ gỡ bản xuất tĩnh; **không** xóa dữ liệu CMS/Workspace, `server/data/portal.sqlite` hoặc tệp gốc `uploads/`.
 
-Trạng thái lần bàn giao 2026-11-21: `public-data/public.json` chưa tồn tại và người dùng chọn giữ snapshot thiếu. Nếu cần gỡ một snapshot về sau, trước tiên kiểm tra đúng các đường dẫn:
+Trạng thái hiện tại: `public-data/public.json` được duy trì bởi exporter. Nếu cần gỡ một snapshot về sau, trước tiên kiểm tra đúng các đường dẫn:
 
 ```powershell
 Get-ChildItem -LiteralPath .\public-data -Force -Recurse |

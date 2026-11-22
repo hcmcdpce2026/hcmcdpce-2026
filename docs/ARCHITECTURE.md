@@ -71,6 +71,6 @@ Server gọi `initialize({ seed: true })`; khi `users` trống, seed tạo dữ 
 
 `npm run export:static-public` sinh `public-data/public.json` và media công khai được tham chiếu. GitHub Pages chỉ đọc snapshot: không có API, đăng nhập, CMS, Workspace hoặc thao tác ghi.
 
-Tại lần bàn giao 2026-11-21, người dùng chọn giữ snapshot thiếu; `public-data/public.json` chưa được tạo. Backend/production và tình trạng Pages cần xem trong `HANDOVER.md`.
+Snapshot public hiện có tại `public-data/public.json` và được GitHub Pages deploy qua artifact public-only. Backend/production vẫn cần cấu hình riêng.
 
 SQLite/WAL, rate limit trong bộ nhớ và upload local phù hợp một instance. Mở rộng ngang cần thiết kế lại lưu session/rate limit, database và object storage. Chi tiết bảo mật/vận hành ở `SECURITY.md` và `DEPLOYMENT.md`.
