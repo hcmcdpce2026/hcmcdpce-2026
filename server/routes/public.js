@@ -16,11 +16,14 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const path = require('node:path');
+const fs = require('node:fs');
 const { getDb } = require('../lib/db');
 const http = require('../lib/http');
 const sec = require('../lib/security');
 const m = require('../lib/mapper');
 const sysCategories = require('../lib/system-category-types');
+const mammoth = require('mammoth');
 
 const nowIso = () => new Date().toISOString();
 const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -90,12 +93,25 @@ async function listArticles(req, res, ctx) {
 
 async function getArticle(req, res, ctx) {
   const db = getDb();
-  const row = db.prepare(`SELECT a.*, c.name AS category_name FROM articles a LEFT JOIN categories c ON c.id = a.category_id
+  const row = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug,
+      c.group_key AS category_group, c.status AS category_status
+      FROM articles a LEFT JOIN categories c ON c.id = a.category_id
       WHERE (a.id = ? OR a.slug = ?) AND a.status = 'published'`).get(ctx.params.id, ctx.params.id);
   if (!row) return http.notFound(res, 'Bài viết không tồn tại hoặc chưa được xuất bản.');
   db.prepare('UPDATE articles SET views = views + 1 WHERE id = ?').run(row.id);
   row.views += 1;
-  return http.ok(res, m.article(row));
+
+  let related = [];
+  if (row.category_id) {
+    related = db.prepare(`SELECT a.*, c.name AS category_name, c.slug AS category_slug,
+        c.group_key AS category_group, c.status AS category_status
+        FROM articles a LEFT JOIN categories c ON c.id = a.category_id
+        WHERE a.status = 'published' AND a.category_id = ? AND a.id <> ?
+        ORDER BY a.published_at DESC, a.created_at DESC, a.id DESC LIMIT 4`)
+      .all(row.category_id, row.id);
+  }
+
+  return http.ok(res, m.article(row, { related: related.map((r) => m.article(r)) }));
 }
 
 async function listCategories(req, res, ctx) {
@@ -182,6 +198,34 @@ function legal(r, labels) {
     content: r.content, fileUrl: r.file_url, status: r.status || 'active',
     effectStatus: r.effect_status || 'in_effect', sourceType: r.data_source,
   };
+}
+
+async function previewLegalDocument(req, res, ctx) {
+  const id = ctx.query.id;
+  if (!id) return http.badRequest(res, 'Thiếu mã văn bản.');
+
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM legal_documents WHERE (id = ? OR code = ?) AND is_public = 1').get(id, id);
+  if (!row || !legalPublicWhere(row)) {
+    return http.notFound(res, 'Văn bản không tồn tại hoặc chưa được công bố.');
+  }
+
+  const fileUrl = String(row.file_url || '').trim();
+  if (!/\.docx$/i.test(fileUrl)) {
+    return http.badRequest(res, 'Chỉ hỗ trợ xem trước tệp DOCX.');
+  }
+
+  const fileName = path.basename(fileUrl.split(/[?#]/)[0]);
+  const root = path.resolve(__dirname, '..', '..');
+  const filePath = path.join(root, 'uploads', fileName);
+  if (!fs.existsSync(filePath)) return http.notFound(res, 'Tệp đính kèm không tồn tại.');
+
+  try {
+    const result = await mammoth.convertToHtml({ path: filePath });
+    return http.ok(res, { html: result.value || '' });
+  } catch (err) {
+    return http.badRequest(res, 'Không thể đọc nội dung tệp DOCX.');
+  }
 }
 
 async function listLegal(req, res, ctx) {
@@ -518,6 +562,6 @@ async function lookupSubmission(req, res, ctx) {
 }
 
 module.exports = {
-  health, listArticles, getArticle, listCategories, listSystemCategories, listSystemCategoryTypes, listEventStatuses, listSummary, listLegal, listEvents, listAgencies,
+  health, listArticles, getArticle, listCategories, listSystemCategories, listSystemCategoryTypes, listEventStatuses, listSummary, previewLegalDocument, listLegal, listEvents, listAgencies,
   listMediaLibrary, listMediaLibraryFolders, listStatistics, listSupport, listBanners, listNotifications, createSubmission, lookupSubmission,
 };

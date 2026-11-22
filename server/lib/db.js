@@ -58,7 +58,7 @@ function ensureContentTypeColumns() {
     ],
     public_events: [
       ['slug', 'TEXT'], ['event_type', 'TEXT'], ['co_organizer', 'TEXT'],
-      ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+      ['publish_status', "TEXT NOT NULL DEFAULT 'published'"], ['created_by', 'TEXT'],
     ],
     public_agencies: [
       ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],

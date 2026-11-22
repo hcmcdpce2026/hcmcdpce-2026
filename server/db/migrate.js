@@ -80,7 +80,7 @@ const CONTENT_TYPE_COLUMNS = {
   ],
   public_events: [
     ['slug', 'TEXT'], ['event_type', 'TEXT'], ['co_organizer', 'TEXT'],
-    ['publish_status', "TEXT NOT NULL DEFAULT 'published'"],
+    ['publish_status', "TEXT NOT NULL DEFAULT 'published'"], ['created_by', 'TEXT'],
   ],
   public_agencies: [
     ['slug', 'TEXT'], ['management_level', 'TEXT'], ['functions_text', 'TEXT'],
@@ -173,7 +173,7 @@ CATEGORY_SOURCES.forEach(([type, table, column]) => {
     const idHash = crypto.createHash('sha1').update(`${type}:${value}`).digest('hex').slice(0, 20);
     db.prepare(`INSERT OR IGNORE INTO system_categories
       (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-      VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'migration')`)
+      VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'u-cms-01')`)
       .run(`sc-${idHash}`, type, value, name, index, new Date().toISOString(), new Date().toISOString());
   });
 });
@@ -254,7 +254,7 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id4)) {
   const ts = new Date().toISOString();
   const insertTopic = db.prepare(`INSERT OR IGNORE INTO system_categories
     (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-    VALUES (?, 'contact_topic', ?, ?, ?, 'active', ?, ?, 'migration')`);
+    VALUES (?, 'contact_topic', ?, ?, ?, 'active', ?, ?, 'u-cms-01')`);
   topics.forEach(([code, name], index) => {
     insertTopic.run(`sc-contact-topic-${code}`, code, name, index, ts, ts);
   });
@@ -275,7 +275,7 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id5)) {
   const ts = new Date().toISOString();
   const insertField = db.prepare(`INSERT OR IGNORE INTO system_categories
     (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-    VALUES (?, 'legal_field', ?, ?, ?, 'active', ?, ?, 'migration')`);
+    VALUES (?, 'legal_field', ?, ?, ?, 'active', ?, ?, 'u-cms-01')`);
   fields.forEach(([code, name], index) => {
     insertField.run(`sc-legal-field-${code}`, code, name, index, ts, ts);
   });
@@ -297,7 +297,7 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id6)) {
   const deleteCategoryGroup = db.prepare('DELETE FROM system_categories WHERE id = ?');
   const insertCategoryGroup = db.prepare(`INSERT INTO system_categories
     (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-    VALUES (?, 'category_group', ?, ?, ?, 'active', ?, ?, 'migration')`);
+    VALUES (?, 'category_group', ?, ?, ?, 'active', ?, ?, 'u-cms-01')`);
 
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -382,7 +382,7 @@ function ensureCatalogueBaseline() {
   const ts = new Date().toISOString();
   const insert = db.prepare(`INSERT OR IGNORE INTO system_categories
     (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-    VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'migration')`);
+    VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 'u-cms-01')`);
   let added = 0;
   Object.entries(BASELINE).forEach(([type, rows]) => {
     rows.forEach(([code, name], index) => {
@@ -495,15 +495,16 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id8)) {
         is_seed_data INTEGER NOT NULL DEFAULT 1,
         environment TEXT NOT NULL DEFAULT 'development',
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        created_by TEXT
       )`);
       db.exec(`INSERT INTO public_events_new
         (id, title, slug, category, event_type, start_at, end_at, location, organizer,
           co_organizer, summary, content, image_url, status, publish_status, data_source,
-          is_seed_data, environment, created_at, updated_at)
+          is_seed_data, environment, created_at, updated_at, created_by)
         SELECT id, title, slug, category, event_type, start_at, end_at, location, organizer,
           co_organizer, summary, content, image_url, status, publish_status, data_source,
-          is_seed_data, environment, created_at, updated_at
+          is_seed_data, environment, created_at, updated_at, created_by
         FROM public_events`);
       db.exec('DROP TABLE public_events');
       db.exec('ALTER TABLE public_events_new RENAME TO public_events');
@@ -548,7 +549,7 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id9)) {
     WHERE category_type = 'event_status' AND code = ?`);
   const insertStatusCategory = db.prepare(`INSERT OR IGNORE INTO system_categories
     (id, category_type, code, name, sort_order, status, created_at, updated_at, created_by)
-    VALUES (?, 'event_status', ?, ?, ?, 'active', ?, ?, 'migration')`);
+    VALUES (?, 'event_status', ?, ?, ?, 'active', ?, ?, 'u-cms-01')`);
 
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -678,6 +679,19 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id11)) {
   console.log('  ✓ Cập nhật trigger ràng buộc trạng thái nghiệp vụ');
 } else {
   console.log('  • Migration', id11, 'đã áp dụng trước đó');
+}
+
+/* Chuẩn hóa người tạo cho dữ liệu trạng thái và sự kiện được nạp từ migration */
+try {
+  db.prepare("UPDATE system_categories SET created_by = 'u-cms-01', updated_at = updated_at WHERE created_by = 'migration'").run();
+  if (columnExists('public_events', 'created_by')) {
+    db.prepare("UPDATE public_events SET created_by = 'u-cms-01' WHERE created_by IS NULL OR created_by = '' OR created_by = 'migration'").run();
+  }
+  if (columnExists('events', 'created_by')) {
+    db.prepare("UPDATE events SET created_by = 'u-cms-01' WHERE created_by IS NULL OR created_by = '' OR created_by = 'migration'").run();
+  }
+} catch (err) {
+  console.warn(`[migrate] Không chuẩn hóa được người tạo: ${err.message}`);
 }
 
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();

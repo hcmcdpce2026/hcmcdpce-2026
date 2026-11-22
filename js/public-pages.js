@@ -532,21 +532,45 @@
             const moreHost = document.getElementById('art-related-grid') || document.querySelector('[data-related-articles]');
             if (moreHost) {
                 moreHost.innerHTML = related.length ? related.map((r, i) => `
-                    <article class="related-card">
-                        <a href="${detailUrl(r)}"><img src="${thumbOf(r, i, '../../')}" alt="${esc(r.title)}" loading="lazy"></a>
-                        <h3><a href="${detailUrl(r)}">${esc(r.title)}</a></h3>
-                        <span class="related-card__date">${fmtDate(r.publishedAt)}</span>
-                    </article>`).join('') : '<p class="pub-inline-empty">Chưa có tin liên quan.</p>';
+                    <li>
+                        <a href="${detailUrl(r)}" class="article-related-card">
+                            <span class="article-related-card__thumb">
+                                <img src="${thumbOf(r, i, '../../')}" alt="${esc(r.title)}" loading="lazy">
+                            </span>
+                            <span class="article-related-card__body">
+                                <span class="article-related-card__cat">${esc(r.categoryName || 'Tin tức')}</span>
+                                <strong class="article-related-card__title">${esc(r.title)}</strong>
+                                <span class="article-related-card__desc">${esc(r.excerpt || '')}</span>
+                                <span class="article-related-card__date">
+                                    <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                    ${fmtDate(r.publishedAt)}
+                                </span>
+                            </span>
+                        </a>
+                    </li>`).join('') : '<li class="pub-inline-empty">Chưa có tin cùng chuyên mục.</li>';
             }
+            /* Tin đọc nhiều: dùng cùng dữ liệu và thứ tự lượt xem của trang Tin tức. */
             const sideList = document.getElementById('art-sidebar-list');
             if (sideList) {
-                sideList.innerHTML = related.length
-                    ? related.map((r, i) => `
-                        <a href="${detailUrl(r)}" class="article-side-item">
-                            <span class="article-side-num">${i + 1}</span>
-                            <div><h4>${esc(r.title)}</h4></div>
-                        </a>`).join('')
-                    : '<p class="pub-inline-empty">Chưa có tin cùng chuyên mục.</p>';
+                try {
+                    const newsArticles = asList(
+                        await api.get('/api/public/articles' + api.qs({ limit: 50, group: 'tin-tuc' })),
+                        'tin đọc nhiều'
+                    );
+                    const trending = newsArticles
+                        .filter((item) => item.id !== a.id)
+                        .sort((x, y) => Number(y.views || 0) - Number(x.views || 0))
+                        .slice(0, 5);
+                    sideList.innerHTML = trending.length
+                        ? trending.map((item, i) => `
+                            <a href="${detailUrl(item)}" class="article-side-item">
+                                <span class="news-trending__rank">${String(i + 1).padStart(2, '0')}</span>
+                                <div><h4 title="${esc(item.title)}">${esc(item.title)}</h4></div>
+                            </a>`).join('')
+                        : '<p class="pub-inline-empty">Chưa có bài viết nào.</p>';
+                } catch (err) {
+                    sideList.innerHTML = '<p class="pub-inline-empty">Không tải được tin đọc nhiều.</p>';
+                }
             }
         } catch (err) {
             const title = document.getElementById('art-title');
@@ -622,6 +646,10 @@
                                     <span class="article-related-card__cat">${esc(r.categoryName || 'Chuyên đề')}</span>
                                     <strong class="article-related-card__title">${esc(r.title)}</strong>
                                     <span class="article-related-card__desc">${esc(r.excerpt || '')}</span>
+                                    <span class="article-related-card__date">
+                                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                        ${fmtDate(r.publishedAt)}
+                                    </span>
                                 </span>
                             </a>
                         </li>`).join('')
@@ -965,23 +993,64 @@
                 fileUrl = '';
             }
             const frame = document.getElementById('lwd-pdf-frame');
+            const docxPreview = document.getElementById('lwd-docx-preview');
             const empty = document.getElementById('lwd-pdf-empty');
             const hint = document.getElementById('lwd-pdf-hint');
             const previewUrl = fileUrl ? new URL(fileUrl) : null;
+            const fileName = previewUrl ? previewUrl.pathname.toLowerCase() : '';
+            const isPdf = /\.pdf(?:$|[?#])/i.test(fileName);
+            const isDocx = /\.docx(?:$|[?#])/i.test(fileName);
+            const isDoc = /\.doc(?:$|[?#])/i.test(fileName);
             if (previewUrl && previewUrl.origin === window.location.origin
                 && previewUrl.pathname.startsWith('/uploads/')) {
                 previewUrl.searchParams.set('preview', '1');
             }
             if (frame) {
-                frame.hidden = !fileUrl;
-                if (previewUrl) frame.src = previewUrl.href;
+                frame.hidden = !(fileUrl && isPdf);
+                if (previewUrl && isPdf) frame.src = previewUrl.href;
                 else frame.removeAttribute('src');
             }
-            if (empty) {
-                empty.hidden = Boolean(fileUrl);
-                empty.style.display = fileUrl ? 'none' : 'flex';
+            if (docxPreview) {
+                docxPreview.hidden = true;
+                docxPreview.textContent = '';
+                if (fileUrl && isDocx) {
+                    docxPreview.hidden = false;
+                    docxPreview.setAttribute('aria-busy', 'true');
+                    docxPreview.innerHTML = '<p>Đang nạp bản xem trước DOCX...</p>';
+                    api.get(`/api/public/legal-documents/preview${api.qs({ id })}`)
+                        .then((preview) => {
+                            const template = document.createElement('template');
+                            template.innerHTML = String(preview.html || '');
+                            template.content.querySelectorAll('script,iframe,object,embed,form,input,button,style').forEach((el) => el.remove());
+                            template.content.querySelectorAll('*').forEach((el) => {
+                                [...el.attributes].forEach((attr) => {
+                                    if (/^on/i.test(attr.name)) el.removeAttribute(attr.name);
+                                    if (/^(href|src)$/i.test(attr.name) && !/^(data:image|https?:|#)/i.test(attr.value)) {
+                                        el.removeAttribute(attr.name);
+                                    }
+                                });
+                            });
+                            docxPreview.replaceChildren(template.content);
+                            docxPreview.setAttribute('aria-busy', 'false');
+                        })
+                        .catch(() => {
+                            docxPreview.innerHTML = '<p>Không thể hiển thị bản xem trước DOCX. Vui lòng tải file về máy.</p>';
+                            docxPreview.setAttribute('aria-busy', 'false');
+                        });
+                }
             }
-            if (hint) hint.hidden = !fileUrl;
+            if (empty) {
+                const showEmpty = !fileUrl || isDoc;
+                empty.hidden = !showEmpty;
+                empty.style.display = showEmpty ? 'flex' : 'none';
+                const message = empty.querySelector('p');
+                if (message) {
+                    message.innerHTML = isDoc
+                        ? 'Tệp DOC cũ chưa hỗ trợ xem trực tiếp trong trình duyệt. Vui lòng dùng nút <strong>Tải file về máy</strong> để xem toàn văn.'
+                        : 'Bản toàn văn PDF hoặc DOCX của văn bản này chưa được đính kèm vào hệ thống. Vui lòng xem phần <strong>Nội dung tóm tắt &amp; các quy định trọng tâm</strong> ở phía trên.';
+                }
+            }
+            if (hint) hint.hidden = !(fileUrl && (isPdf || isDocx));
             ['lwd-open-tab', 'lwd-download-btn'].forEach((linkId) => {
                 const link = document.getElementById(linkId);
                 if (!link) return;
@@ -1347,12 +1416,18 @@
             const steps = Array.isArray(o.procedure) ? o.procedure : asTextList(o.procedure || o.steps);
             if (agencyBlocks.steps) {
                 agencyBlocks.steps.closest('.agd-section').hidden = steps.length === 0;
-                agencyBlocks.steps.innerHTML = steps.map((item, index) => `
+                agencyBlocks.steps.innerHTML = steps.map((item, index) => {
+                    const rawTitle = item && (item.title || item.name);
+                    const rawText = item && (item.description || item.content);
+                    const clean = (value) => String(value || '')
+                        .replace(/^\s*(?:[-*•]\s*)?(?:Bước\s*)?\d+[.:)\]\-]?\s*/i, '')
+                        .trim();
+                    return `
                     <div class="agd-step-card">
-                        <span class="agd-step-card__num">${index + 1}</span>
-                        <h4>${esc((item && (item.title || item.name)) || `Bước ${index + 1}`)}</h4>
-                        <p>${esc((item && (item.description || item.content)) || (typeof item === 'string' ? item : ''))}</p>
-                    </div>`).join('');
+                        <h4>${esc(clean(rawTitle))}</h4>
+                        <p>${esc(clean(rawText || (typeof item === 'string' ? item : '')))}</p>
+                    </div>`;
+                }).join('');
             }
             const notes = asTextList(o.notes || o.guidelines);
             if (agencyBlocks.notes) {
@@ -1826,6 +1901,14 @@
     async function initSupport() {
         const host = document.getElementById('sup-centers-list') || document.querySelector('[data-support-list]');
         if (!host) return;
+        const stepsGrid = document.getElementById('sup-steps-grid');
+        const stepsTitle = document.getElementById('sup-steps-title');
+        if (stepsGrid && stepsTitle) {
+            const stepCount = stepsGrid.querySelectorAll('.sup-step-card').length;
+            stepsTitle.textContent = stepCount
+                ? `QUY TRÌNH ${stepCount} BƯỚC ĐĂNG KÝ HỖ TRỢ CAI NGHIỆN CHẤT MA TÚY`
+                : 'QUY TRÌNH ĐĂNG KÝ HỖ TRỢ CAI NGHIỆN CHẤT MA TÚY';
+        }
         const input = document.getElementById('sup-search-input');
         const typeSelect = document.getElementById('sup-type-select');
         const searchBtn = document.getElementById('sup-search-btn');

@@ -604,7 +604,8 @@ CREATE TABLE IF NOT EXISTS public_agencies (
     is_seed_data INTEGER NOT NULL DEFAULT 1,
     environment TEXT NOT NULL DEFAULT 'development',
     created_at  TEXT NOT NULL,
-    updated_at  TEXT NOT NULL
+    updated_at  TEXT NOT NULL,
+    created_by  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public_events (

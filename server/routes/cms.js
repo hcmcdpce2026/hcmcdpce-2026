@@ -1191,6 +1191,9 @@ async function saveCatalog(req, res, ctx) {
   if (colExists(db, table, 'slug') && row.slug && row.slug !== existing?.slug) {
     row.slug = uniqueSlug(db, table, row.slug, effectiveId);
   }
+  if (colExists(db, table, 'created_by')) {
+    row.created_by = s.user.id;
+  }
 
   if (existing) {
     if (colExists(db, table, 'updated_at')) {

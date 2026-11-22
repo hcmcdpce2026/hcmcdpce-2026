@@ -41,5 +41,7 @@
     "check": "node scripts/check-encoding.js && node scripts/security-scan.js",
     "data": "node server/scripts/data-tool.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "mammoth": "^1.13.0"
+  }
 }

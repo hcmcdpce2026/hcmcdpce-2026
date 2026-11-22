@@ -60,6 +60,7 @@ const routes = [
   ['GET', '/api/public/health', publicRoutes.health],
   ['GET', '/api/public/articles', publicRoutes.listArticles],
   ['GET', '/api/public/articles/:id', publicRoutes.getArticle],
+  ['GET', '/api/public/legal-documents/preview', publicRoutes.previewLegalDocument],
   ['GET', '/api/public/categories', publicRoutes.listCategories],
   ['GET', '/api/public/system-categories', publicRoutes.listSystemCategories],
   ['GET', '/api/public/system-category-types', publicRoutes.listSystemCategoryTypes],
