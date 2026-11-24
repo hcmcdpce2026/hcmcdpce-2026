@@ -21,6 +21,7 @@ const cmsRoutes = require('./routes/cms');
 const wsRoutes = require('./routes/workspace');
 const publicRoutes = require('./routes/public');
 const sharedRoutes = require('./routes/shared');
+const chatRoutes = require('./routes/chat');
 
 // Nạp biến môi trường từ .env (nếu có) – không cần thư viện ngoài
 (function loadEnv() {
@@ -77,6 +78,9 @@ const routes = [
   ['GET', '/api/public/notifications', publicRoutes.listNotifications],
   ['POST', '/api/public/submissions', publicRoutes.createSubmission],
   ['GET', '/api/public/submissions/lookup', publicRoutes.lookupSubmission],
+  // Trợ lý ảo (chatbot hỏi đáp dựa trên dữ liệu công khai)
+  ['POST', '/api/public/chat', chatRoutes.chat],
+  ['GET', '/api/public/chat/suggestions', chatRoutes.chatSuggestions],
 
   // Shared (CMS + WORKSPACE)
   ['GET', '/api/shared/users', sharedRoutes.users],

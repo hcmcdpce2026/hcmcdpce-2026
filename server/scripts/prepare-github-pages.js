@@ -29,8 +29,8 @@ fs.mkdirSync(OUT, { recursive: true });
 
 ['index.html', '404.html'].forEach((file) => copy(file));
 copy('assets');
-['style.css', 'main.css', 'responsive.css'].forEach((file) => copy(path.join('css', file)));
-['api.js', 'main.js', 'public-pages.js', 'article-tags.js'].forEach((file) => copy(path.join('js', file)));
+['style.css', 'main.css', 'responsive.css', 'chatbot.css'].forEach((file) => copy(path.join('css', file)));
+['api.js', 'main.js', 'public-pages.js', 'article-tags.js', 'chatbot.js'].forEach((file) => copy(path.join('js', file)));
 copy('public-data');
 
 const GITHUB_MAX_FILE_BYTES = 100 * 1024 * 1024;

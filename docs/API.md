@@ -119,7 +119,7 @@ Không ghi mật khẩu, Bearer token, cookie phiên hoặc CSRF token vào Git,
 
 ## 4. PUBLIC
 
-Các endpoint đọc không cần đăng nhập.
+Các endpoint đọc không cần đăng nhập; chỉ hai endpoint trợ lý ảo nhận dữ liệu gửi lên (`POST /api/public/chat`, không yêu cầu phiên).
 
 | Method | Endpoint | Query/chức năng |
 |---|---|---|
@@ -140,6 +140,46 @@ Các endpoint đọc không cần đăng nhập.
 | GET | `/api/public/notifications` | Thông báo công khai |
 | POST | `/api/public/submissions` | Gửi phản ánh/yêu cầu |
 | GET | `/api/public/submissions/lookup` | `code`, `contact` |
+| POST | `/api/public/chat` | Trợ lý ảo: `{ message (≤ 500 ký tự), history? }` → `{ answer, sources, suggestions, urgent?, topic?, disclaimer }` |
+| GET | `/api/public/chat/suggestions` | Câu hỏi gợi ý mở đầu khung chat |
+
+### Trợ lý ảo (chatbot)
+
+- Không cần đăng nhập; giới hạn `CHATBOT_RATE_LIMIT` câu/IP/5 phút (mặc định 30); tắt tạm bằng `CHATBOT_ENABLED=false`.
+- Câu trả lời tổng hợp từ tri thức biên soạn sẵn (`server/lib/chatbot/knowledge.js`) và dữ liệu công khai
+  trong SQLite (`server/lib/chatbot/engine.js`: bài viết published, văn bản pháp luật, cơ sở hỗ trợ, sự kiện,
+  cơ quan, thống kê) — chỉ mục được đệm 60 giây.
+- Truy hồi theo từ khóa + cụm từ có trọng số IDF; không đủ căn cứ thì trả lời “chưa có thông tin”
+  và hướng dẫn kênh liên hệ thay vì suy đoán.
+- `sources[].url` là liên kết tương đối tới trang chi tiết (giao diện tự ghép gốc); giao diện escape mọi
+  trường trước khi hiển thị. Không lưu nội dung hội thoại; `history` chỉ dùng trong một yêu cầu.
+- Tình huống khẩn cấp (quá liều, co giật, khó thở…) trả `urgent: true` kèm hướng dẫn gọi 115/113.
+- Kiểm thử: `npm.cmd run test:isolated` (gồm `smoke-chatbot.js`) hoặc `node server/scripts/smoke-chatbot.js` khi máy chủ đang chạy.
+
+```json
+POST /api/public/chat
+{ "message": "Thủ tục đăng ký cai nghiện tự nguyện gồm những gì?",
+  "history": [{ "role": "user", "text": "..." }, { "role": "bot", "text": "..." }] }
+```
+
+Phản hồi:
+
+```json
+{
+  "success": true,
+  "data": {
+    "intent": "question",
+    "answer": "Quy trình 4 bước đang áp dụng tại TP. Hồ Chí Minh: ...",
+    "sources": [
+      { "type": "page", "title": "Trang Hỗ trợ cai nghiện", "url": "/pages/public/support.html",
+        "label": "Hỗ trợ cai nghiện", "excerpt": "" }
+    ],
+    "suggestions": ["..."],
+    "topic": "ho-tro",
+    "disclaimer": "Thông tin do trợ lý ảo cung cấp mang tính tham khảo, ..."
+  }
+}
+```
 
 ### Gửi submission
 

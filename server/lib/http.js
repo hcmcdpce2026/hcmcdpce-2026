@@ -51,7 +51,7 @@ function sendJson(res, status, data, extraHeaders = {}) {
   res.end(body);
 }
 
-const ok = (res, data, meta = {}) => sendJson(res, 200, { success: true, data, ...meta });
+const ok = (res, data, meta = {}, headers = {}) => sendJson(res, 200, { success: true, data, ...meta }, headers);
 const created = (res, data) => sendJson(res, 201, { success: true, data });
 const noContent = (res) => { res.writeHead(204); res.end(); };
 

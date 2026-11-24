@@ -119,7 +119,13 @@ async function waitForServer(timeoutMs = 30000) {
       cwd: ROOT, env: testEnv, stdio: 'inherit',
     }).status;
 
-    exitCode = (apiStatus === 0 && smokeStatus === 0 && secStatus === 0 && crudStatus === 0) ? 0 : 1;
+    log('Chạy smoke-chatbot.js ...');
+    const chatStatus = spawnSync(process.execPath, ['server/scripts/smoke-chatbot.js'], {
+      cwd: ROOT, env: testEnv, stdio: 'inherit',
+    }).status;
+
+    exitCode = (apiStatus === 0 && smokeStatus === 0 && secStatus === 0 && crudStatus === 0
+      && chatStatus === 0) ? 0 : 1;
     log(exitCode === 0 ? 'TẤT CẢ ĐẠT' : 'CÓ MỤC KHÔNG ĐẠT');
   } catch (err) {
     console.error(`[isolated] Lỗi: ${err.message}`);

@@ -64,7 +64,29 @@
     }
 
     function isPublicRead(method, path) {
-        return method === 'GET' && /^\/api\/public\//.test(path);
+        return method === 'GET' && /^\/api\/public\/(?:articles|categories|system-categories|system-category-types|event-statuses|summary|legal-documents|events|agencies|media-library|media-library-folders|statistics|support-facilities|banners|notifications)(?:\/|\?|$)/.test(path);
+    }
+
+    /*
+     * Khi triển khai tĩnh (GitHub Pages) không có máy chủ API: các lời gọi đọc công
+     * khai lấy từ snapshot, KHÔNG gọi mạng (tránh 404 lặp lại trong console).
+     * Máy chủ Node không bị ảnh hưởng vì isPublicRead() đã trả lời trước. Ở chế độ
+     * phát triển (localhost) vẫn ưu tiên máy chủ đang chạy.
+     */
+    function isServerlessHost() {
+        if (detectBase()) return false;
+        const host = String(window.location.hostname || '');
+        return !/^(localhost|127\.|0\.0\.0\.0|\[::1\])$/.test(host);
+    }
+
+    /**
+     * Khối hỗ trợ trợ lý ảo tĩnh trên GitHub Pages (không có máy chủ để chạy engine).
+     * Các hàm được hoist nên `request` gọi được ở mọi vị trí trong file.
+     */
+    function staticNormalize(text) {
+        return String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
     function loadStaticPublicData() {
@@ -252,6 +274,214 @@
         return undefined;
     }
 
+    /*
+     * Trợ lý ảo trên bản tĩnh: không có máy chủ/engine, nên dùng bộ tri thức ngắn
+     * nhúng sẵn và tra cứu trong snapshot PUBLIC. Đây là bản dự phòng — bản đầy
+     * đủ chạy trên máy chủ Node (`server/lib/chatbot/engine.js`).
+     */
+    const STATIC_KB = [
+        {
+            q: 'ma tuy la gi dinh nghia chat ma tuy',
+            a: 'Ma túy là các chất gây nghiện, chất hướng thần được quy định trong danh mục do Chính phủ ban hành. '
+                + 'Chất gây nghiện là chất kích thích hoặc ức chế thần kinh, dễ gây tình trạng nghiện; chất hướng thần '
+                + 'còn gây ảo giác, dùng nhiều lần có thể dẫn tới nghiện. Sử dụng, tàng trữ, mua bán trái phép chất ma túy '
+                + 'đều vi phạm pháp luật.',
+        },
+        {
+            q: 'dau hieu nhan biet nguoi su dung ma tuy con em nghi nghien',
+            a: 'Các biểu hiện đáng lưu ý: thay đổi thất thường giờ giấc sinh hoạt, lén lút, tiêu tiền bất thường; '
+                + 'tâm trạng thay đổi nhanh, cáu gắt, lo âu; sụt cân, mắt đỏ, đồng tử bất thường; xuất hiện dụng cụ lạ, '
+                + 'mùi lạ; thay đổi nhóm bạn, bỏ học. Không có dấu hiệu nào khẳng định chắc chắn — hãy bình tĩnh trao đổi '
+                + 'và liên hệ Trạm y tế/Công an cấp xã hoặc gọi 0982.120.908.',
+        },
+        {
+            q: 'tac hai cua ma tuy he luy suc khoe gia dinh xa hoi',
+            a: 'Ma túy gây tổn hại sức khỏe (rối loạn thần kinh, tim mạch, gan, phổi; nguy cơ HIV/AIDS, viêm gan B, C '
+                + 'khi dùng chung kim tiêm; quá liều có thể tử vong), phá vỡ gia đình và gia tăng tội phạm, tai nạn xã hội.',
+        },
+        {
+            q: 'ky nang tu choi ru re ep buoc su dung ma tuy',
+            a: 'Bốn nguyên tắc: (1) nói “không” rõ ràng ngay từ đầu; (2) rời khỏi tình huống, gọi người thân đến đón; '
+                + '(3) từ chối bằng lý do xã hội (đang uống thuốc, phải về nhà); (4) không nhận đồ ăn/uống từ người lạ. '
+                + 'Nếu bị ép buộc, tìm nơi đông người và gọi 113 hoặc 0982.120.908.',
+        },
+        {
+            q: 'cai nghien tu nguyen thu tuc quy trinh cac buoc dang ky ho so giay to',
+            a: 'Quy trình 4 bước: (1) Khai báo và tiếp nhận tại Công an cấp xã/UBND/Trạm y tế nơi cư trú; '
+                + '(2) Xác định tình trạng nghiện bằng xét nghiệm theo quy trình Bộ Y tế; (3) Lựa chọn hình thức cai nghiện '
+                + 'tự nguyện và ký cam kết; (4) Hỗ trợ tái hòa nhập (quản lý sau cai, học nghề, việc làm). '
+                + 'Hồ sơ cơ bản: Thẻ Căn cước/CCCD hoặc tài khoản VNeID mức 2, không cần sổ hộ khẩu giấy.',
+        },
+        {
+            q: 'hinh thuc cai nghien cac cach cai nghien',
+            a: 'Có 4 hình thức: cai nghiện tự nguyện tại gia đình/cộng đồng; cai nghiện tự nguyện tại cơ sở công lập; '
+                + 'điều trị thay thế bằng Methadone; quản lý sau cai và tái hòa nhập cộng đồng.',
+        },
+        {
+            q: 'methadone chi phi mien phi thuoc thay the dieu tri',
+            a: 'Tại các cơ sở công lập ở TP. Hồ Chí Minh, thuốc Methadone được cấp phát miễn phí, người bệnh chỉ đóng góp '
+                + 'chi phí dịch vụ y tế ở mức tối thiểu. Điều trị giúp kiểm soát cơn thèm nhớ và giảm nguy cơ lây nhiễm qua '
+                + 'đường máu.',
+        },
+        {
+            q: 'to giac bao tin tu diem toi pham ma tuy bao o dau cong an',
+            a: 'Gọi ngay 113 hoặc số điện thoại Công an cấp xã/phường nơi xảy ra sự việc; cung cấp địa điểm, thời gian, '
+                + 'đối tượng (nếu biết); không tự xử lý trực tiếp. Có thể gửi phản ánh trực tuyến qua trang Liên hệ. '
+                + 'Thông tin người báo tin được giữ bí mật.',
+        },
+        {
+            q: 'xu phat su dung trai phep ma tuy hinh su truy cuu trach nhiem',
+            a: 'Người sử dụng trái phép chất ma túy bị xử phạt vi phạm hành chính; tái phạm trong thời gian cai nghiện/'
+                + 'quản lý sau cai/điều trị thay thế hoặc đã bị xử phạt hành chính mà còn vi phạm có thể bị truy cứu trách '
+                + 'nhiệm hình sự (Điều 256a Bộ luật Hình sự). Tàng trữ, vận chuyển, mua bán, tổ chức sử dụng trái phép bị '
+                + 'xử lý nghiêm khắc.',
+        },
+        {
+            q: 'tu giac khai bao co bi truy cuu hinh su khong',
+            a: 'Người tự giác khai báo tình trạng nghiện để đăng ký cai nghiện tự nguyện được hỗ trợ tiếp cận y tế và '
+                + 'không bị truy cứu trách nhiệm hình sự; chỉ bị truy cứu nếu tái sử dụng trong thời gian đang cai nghiện, '
+                + 'điều trị thay thế, quản lý sau cai hoặc đã bị xử phạt hành chính mà còn vi phạm.',
+        },
+    ];
+
+    const STATIC_STOP = new Set('la gi va cua cho toi minh ban em anh chi khong duoc the nao nhu o dau khi '
+        .split(' ').filter(Boolean));
+
+    function staticTokens(text) {
+        return staticNormalize(text).split(' ')
+            /* Bỏ số/năm ("2030") và từ dừng: không giúp xác định chủ đề */
+            .filter((w) => w.length > 1 && !STATIC_STOP.has(w) && !/^\d+$/.test(w))
+            .map((w) => (w.endsWith('s') && w.length > 4 ? w.slice(0, -1) : w));
+    }
+
+    /** Trả lời tĩnh từ bộ tri thức + snapshot PUBLIC */
+    function staticChatResult(body, snapshot) {
+        const message = String((body && body.message) || '').slice(0, 500).trim();
+        const normalized = staticNormalize(message);
+        const tokens = staticTokens(message);
+        const base = {
+            intent: 'question',
+            disclaimer: 'Bản tĩnh (GitHub Pages) trả lời từ dữ liệu đã xuất; thông tin chỉ mang tính tham khảo.',
+        };
+
+        if (!message) {
+            return { ...base, answer: 'Bạn hãy đặt câu hỏi cụ thể về phòng, chống ma túy.', sources: [], suggestions: staticSuggestions(snapshot) };
+        }
+        if (/qua lieu|overdose|kho tho|co giat|bat tinh|cap cuu|ngat/.test(normalized)) {
+            return {
+                ...base, intent: 'emergency', urgent: true,
+                answer: 'Trường hợp khẩn cấp, hãy GỌI NGAY 115 (cấp cứu) hoặc 113 (công an). Trong lúc chờ: đặt người bệnh '
+                    + 'nằm nghiêng an toàn, nới lỏng quần áo, giữ ấm, không cho ăn uống, không tự ý dùng thêm thuốc.',
+                sources: [], suggestions: [],
+            };
+        }
+        if (/^(xin )?chao|^hello|^hi$|^alo$|^ban la ai/.test(normalized)) {
+            return {
+                ...base,
+                answer: 'Xin chào! Tôi là trợ lý ảo của Chuyên trang (bản tĩnh). Bạn có thể hỏi về kiến thức ma túy, '
+                    + 'dấu hiệu nhận biết, cai nghiện, Methadone, tố giác hoặc xử phạt.',
+                sources: [], suggestions: staticSuggestions(snapshot),
+            };
+        }
+        if (/hotline|duong day nong|lien he|so dien thoai|tong dai/.test(normalized)) {
+            return {
+                ...base,
+                answer: 'Cấp cứu/an ninh: 113 hoặc 115. Tư vấn pháp lý và cai nghiện: 0982.120.908. '
+                    + 'Email: hcmcdpce@gmail.com — Số 10 Đường 3/2, Hòa Hưng, TP. Hồ Chí Minh.',
+                sources: [{ type: 'page', title: 'Trang Liên hệ và hỗ trợ', url: 'pages/public/contact.html', label: 'Liên hệ', excerpt: '' }],
+                suggestions: staticSuggestions(snapshot),
+            };
+        }
+
+        /* Chấm điểm tri thức tĩnh: phải khớp TỈ LỆ từ khóa của câu hỏi, và không
+           ưu tiên mục tri thức chỉ vì trùng từ chung ("ma tuy"). */
+        const STATIC_GENERIC = new Set(['ma', 'tuy', 'ma tuy', 'phong', 'chong', 'thanh', 'pho', 'nguoi', 'viet', 'nam']);
+        let best = null;
+        let bestScore = 0;
+        STATIC_KB.forEach((item) => {
+            const key = item.q.split(' ');
+            const hits = tokens.filter((t) => key.includes(t));
+            const specific = hits.filter((t) => !STATIC_GENERIC.has(t)).length;
+            if (hits.length < 2 || specific === 0) return;
+            /* Điểm = số từ khóa đặc thù khớp / độ dài câu hỏi (ưu tiên câu khớp rõ) */
+            const score = (specific * 2 + (hits.length - specific)) / Math.max(tokens.length, 2);
+            if (score > bestScore) { bestScore = score; best = item; }
+        });
+        if (best && bestScore >= 0.35) {
+            return { ...base, answer: best.a, sources: [], suggestions: staticSuggestions(snapshot) };
+        }
+
+        /* Tra cứu trong snapshot bài viết/văn bản */
+        const haystack = (item) => staticNormalize(`${item.title || ''} ${item.excerpt || item.summary || ''} ${(item.tags || []).join(' ')}`);
+        const articles = (snapshot.articles || [])
+            .map((item) => ({ item, score: tokens.filter((t) => haystack(item).includes(t)).length }))
+            .filter((row) => row.score >= 2)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+        const legal = (snapshot.legalDocuments || [])
+            .map((item) => ({ item, score: tokens.filter((t) => staticNormalize(`${item.title} ${item.summary || ''} ${item.docNumber || ''}`).includes(t)).length }))
+            .filter((row) => row.score >= 2)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+        const events = (snapshot.events || [])
+            .map((item) => ({ item, score: tokens.filter((t) => staticNormalize(`${item.title} ${item.summary || ''} ${item.location || ''}`).includes(t)).length }))
+            .filter((row) => row.score >= 2)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+        const support = (snapshot.supportFacilities || [])
+            .map((item) => ({ item, score: tokens.filter((t) => staticNormalize(`${item.name} ${item.address || ''} ${item.ward || ''} ${item.description || ''}`).includes(t)).length }))
+            .filter((row) => row.score >= 2)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+        /* Chọn nhóm kết quả có điểm cao nhất (bài viết / văn bản / sự kiện / cơ sở) */
+        const groups = [
+            { key: 'article', label: 'Các bài viết', rows: articles },
+            { key: 'legal', label: 'Các văn bản pháp luật', rows: legal },
+            { key: 'event', label: 'Các sự kiện', rows: events },
+            { key: 'support', label: 'Các cơ sở hỗ trợ', rows: support },
+        ].filter((g) => g.rows.length);
+        groups.sort((a, b) => b.rows[0].score - a.rows[0].score);
+        const bestGroup = groups[0];
+        if (bestGroup) {
+            const isArticle = bestGroup.key === 'article';
+            return {
+                ...base,
+                answer: `${bestGroup.label} liên quan trên Chuyên trang:\n`
+                    + bestGroup.rows.map((row, i) => `${i + 1}. ${row.item.title || row.item.name}`).join('\n'),
+                sources: bestGroup.rows.map((row) => ({
+                    type: bestGroup.key,
+                    title: row.item.title || row.item.name,
+                    excerpt: String(row.item.excerpt || row.item.summary || row.item.description || '').slice(0, 160),
+                    label: isArticle ? 'Bài viết'
+                        : bestGroup.key === 'legal' ? 'Văn bản pháp luật'
+                            : bestGroup.key === 'event' ? 'Sự kiện' : 'Cơ sở hỗ trợ',
+                    url: isArticle
+                        ? `pages/public/${row.item.categoryGroup === 'tuyen-truyen-giao-duc' ? 'education-detail' : 'news-detail'}.html?id=${encodeURIComponent(row.item.id)}`
+                        : bestGroup.key === 'legal' ? `pages/public/law-detail.html?id=${encodeURIComponent(row.item.id)}`
+                            : bestGroup.key === 'event' ? `pages/public/event-detail.html?id=${encodeURIComponent(row.item.id)}`
+                                : 'pages/public/support.html',
+                })),
+                suggestions: staticSuggestions(snapshot),
+            };
+        }
+
+        return {
+            ...base,
+            answer: 'Xin lỗi, bản tĩnh chưa có nội dung phù hợp với câu hỏi này. Bạn có thể xem trang Tuyên truyền - Giáo dục, '
+                + 'Pháp luật, Hỗ trợ cai nghiện; hoặc gọi 0982.120.908 (tư vấn) / 115, 113 (khẩn cấp).',
+            sources: [], suggestions: staticSuggestions(snapshot),
+        };
+    }
+
+    function staticSuggestions(snapshot) {
+        const list = [
+            'Ma túy là gì và được phân loại như thế nào?',
+            'Làm sao nhận biết một người nghi sử dụng ma túy?',
+            'Thủ tục đăng ký cai nghiện tự nguyện gồm những gì?',
+        ];
+        return snapshot && snapshot.articles && snapshot.articles.length ? list : list.slice(0, 2);
+    }
+
     function staticArticleDetail(articles, id) {
         const article = articles.find((item) => item.id === id || item.slug === id);
         if (!article) throw new ApiError('Bài viết không tồn tại hoặc chưa được xuất bản.', 404);
@@ -281,6 +511,20 @@
      */
     async function request(method, path, body, options) {
         const opts = options || {};
+
+        /* Bản tĩnh: đọc dữ liệu công khai và chat từ snapshot, không gọi mạng */
+        if (isServerlessHost()) {
+            try {
+                const staticResult = await tryStaticPublicRead(path);
+                if (staticResult.matched) return staticResult.data;
+                if (method === 'POST' && path === '/api/public/chat') {
+                    const snapshot = await loadStaticPublicData();
+                    return staticChatResult(body, snapshot);
+                }
+            } catch (_) {
+                /* snapshot không có: tiếp tục thử máy chủ (nếu có) */
+            }
+        }
         const headers = { Accept: 'application/json' };
         const isWrite = method !== 'GET' && method !== 'HEAD';
         const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -317,6 +561,18 @@
                     /* Keep the original API connection error if no static snapshot is available. */
                 }
             }
+            /*
+             * Trợ lý ảo trên bản tĩnh (GitHub Pages): không có máy chủ để chạy
+             * engine nên trả lời từ snapshot PUBLIC đã xuất sẵn.
+             */
+            if (method === 'POST' && path === '/api/public/chat') {
+                try {
+                    const snapshot = await loadStaticPublicData();
+                    return staticChatResult(body, snapshot);
+                } catch (_) {
+                    /* không có snapshot: rơi xuống lỗi kết nối bên dưới */
+                }
+            }
             if (err && err.name === 'AbortError') throw new ApiError('Yêu cầu mất quá nhiều thời gian. Vui lòng thử lại.', 0);
             throw new ApiError(NETWORK_MESSAGE, 0);
         }
@@ -338,6 +594,15 @@
                     if (fallback.matched) return fallback.data;
                 } catch (_) {
                     /* Preserve the original HTTP error when the static host has no snapshot. */
+                }
+            }
+            /* Bản tĩnh: /api/public/chat không tồn tại (404 HTML) → trả lời từ snapshot */
+            if (response.status === 404 && method === 'POST' && path === '/api/public/chat' && !isApiError) {
+                try {
+                    const snapshot = await loadStaticPublicData();
+                    return staticChatResult(body, snapshot);
+                } catch (_) {
+                    /* giữ lỗi HTTP gốc */
                 }
             }
             if (response.status === 401 && window.dispatchEvent) {

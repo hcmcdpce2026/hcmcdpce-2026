@@ -144,7 +144,12 @@ function cmdImport(args) {
   let ok = 0;
   const skipped = [];
 
-  const run = db.transaction(() => {
+  /*
+   * `node:sqlite` (DatabaseSync) KHÔNG có `db.transaction()` như better-sqlite3,
+   * nên dùng BEGIN/COMMIT/ROLLBACK tường minh. Chế độ --dry-run vẫn chạy thật
+   * các câu lệnh (để kiểm tra khoá ngoại/trigger) rồi ROLLBACK, không ghi dữ liệu.
+   */
+  const applyRows = () => {
     rows.forEach((raw, idx) => {
       const row = {};
       Object.keys(raw).forEach((k) => { if (existingCols.includes(k)) row[k] = raw[k]; });
@@ -168,14 +173,18 @@ function cmdImport(args) {
       }
       ok += 1;
     });
-    if (dryRun) throw new Error('__DRY_RUN__');
-  });
+  };
 
   console.log(`NHẬP DỮ LIỆU → ${table} (${rows.length} dòng)${dryRun ? ' [thử nghiệm]' : ''}`);
+  db.exec('BEGIN IMMEDIATE');
   try {
-    run();
+    applyRows();
+    db.exec(dryRun ? 'ROLLBACK' : 'COMMIT');
   } catch (err) {
-    if (err.message !== '__DRY_RUN__') throw err;
+    try { db.exec('ROLLBACK'); } catch (_) { /* đã đóng */ }
+    console.error('Lỗi khi nhập dữ liệu:', err.message);
+    process.exitCode = 1;
+    return;
   }
   console.log(`  ✓ Hợp lệ: ${ok}`);
   if (skipped.length) {

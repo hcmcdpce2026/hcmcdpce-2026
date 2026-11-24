@@ -26,7 +26,7 @@ Repository chứa toàn bộ cổng thông tin: giao diện công khai cho ngư�
 
 | Phân hệ | Người dùng | Chức năng chính |
 |---|---|---|
-| PUBLIC | Người dân, khách truy cập | Tin tức, tuyên truyền - giáo dục, pháp luật, thống kê, cơ quan - đơn vị, sự kiện, hỗ trợ, gửi phản ánh và tra cứu mã tiếp nhận |
+| PUBLIC | Người dân, khách truy cập | Tin tức, tuyên truyền - giáo dục, pháp luật, thống kê, cơ quan - đơn vị, sự kiện, hỗ trợ, gửi phản ánh và tra cứu mã tiếp nhận, **trợ lý ảo hỏi đáp** |
 | CMS | Cán bộ nội dung, biên tập, kiểm duyệt | Bài viết, chuyên mục, danh mục công khai, media, quy trình xuất bản, phản ánh, đề xuất và nhật ký |
 | WORKSPACE | Cán bộ/đơn vị tham gia phối hợp | Nhiệm vụ, mục công việc, bình luận, báo cáo, lịch, tài liệu, tổ chức, người dùng, vai trò và thông báo |
 | API | Frontend và công cụ vận hành | Xác thực, phiên, CSRF, phân quyền, CRUD nghiệp vụ, truy vấn PUBLIC và xuất snapshot tĩnh |
@@ -178,6 +178,14 @@ Artifact `github-pages/` được `.gitignore`, không được commit; nó khô
 
 Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.env`, `.sqlite`, credential, `uploads`, `backups`, thông tin cá nhân hoặc nội dung chưa phê duyệt. Hướng dẫn chi tiết: [docs/PUBLIC-PUBLISHING.md](docs/PUBLIC-PUBLISHING.md).
 
+### Trợ lý ảo trên bản tĩnh
+
+GitHub Pages không chạy Node.js nên không có `POST /api/public/chat`. Widget vẫn hoạt động ở **chế độ tĩnh**: `js/api.js` phát hiện host không phải máy chủ (không phải `localhost`) và trả lời từ `public-data/public.json` bằng bộ tri thức ngắn nhúng sẵn (`STATIC_KB`), kèm liên kết tới bài viết/văn bản/sự kiện/cơ sở trong snapshot.
+
+- Trả lời được: kiến thức cơ bản, dấu hiệu nhận biết, tác hại, kỹ năng từ chối, cai nghiện, Methadone, tố giác, xử phạt, tình huống khẩn cấp và tìm nội dung theo từ khóa.
+- Không làm được trên bản tĩnh: gửi phản ánh, tra cứu mã tiếp nhận, trả lời ngoài bộ tri thức có sẵn — các chức năng này cần máy chủ Node.
+- Muốn trợ lý ảo đầy đủ (dữ liệu mới nhất, tìm kiếm mở rộng) phải chạy backend Node ở nơi khác (VPS, Render, Railway…) và trỏ `window.PORTAL_API_BASE` tới đó.
+
 ## Cấu hình
 
 Đọc đầy đủ `.env.example`. Các biến chính:
@@ -197,6 +205,8 @@ Chỉ commit snapshot và media. Dừng commit nếu danh sách staged chứa `.
 | `SEED_PASSWORD_CMS_ADMIN` | trống | Mật khẩu seed CMS |
 | `SEED_PASSWORD_WS_ADMIN` | trống | Mật khẩu seed Workspace |
 | `RATE_LIMIT_DISABLED` | `false` | Chỉ dùng cho kiểm thử |
+| `CHATBOT_ENABLED` | `true` | Bật/tắt trợ lý ảo (chatbot) trên trang PUBLIC |
+| `CHATBOT_RATE_LIMIT` | `30` | Số câu hỏi tối đa/1 IP trong 5 phút |
 | `MAX_UPLOAD_MB` | `100` | Giới hạn dung lượng mỗi tệp tải lên (MB), phù hợp GitHub/GitHub Pages |
 
 Không commit `.env`. Trong production bật HTTPS và đặt `HOST=127.0.0.1` nếu reverse proxy là điểm truy cập duy nhất.
@@ -237,7 +247,7 @@ npm.cmd run check
 npm.cmd run test:content-types
 ```
 
-`test:isolated` tạo máy chủ tạm ở cổng `8123`, database tạm và tự xóa sau khi chạy.
+`test:isolated` lần lượt chạy `test-api.js`, `smoke-interconnect.js`, `smoke-security.js`, `smoke-workspace-crud.js` và `smoke-chatbot.js` trên một máy chủ tạm ở cổng `8123` với database tạm, rồi tự xoá.
 
 Các runner khác có thể ghi dữ liệu hoặc dừng server:
 
